@@ -1,0 +1,44 @@
+# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+from waflib import Options
+
+# def options(opt):
+#     pass
+
+# def configure(conf):
+#     conf.check_nonfatal(header_name='stdint.h', define_name='HAVE_STDINT_H')
+# def configure(conf):
+#     conf.env.append_value("LINKFLAGS", "-L../src/compressed-sensing/lib/")
+#     if Options.options.build_profile == 'debug':
+#         conf.env.append_value("LINKFLAGS", "-lKLab64_d")
+#     else:
+#         conf.env.append_value("LINKFLAGS", "-lKLab64")
+def build(bld):
+    module = bld.create_ns3_module('compressed-sensing', ['core'])
+    module.source = [
+        ]
+
+    module_test = bld.create_ns3_module_test_library('compressed-sensing')
+    module_test.source = [
+        ]
+    module.env.append_value("CXXFLAGS", "-I../src/compressed-sensing/lib/include/KL1p")
+    module.env.append_value("CXXFLAGS", "-I../src/compressed-sensing/lib/include/KLab")
+    module.env.append_value("CXXFLAGS", "-I../src/compressed-sensing/lib/include/KSci")
+    module.env.append_value("CXXFLAGS", "-I../src/compressed-sensing/lib/include/Armadillo")
+    module.env.append_value("CXXFLAGS", "-Wno-error")
+    module.env.append_value("LINKFLAGS", ["-L../src/compressed-sensing/lib/"])
+    if Options.options.build_profile == 'debug':
+    	module.env.append_value("LIB",["dl","KLab64_d"])
+    else:
+	module.env.append_value("LIB",["dl","KLab64"])
+
+    headers = bld(features='ns3header')
+    headers.module = 'compressed-sensing'
+    headers.source = [
+        'model/reconstructor.h',
+]
+
+    if bld.env.ENABLE_EXAMPLES:
+        bld.recurse('examples')
+
+    # bld.ns3_python_bindings()
+

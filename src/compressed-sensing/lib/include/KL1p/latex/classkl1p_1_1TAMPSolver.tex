@@ -1,0 +1,58 @@
+\hypertarget{classkl1p_1_1TAMPSolver}{}\section{kl1p\+:\+:T\+A\+M\+P\+Solver$<$ T, T\+Col, T\+Op $>$ Class Template Reference}
+\label{classkl1p_1_1TAMPSolver}\index{kl1p\+::\+T\+A\+M\+P\+Solver$<$ T, T\+Col, T\+Op $>$@{kl1p\+::\+T\+A\+M\+P\+Solver$<$ T, T\+Col, T\+Op $>$}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries T\+A\+M\+P\+Solver} (const T \&tolerance)\hypertarget{classkl1p_1_1TAMPSolver_a8409842b12ad1edd21a6d757005420bd}{}\label{classkl1p_1_1TAMPSolver_a8409842b12ad1edd21a6d757005420bd}
+
+\item 
+{\bfseries T\+A\+M\+P\+Solver} (const T \&tolerance, klab\+::\+U\+Int32 iteration\+Limit)\hypertarget{classkl1p_1_1TAMPSolver_a5076577f06cf910da3db3e197f88b08c}{}\label{classkl1p_1_1TAMPSolver_a5076577f06cf910da3db3e197f88b08c}
+
+\item 
+{\bfseries T\+A\+M\+P\+Solver} (const \hyperlink{classkl1p_1_1TAMPSolver}{T\+A\+M\+P\+Solver}$<$ T, T\+Col, T\+Op $>$ \&solver)\hypertarget{classkl1p_1_1TAMPSolver_a46023d22997d73219aeb98b64f141917}{}\label{classkl1p_1_1TAMPSolver_a46023d22997d73219aeb98b64f141917}
+
+\item 
+\hyperlink{classkl1p_1_1TAMPSolver}{T\+A\+M\+P\+Solver}$<$ T, T\+Col, T\+Op $>$ \& {\bfseries operator=} (const \hyperlink{classkl1p_1_1TAMPSolver}{T\+A\+M\+P\+Solver}$<$ T, T\+Col, T\+Op $>$ \&solver)\hypertarget{classkl1p_1_1TAMPSolver_aec9102de62ccfcf0bdf4cec34353348d}{}\label{classkl1p_1_1TAMPSolver_aec9102de62ccfcf0bdf4cec34353348d}
+
+\item 
+void {\bfseries set\+Tolerance} (const T \&tolerance)\hypertarget{classkl1p_1_1TAMPSolver_a5bb0c3c4917479acc14c799b7edfcd7f}{}\label{classkl1p_1_1TAMPSolver_a5bb0c3c4917479acc14c799b7edfcd7f}
+
+\item 
+void {\bfseries set\+Iteration\+Limit} (klab\+::\+U\+Int32 iteration\+Limit)\hypertarget{classkl1p_1_1TAMPSolver_ab4dc6dd8b2bd6c316a1df1c257e8accf}{}\label{classkl1p_1_1TAMPSolver_ab4dc6dd8b2bd6c316a1df1c257e8accf}
+
+\item 
+const T \& {\bfseries tolerance} () const \hypertarget{classkl1p_1_1TAMPSolver_a9b6ed85a78ab1987d63976b1599e7bc6}{}\label{classkl1p_1_1TAMPSolver_a9b6ed85a78ab1987d63976b1599e7bc6}
+
+\item 
+klab\+::\+U\+Int32 {\bfseries iteration\+Limit} () const \hypertarget{classkl1p_1_1TAMPSolver_aa5679f298008e150cf90fdf3780907c8}{}\label{classkl1p_1_1TAMPSolver_aa5679f298008e150cf90fdf3780907c8}
+
+\item 
+const T \& {\bfseries residual\+Norm} () const \hypertarget{classkl1p_1_1TAMPSolver_a4889a7dffbee0f4aac7a2c28730db173}{}\label{classkl1p_1_1TAMPSolver_a4889a7dffbee0f4aac7a2c28730db173}
+
+\item 
+const T \& {\bfseries relative\+Residual\+Norm} () const \hypertarget{classkl1p_1_1TAMPSolver_af7f8d281285484a0732a827438f50eb6}{}\label{classkl1p_1_1TAMPSolver_af7f8d281285484a0732a827438f50eb6}
+
+\item 
+klab\+::\+U\+Int32 {\bfseries iterations} () const \hypertarget{classkl1p_1_1TAMPSolver_ab8efcd660edc5f18364ded2c1cbe1d49}{}\label{classkl1p_1_1TAMPSolver_ab8efcd660edc5f18364ded2c1cbe1d49}
+
+\item 
+void {\bfseries enable\+History} (bool enable)\hypertarget{classkl1p_1_1TAMPSolver_adee60c9920d0108d0143f7d7a7eb1cf1}{}\label{classkl1p_1_1TAMPSolver_adee60c9920d0108d0143f7d7a7eb1cf1}
+
+\item 
+bool {\bfseries is\+History\+Enabled} () const \hypertarget{classkl1p_1_1TAMPSolver_ab0ebae5b2b394b051a779d95f82a7b45}{}\label{classkl1p_1_1TAMPSolver_ab0ebae5b2b394b051a779d95f82a7b45}
+
+\item 
+const \hyperlink{classkl1p_1_1THistory}{T\+History}$<$ \hyperlink{classkl1p_1_1TAMPHistoryElement}{T\+A\+M\+P\+History\+Element}$<$ T $>$ $>$ \& {\bfseries history} () const \hypertarget{classkl1p_1_1TAMPSolver_ac26f3cbf3b4d21f8446016ecd32de314}{}\label{classkl1p_1_1TAMPSolver_ac26f3cbf3b4d21f8446016ecd32de314}
+
+\item 
+void {\bfseries solve} (const arma\+::\+Col$<$ T\+Col $>$ \&y, klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ phi, arma\+::\+Col$<$ T\+Col $>$ \&x)\hypertarget{classkl1p_1_1TAMPSolver_a83cab6fbf7939183d1070fd8c98f2024}{}\label{classkl1p_1_1TAMPSolver_a83cab6fbf7939183d1070fd8c98f2024}
+
+\item 
+void {\bfseries solve} (const arma\+::\+Col$<$ T\+Col $>$ \&y, klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ phi, klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ phiT, arma\+::\+Col$<$ T\+Col $>$ \&x)\hypertarget{classkl1p_1_1TAMPSolver_a98617efc42da15d10cc3a8f6d1af6d02}{}\label{classkl1p_1_1TAMPSolver_a98617efc42da15d10cc3a8f6d1af6d02}
+
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/A\+M\+P\+Solver.\+h\end{DoxyCompactItemize}

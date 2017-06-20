@@ -1,0 +1,87 @@
+\hypertarget{classkl1p_1_1TBlockTridiagonalOperator}{}\section{kl1p\+:\+:T\+Block\+Tridiagonal\+Operator$<$ T, T\+Out, T\+Op $>$ Class Template Reference}
+\label{classkl1p_1_1TBlockTridiagonalOperator}\index{kl1p\+::\+T\+Block\+Tridiagonal\+Operator$<$ T, T\+Out, T\+Op $>$@{kl1p\+::\+T\+Block\+Tridiagonal\+Operator$<$ T, T\+Out, T\+Op $>$}}
+
+
+Inheritance diagram for kl1p\+:\+:T\+Block\+Tridiagonal\+Operator$<$ T, T\+Out, T\+Op $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=236pt]{classkl1p_1_1TBlockTridiagonalOperator__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for kl1p\+:\+:T\+Block\+Tridiagonal\+Operator$<$ T, T\+Out, T\+Op $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=236pt]{classkl1p_1_1TBlockTridiagonalOperator__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+typedef std\+::vector$<$ klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ $>$ {\bfseries T\+Operator\+Array}\hypertarget{classkl1p_1_1TBlockTridiagonalOperator_a1e93b7a33162d0a67de0c2fbf47d6f9c}{}\label{classkl1p_1_1TBlockTridiagonalOperator_a1e93b7a33162d0a67de0c2fbf47d6f9c}
+
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries T\+Block\+Tridiagonal\+Operator} (const typename \hyperlink{classkl1p_1_1TBlockTridiagonalOperator}{T\+Block\+Tridiagonal\+Operator}$<$ T, T\+Out, T\+Op $>$\+::T\+Operator\+Array \&diagonal, const typename \hyperlink{classkl1p_1_1TBlockTridiagonalOperator}{T\+Block\+Tridiagonal\+Operator}$<$ T, T\+Out, T\+Op $>$\+::T\+Operator\+Array \&lower, const typename \hyperlink{classkl1p_1_1TBlockTridiagonalOperator}{T\+Block\+Tridiagonal\+Operator}$<$ T, T\+Out, T\+Op $>$\+::T\+Operator\+Array \&upper)\hypertarget{classkl1p_1_1TBlockTridiagonalOperator_a87a7873f0782fb05915f809fc36319da}{}\label{classkl1p_1_1TBlockTridiagonalOperator_a87a7873f0782fb05915f809fc36319da}
+
+\item 
+{\bfseries T\+Block\+Tridiagonal\+Operator} (const \hyperlink{classkl1p_1_1TBlockTridiagonalOperator}{T\+Block\+Tridiagonal\+Operator}$<$ T, T\+Out, T\+Op $>$ \&op)\hypertarget{classkl1p_1_1TBlockTridiagonalOperator_aa0adc9ee189b2a204de3c17342b46729}{}\label{classkl1p_1_1TBlockTridiagonalOperator_aa0adc9ee189b2a204de3c17342b46729}
+
+\item 
+virtual bool {\bfseries is\+Zero} ()\hypertarget{classkl1p_1_1TBlockTridiagonalOperator_a6a373ba3575c7881967d7073001d810b}{}\label{classkl1p_1_1TBlockTridiagonalOperator_a6a373ba3575c7881967d7073001d810b}
+
+\item 
+virtual klab\+::\+U\+Int32 {\bfseries count\+Block\+Rows} () const \hypertarget{classkl1p_1_1TBlockTridiagonalOperator_aac39849319dece38b0634cab0ce861e0}{}\label{classkl1p_1_1TBlockTridiagonalOperator_aac39849319dece38b0634cab0ce861e0}
+
+\item 
+virtual klab\+::\+U\+Int32 {\bfseries count\+Block\+Columns} () const \hypertarget{classkl1p_1_1TBlockTridiagonalOperator_aceac6d7a78d22b49164806d78bee6f9f}{}\label{classkl1p_1_1TBlockTridiagonalOperator_aceac6d7a78d22b49164806d78bee6f9f}
+
+\item 
+virtual klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ {\bfseries block} (klab\+::\+U\+Int32 i, klab\+::\+U\+Int32 j) const \hypertarget{classkl1p_1_1TBlockTridiagonalOperator_a0bc4423406e914e2ad6aa5b81d59ba08}{}\label{classkl1p_1_1TBlockTridiagonalOperator_a0bc4423406e914e2ad6aa5b81d59ba08}
+
+\item 
+virtual bool {\bfseries is\+Zero\+Block} (klab\+::\+U\+Int32 i, klab\+::\+U\+Int32 j) const \hypertarget{classkl1p_1_1TBlockTridiagonalOperator_a834b9d95a38de854034c7b097e2f4d09}{}\label{classkl1p_1_1TBlockTridiagonalOperator_a834b9d95a38de854034c7b097e2f4d09}
+
+\item 
+virtual klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ {\bfseries in\+Block} (klab\+::\+U\+Int32 i, klab\+::\+U\+Int32 j) const \hypertarget{classkl1p_1_1TBlockTridiagonalOperator_af25114ddcc9bcf6361898823c8c84bed}{}\label{classkl1p_1_1TBlockTridiagonalOperator_af25114ddcc9bcf6361898823c8c84bed}
+
+\item 
+virtual void {\bfseries apply} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T\+Out $>$ \&out)\hypertarget{classkl1p_1_1TBlockTridiagonalOperator_a1fe3f41ec6f514ca3557e91a157339bd}{}\label{classkl1p_1_1TBlockTridiagonalOperator_a1fe3f41ec6f514ca3557e91a157339bd}
+
+\item 
+virtual void {\bfseries apply\+Adjoint} (const arma\+::\+Col$<$ T\+Out $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TBlockTridiagonalOperator_a52c61b719ed8123a6f0bd63a17077bc8}{}\label{classkl1p_1_1TBlockTridiagonalOperator_a52c61b719ed8123a6f0bd63a17077bc8}
+
+\item 
+virtual void {\bfseries column} (klab\+::\+U\+Int32 i, arma\+::\+Col$<$ T\+Out $>$ \&out)\hypertarget{classkl1p_1_1TBlockTridiagonalOperator_afc94e82c8434e715017709cab88de987}{}\label{classkl1p_1_1TBlockTridiagonalOperator_afc94e82c8434e715017709cab88de987}
+
+\item 
+virtual void {\bfseries column\+Adjoint} (klab\+::\+U\+Int32 i, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TBlockTridiagonalOperator_a11283192c9b22f0113da7a6cc5472f81}{}\label{classkl1p_1_1TBlockTridiagonalOperator_a11283192c9b22f0113da7a6cc5472f81}
+
+\item 
+virtual void {\bfseries apply\+Block\+Variance} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TBlockTridiagonalOperator_a47aa5c4177cfb0c9ea194cfaa7b93cd1}{}\label{classkl1p_1_1TBlockTridiagonalOperator_a47aa5c4177cfb0c9ea194cfaa7b93cd1}
+
+\item 
+virtual void {\bfseries apply\+Block\+Variance\+Adjoint} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TBlockTridiagonalOperator_ae3b88a97c3f8449b3176ecfc1486649f}{}\label{classkl1p_1_1TBlockTridiagonalOperator_ae3b88a97c3f8449b3176ecfc1486649f}
+
+\end{DoxyCompactItemize}
+\subsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void {\bfseries set\+Tridiagonal\+Arrays} (const typename \hyperlink{classkl1p_1_1TBlockTridiagonalOperator}{T\+Block\+Tridiagonal\+Operator}$<$ T, T\+Out, T\+Op $>$\+::T\+Operator\+Array \&diagonal, const typename \hyperlink{classkl1p_1_1TBlockTridiagonalOperator}{T\+Block\+Tridiagonal\+Operator}$<$ T, T\+Out, T\+Op $>$\+::T\+Operator\+Array \&lower, const typename \hyperlink{classkl1p_1_1TBlockTridiagonalOperator}{T\+Block\+Tridiagonal\+Operator}$<$ T, T\+Out, T\+Op $>$\+::T\+Operator\+Array \&upper)\hypertarget{classkl1p_1_1TBlockTridiagonalOperator_a169465de5cb9fc91276ad0dc0bdee2a4}{}\label{classkl1p_1_1TBlockTridiagonalOperator_a169465de5cb9fc91276ad0dc0bdee2a4}
+
+\item 
+void {\bfseries update\+Variance\+Matrix} ()\hypertarget{classkl1p_1_1TBlockTridiagonalOperator_a88049332216e59bd2eca24484b862f0c}{}\label{classkl1p_1_1TBlockTridiagonalOperator_a88049332216e59bd2eca24484b862f0c}
+
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/Block\+Tridiagonal\+Operator.\+h\end{DoxyCompactItemize}

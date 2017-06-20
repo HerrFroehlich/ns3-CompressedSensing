@@ -1,0 +1,82 @@
+\hypertarget{classkl1p_1_1TBlockOperator}{}\section{kl1p\+:\+:T\+Block\+Operator$<$ T, T\+Out, T\+Op $>$ Class Template Reference}
+\label{classkl1p_1_1TBlockOperator}\index{kl1p\+::\+T\+Block\+Operator$<$ T, T\+Out, T\+Op $>$@{kl1p\+::\+T\+Block\+Operator$<$ T, T\+Out, T\+Op $>$}}
+
+
+Inheritance diagram for kl1p\+:\+:T\+Block\+Operator$<$ T, T\+Out, T\+Op $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classkl1p_1_1TBlockOperator__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for kl1p\+:\+:T\+Block\+Operator$<$ T, T\+Out, T\+Op $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=189pt]{classkl1p_1_1TBlockOperator__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries T\+Block\+Operator} (klab\+::\+U\+Int32 n)\hypertarget{classkl1p_1_1TBlockOperator_a5dc354ba1f729db43de46140a32e3026}{}\label{classkl1p_1_1TBlockOperator_a5dc354ba1f729db43de46140a32e3026}
+
+\item 
+{\bfseries T\+Block\+Operator} (klab\+::\+U\+Int32 m, klab\+::\+U\+Int32 n)\hypertarget{classkl1p_1_1TBlockOperator_a582054d812e2fa198041c0f4b49650f9}{}\label{classkl1p_1_1TBlockOperator_a582054d812e2fa198041c0f4b49650f9}
+
+\item 
+{\bfseries T\+Block\+Operator} (const \hyperlink{classkl1p_1_1TBlockOperator}{T\+Block\+Operator}$<$ T, T\+Out, T\+Op $>$ \&op)\hypertarget{classkl1p_1_1TBlockOperator_a6f125a341d84ddecd00aee2ac163b869}{}\label{classkl1p_1_1TBlockOperator_a6f125a341d84ddecd00aee2ac163b869}
+
+\item 
+virtual bool {\bfseries is\+Zero} ()\hypertarget{classkl1p_1_1TBlockOperator_a0dc821bb4c6b6a4d83f8116980068361}{}\label{classkl1p_1_1TBlockOperator_a0dc821bb4c6b6a4d83f8116980068361}
+
+\item 
+virtual T {\bfseries sum} ()\hypertarget{classkl1p_1_1TBlockOperator_af94660a9ae9a441e534242d8a1341324}{}\label{classkl1p_1_1TBlockOperator_af94660a9ae9a441e534242d8a1341324}
+
+\item 
+virtual T {\bfseries squared\+Norm\+Frobenius} ()\hypertarget{classkl1p_1_1TBlockOperator_a6bf4b8cceb7591a14910178adc41399e}{}\label{classkl1p_1_1TBlockOperator_a6bf4b8cceb7591a14910178adc41399e}
+
+\item 
+virtual klab\+::\+U\+Int32 {\bfseries count\+Block\+Rows} () const =0\hypertarget{classkl1p_1_1TBlockOperator_a11b06e07e2caddb5ce6e02b84ee1f9a7}{}\label{classkl1p_1_1TBlockOperator_a11b06e07e2caddb5ce6e02b84ee1f9a7}
+
+\item 
+virtual klab\+::\+U\+Int32 {\bfseries count\+Block\+Columns} () const =0\hypertarget{classkl1p_1_1TBlockOperator_a3ee4a1fcb3ccb494cb2fac7cc2d454ee}{}\label{classkl1p_1_1TBlockOperator_a3ee4a1fcb3ccb494cb2fac7cc2d454ee}
+
+\item 
+virtual klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ {\bfseries block} (klab\+::\+U\+Int32 i, klab\+::\+U\+Int32 j) const =0\hypertarget{classkl1p_1_1TBlockOperator_a818d8197561091b57eb68da45984e862}{}\label{classkl1p_1_1TBlockOperator_a818d8197561091b57eb68da45984e862}
+
+\item 
+virtual bool {\bfseries is\+Zero\+Block} (klab\+::\+U\+Int32 i, klab\+::\+U\+Int32 j) const \hypertarget{classkl1p_1_1TBlockOperator_a38f14ee4289d3a1022621fd2756468a0}{}\label{classkl1p_1_1TBlockOperator_a38f14ee4289d3a1022621fd2756468a0}
+
+\item 
+virtual klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ {\bfseries in\+Block} (klab\+::\+U\+Int32 i, klab\+::\+U\+Int32 j) const \hypertarget{classkl1p_1_1TBlockOperator_abe27ac7aae020a0046b41dbbce833c2e}{}\label{classkl1p_1_1TBlockOperator_abe27ac7aae020a0046b41dbbce833c2e}
+
+\item 
+virtual void {\bfseries apply} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T\+Out $>$ \&out)\hypertarget{classkl1p_1_1TBlockOperator_abe8347dc36f51357b31019202e6519f6}{}\label{classkl1p_1_1TBlockOperator_abe8347dc36f51357b31019202e6519f6}
+
+\item 
+virtual void {\bfseries apply\+Adjoint} (const arma\+::\+Col$<$ T\+Out $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TBlockOperator_a16f5ca78ef3004162ed0bec64a33f2a7}{}\label{classkl1p_1_1TBlockOperator_a16f5ca78ef3004162ed0bec64a33f2a7}
+
+\item 
+virtual void {\bfseries column} (klab\+::\+U\+Int32 i, arma\+::\+Col$<$ T\+Out $>$ \&out)\hypertarget{classkl1p_1_1TBlockOperator_afd7fe16a9a975d78d04c08f0d4840585}{}\label{classkl1p_1_1TBlockOperator_afd7fe16a9a975d78d04c08f0d4840585}
+
+\item 
+virtual void {\bfseries column\+Adjoint} (klab\+::\+U\+Int32 i, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TBlockOperator_aaba087da87a91484c87e034ca1cb24c8}{}\label{classkl1p_1_1TBlockOperator_aaba087da87a91484c87e034ca1cb24c8}
+
+\item 
+virtual void {\bfseries apply\+Block\+Variance} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TBlockOperator_a9f7a58f4ad532f72761cadb0dcb37ffe}{}\label{classkl1p_1_1TBlockOperator_a9f7a58f4ad532f72761cadb0dcb37ffe}
+
+\item 
+virtual void {\bfseries apply\+Block\+Variance\+Adjoint} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TBlockOperator_aa3603d90acc99c1f6b43578b8701ecb9}{}\label{classkl1p_1_1TBlockOperator_aa3603d90acc99c1f6b43578b8701ecb9}
+
+\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/Block\+Operator.\+h\end{DoxyCompactItemize}

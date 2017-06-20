@@ -1,0 +1,93 @@
+\hypertarget{classkl1p_1_1TColumnJointOperator}{}\section{kl1p\+:\+:T\+Column\+Joint\+Operator$<$ T, T\+Out, T\+Op $>$ Class Template Reference}
+\label{classkl1p_1_1TColumnJointOperator}\index{kl1p\+::\+T\+Column\+Joint\+Operator$<$ T, T\+Out, T\+Op $>$@{kl1p\+::\+T\+Column\+Joint\+Operator$<$ T, T\+Out, T\+Op $>$}}
+
+
+Inheritance diagram for kl1p\+:\+:T\+Column\+Joint\+Operator$<$ T, T\+Out, T\+Op $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=219pt]{classkl1p_1_1TColumnJointOperator__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for kl1p\+:\+:T\+Column\+Joint\+Operator$<$ T, T\+Out, T\+Op $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=219pt]{classkl1p_1_1TColumnJointOperator__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+typedef std\+::vector$<$ klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ $>$ {\bfseries T\+Operator\+Array}\hypertarget{classkl1p_1_1TColumnJointOperator_a9d4fd1b1376b19a417cf13ed4fc422e2}{}\label{classkl1p_1_1TColumnJointOperator_a9d4fd1b1376b19a417cf13ed4fc422e2}
+
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries T\+Column\+Joint\+Operator} (klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ op)\hypertarget{classkl1p_1_1TColumnJointOperator_a02082364d2d12a045519698ab5b9a241}{}\label{classkl1p_1_1TColumnJointOperator_a02082364d2d12a045519698ab5b9a241}
+
+\item 
+{\bfseries T\+Column\+Joint\+Operator} (klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ op1, klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ op2)\hypertarget{classkl1p_1_1TColumnJointOperator_ab97fc18b1c3c59df66865512d6839721}{}\label{classkl1p_1_1TColumnJointOperator_ab97fc18b1c3c59df66865512d6839721}
+
+\item 
+{\bfseries T\+Column\+Joint\+Operator} (klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ op1, klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ op2, klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ op3)\hypertarget{classkl1p_1_1TColumnJointOperator_ab977246405a98933c73309eaa889df82}{}\label{classkl1p_1_1TColumnJointOperator_ab977246405a98933c73309eaa889df82}
+
+\item 
+{\bfseries T\+Column\+Joint\+Operator} (const typename \hyperlink{classkl1p_1_1TColumnJointOperator}{T\+Column\+Joint\+Operator}$<$ T, T\+Out, T\+Op $>$\+::T\+Operator\+Array \&ops)\hypertarget{classkl1p_1_1TColumnJointOperator_a4de54c20174cc3f935c446b5859fcaf8}{}\label{classkl1p_1_1TColumnJointOperator_a4de54c20174cc3f935c446b5859fcaf8}
+
+\item 
+{\bfseries T\+Column\+Joint\+Operator} (const \hyperlink{classkl1p_1_1TColumnJointOperator}{T\+Column\+Joint\+Operator}$<$ T, T\+Out, T\+Op $>$ \&op)\hypertarget{classkl1p_1_1TColumnJointOperator_a62e6479533163225e77c0e1b14378e0e}{}\label{classkl1p_1_1TColumnJointOperator_a62e6479533163225e77c0e1b14378e0e}
+
+\item 
+virtual bool {\bfseries is\+Zero} ()\hypertarget{classkl1p_1_1TColumnJointOperator_aeb7aff5eb413b3a9aac72a90d4aced9d}{}\label{classkl1p_1_1TColumnJointOperator_aeb7aff5eb413b3a9aac72a90d4aced9d}
+
+\item 
+virtual klab\+::\+U\+Int32 {\bfseries count\+Block\+Rows} () const \hypertarget{classkl1p_1_1TColumnJointOperator_a1fc0609bedf1c849bc64f6535d53360a}{}\label{classkl1p_1_1TColumnJointOperator_a1fc0609bedf1c849bc64f6535d53360a}
+
+\item 
+virtual klab\+::\+U\+Int32 {\bfseries count\+Block\+Columns} () const \hypertarget{classkl1p_1_1TColumnJointOperator_a6de3a65aa4d4769dfb0eb7556877b2fc}{}\label{classkl1p_1_1TColumnJointOperator_a6de3a65aa4d4769dfb0eb7556877b2fc}
+
+\item 
+virtual klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ {\bfseries block} (klab\+::\+U\+Int32 i, klab\+::\+U\+Int32 j) const \hypertarget{classkl1p_1_1TColumnJointOperator_a26b5e1eee5a563028fea9605e73e78b6}{}\label{classkl1p_1_1TColumnJointOperator_a26b5e1eee5a563028fea9605e73e78b6}
+
+\item 
+virtual bool {\bfseries is\+Zero\+Block} (klab\+::\+U\+Int32 i, klab\+::\+U\+Int32 j) const \hypertarget{classkl1p_1_1TColumnJointOperator_a16e900f678d80c2de31344ab4341b366}{}\label{classkl1p_1_1TColumnJointOperator_a16e900f678d80c2de31344ab4341b366}
+
+\item 
+virtual klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ {\bfseries in\+Block} (klab\+::\+U\+Int32 i, klab\+::\+U\+Int32 j) const \hypertarget{classkl1p_1_1TColumnJointOperator_ae33cbd4735dfd7e30f1773fe3e875e57}{}\label{classkl1p_1_1TColumnJointOperator_ae33cbd4735dfd7e30f1773fe3e875e57}
+
+\item 
+virtual void {\bfseries apply} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T\+Out $>$ \&out)\hypertarget{classkl1p_1_1TColumnJointOperator_a0bd2f7e3656fd14e8328063bde591bc0}{}\label{classkl1p_1_1TColumnJointOperator_a0bd2f7e3656fd14e8328063bde591bc0}
+
+\item 
+virtual void {\bfseries apply\+Adjoint} (const arma\+::\+Col$<$ T\+Out $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TColumnJointOperator_af15492ac3423bfaad5456c99c8236fb9}{}\label{classkl1p_1_1TColumnJointOperator_af15492ac3423bfaad5456c99c8236fb9}
+
+\item 
+virtual void {\bfseries column} (klab\+::\+U\+Int32 i, arma\+::\+Col$<$ T\+Out $>$ \&out)\hypertarget{classkl1p_1_1TColumnJointOperator_a99ac91ff87f6985a9f0f3d6300d54fc4}{}\label{classkl1p_1_1TColumnJointOperator_a99ac91ff87f6985a9f0f3d6300d54fc4}
+
+\item 
+virtual void {\bfseries column\+Adjoint} (klab\+::\+U\+Int32 i, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TColumnJointOperator_a119944332beae5d5005ec2ea872a8d11}{}\label{classkl1p_1_1TColumnJointOperator_a119944332beae5d5005ec2ea872a8d11}
+
+\item 
+virtual void {\bfseries apply\+Block\+Variance} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TColumnJointOperator_a6ba8fc8dd7718501b1bf85dc98e1906c}{}\label{classkl1p_1_1TColumnJointOperator_a6ba8fc8dd7718501b1bf85dc98e1906c}
+
+\item 
+virtual void {\bfseries apply\+Block\+Variance\+Adjoint} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TColumnJointOperator_a7c20b44637b82a4899a7a949ce931adc}{}\label{classkl1p_1_1TColumnJointOperator_a7c20b44637b82a4899a7a949ce931adc}
+
+\end{DoxyCompactItemize}
+\subsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void {\bfseries update\+Variance\+Matrix} ()\hypertarget{classkl1p_1_1TColumnJointOperator_a7e3d933b298daeb775fd120f712eff28}{}\label{classkl1p_1_1TColumnJointOperator_a7e3d933b298daeb775fd120f712eff28}
+
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/Column\+Joint\+Operator.\+h\end{DoxyCompactItemize}

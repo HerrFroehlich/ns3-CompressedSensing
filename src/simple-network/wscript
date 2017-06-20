@@ -1,0 +1,46 @@
+# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+# def options(opt):
+#     pass
+
+# def configure(conf):
+#     conf.check_nonfatal(header_name='stdint.h', define_name='HAVE_STDINT_H')
+
+def build(bld):
+    module = bld.create_ns3_module('simple-network', ['network','applications'])
+    module.source = [
+        #'model/simple-network.cc',
+        #'helper/simple-network-helper.cc',
+	'model/my-simple-channel.cc',
+	'model/my-simple-net-device.cc',
+	'model/simple-src-app.cc',
+	'model/simple-sink-app.cc',
+	'model/simple-header.cc',
+	'helper/my-simple-net-device-helper.cc',
+	'helper/simple-src-app-helper.cc'
+        ]
+
+    module_test = bld.create_ns3_module_test_library('simple-network')
+    module_test.source = [
+        #'test/simple-network-test-suite.cc',
+        ]
+
+    headers = bld(features='ns3header')
+    headers.module = 'simple-network'
+    headers.source = [
+        #'model/simple-network.h',
+        #'helper/simple-network-helper.h',
+	'model/my-simple-channel.h',
+	'model/my-simple-net-device.h',
+	'model/simple-src-app.h',
+	'model/simple-sink-app.h',
+	'model/simple-header.h',
+	'helper/my-simple-net-device-helper.h',
+	'helper/simple-src-app-helper.h'
+        ]
+
+    if bld.env.ENABLE_EXAMPLES:
+        bld.recurse('examples')
+
+    # bld.ns3_python_bindings()
+

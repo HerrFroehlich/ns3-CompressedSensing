@@ -1,0 +1,93 @@
+\hypertarget{classkl1p_1_1TBlockDiagonalOperator}{}\section{kl1p\+:\+:T\+Block\+Diagonal\+Operator$<$ T, T\+Out, T\+Op $>$ Class Template Reference}
+\label{classkl1p_1_1TBlockDiagonalOperator}\index{kl1p\+::\+T\+Block\+Diagonal\+Operator$<$ T, T\+Out, T\+Op $>$@{kl1p\+::\+T\+Block\+Diagonal\+Operator$<$ T, T\+Out, T\+Op $>$}}
+
+
+Inheritance diagram for kl1p\+:\+:T\+Block\+Diagonal\+Operator$<$ T, T\+Out, T\+Op $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=227pt]{classkl1p_1_1TBlockDiagonalOperator__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for kl1p\+:\+:T\+Block\+Diagonal\+Operator$<$ T, T\+Out, T\+Op $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=227pt]{classkl1p_1_1TBlockDiagonalOperator__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+typedef std\+::vector$<$ klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ $>$ {\bfseries T\+Operator\+Array}\hypertarget{classkl1p_1_1TBlockDiagonalOperator_ad33c7b4cfd584979cb34b4f5c51a16d8}{}\label{classkl1p_1_1TBlockDiagonalOperator_ad33c7b4cfd584979cb34b4f5c51a16d8}
+
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries T\+Block\+Diagonal\+Operator} (klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ op)\hypertarget{classkl1p_1_1TBlockDiagonalOperator_a5bb117d84b4ab6f24b7ed3d537f32d84}{}\label{classkl1p_1_1TBlockDiagonalOperator_a5bb117d84b4ab6f24b7ed3d537f32d84}
+
+\item 
+{\bfseries T\+Block\+Diagonal\+Operator} (klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ op1, klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ op2)\hypertarget{classkl1p_1_1TBlockDiagonalOperator_a3208a2a7d63f6295e24c9f591f4c8f25}{}\label{classkl1p_1_1TBlockDiagonalOperator_a3208a2a7d63f6295e24c9f591f4c8f25}
+
+\item 
+{\bfseries T\+Block\+Diagonal\+Operator} (klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ op1, klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ op2, klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ op3)\hypertarget{classkl1p_1_1TBlockDiagonalOperator_a0a5391de470f2d94b87675c1f9d08dd0}{}\label{classkl1p_1_1TBlockDiagonalOperator_a0a5391de470f2d94b87675c1f9d08dd0}
+
+\item 
+{\bfseries T\+Block\+Diagonal\+Operator} (const typename \hyperlink{classkl1p_1_1TBlockDiagonalOperator}{T\+Block\+Diagonal\+Operator}$<$ T, T\+Out, T\+Op $>$\+::T\+Operator\+Array \&ops)\hypertarget{classkl1p_1_1TBlockDiagonalOperator_a51eca6f49e3b9eddcd4cbe98e43bd428}{}\label{classkl1p_1_1TBlockDiagonalOperator_a51eca6f49e3b9eddcd4cbe98e43bd428}
+
+\item 
+{\bfseries T\+Block\+Diagonal\+Operator} (const \hyperlink{classkl1p_1_1TBlockDiagonalOperator}{T\+Block\+Diagonal\+Operator}$<$ T, T\+Out, T\+Op $>$ \&op)\hypertarget{classkl1p_1_1TBlockDiagonalOperator_a23f424572fd85f8619931c6ceeadee91}{}\label{classkl1p_1_1TBlockDiagonalOperator_a23f424572fd85f8619931c6ceeadee91}
+
+\item 
+virtual bool {\bfseries is\+Zero} ()\hypertarget{classkl1p_1_1TBlockDiagonalOperator_a495a43e99ac028c66cfa43d6a8803173}{}\label{classkl1p_1_1TBlockDiagonalOperator_a495a43e99ac028c66cfa43d6a8803173}
+
+\item 
+virtual klab\+::\+U\+Int32 {\bfseries count\+Block\+Rows} () const \hypertarget{classkl1p_1_1TBlockDiagonalOperator_a3c84f36c3292ce2dc96550948e336741}{}\label{classkl1p_1_1TBlockDiagonalOperator_a3c84f36c3292ce2dc96550948e336741}
+
+\item 
+virtual klab\+::\+U\+Int32 {\bfseries count\+Block\+Columns} () const \hypertarget{classkl1p_1_1TBlockDiagonalOperator_ab5f650485e832010c3bf066e81f7b51c}{}\label{classkl1p_1_1TBlockDiagonalOperator_ab5f650485e832010c3bf066e81f7b51c}
+
+\item 
+virtual klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ {\bfseries block} (klab\+::\+U\+Int32 i, klab\+::\+U\+Int32 j) const \hypertarget{classkl1p_1_1TBlockDiagonalOperator_ad2faf788f1e5d6582016a01abcd6f421}{}\label{classkl1p_1_1TBlockDiagonalOperator_ad2faf788f1e5d6582016a01abcd6f421}
+
+\item 
+virtual bool {\bfseries is\+Zero\+Block} (klab\+::\+U\+Int32 i, klab\+::\+U\+Int32 j) const \hypertarget{classkl1p_1_1TBlockDiagonalOperator_ab87734c38b99e8fdee34a8d470b6a9e0}{}\label{classkl1p_1_1TBlockDiagonalOperator_ab87734c38b99e8fdee34a8d470b6a9e0}
+
+\item 
+virtual klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ {\bfseries in\+Block} (klab\+::\+U\+Int32 i, klab\+::\+U\+Int32 j) const \hypertarget{classkl1p_1_1TBlockDiagonalOperator_a706f7630da22dfea218065259e215d38}{}\label{classkl1p_1_1TBlockDiagonalOperator_a706f7630da22dfea218065259e215d38}
+
+\item 
+virtual void {\bfseries apply} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T\+Out $>$ \&out)\hypertarget{classkl1p_1_1TBlockDiagonalOperator_a3f34f696160cf9818dfb86a04bfd4c41}{}\label{classkl1p_1_1TBlockDiagonalOperator_a3f34f696160cf9818dfb86a04bfd4c41}
+
+\item 
+virtual void {\bfseries apply\+Adjoint} (const arma\+::\+Col$<$ T\+Out $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TBlockDiagonalOperator_acf69f8652502cdabcbf4aa56f3ac9262}{}\label{classkl1p_1_1TBlockDiagonalOperator_acf69f8652502cdabcbf4aa56f3ac9262}
+
+\item 
+virtual void {\bfseries column} (klab\+::\+U\+Int32 i, arma\+::\+Col$<$ T\+Out $>$ \&out)\hypertarget{classkl1p_1_1TBlockDiagonalOperator_a7281190bf92d50ea8261874d426a39eb}{}\label{classkl1p_1_1TBlockDiagonalOperator_a7281190bf92d50ea8261874d426a39eb}
+
+\item 
+virtual void {\bfseries column\+Adjoint} (klab\+::\+U\+Int32 i, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TBlockDiagonalOperator_a37b1264646d5cfb5a3981e176be44d14}{}\label{classkl1p_1_1TBlockDiagonalOperator_a37b1264646d5cfb5a3981e176be44d14}
+
+\item 
+virtual void {\bfseries apply\+Block\+Variance} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TBlockDiagonalOperator_aafd45b42f432a8bf57b207c58ce44817}{}\label{classkl1p_1_1TBlockDiagonalOperator_aafd45b42f432a8bf57b207c58ce44817}
+
+\item 
+virtual void {\bfseries apply\+Block\+Variance\+Adjoint} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TBlockDiagonalOperator_aa8d9ac9d10de8b125eb2fcc19dd12ffa}{}\label{classkl1p_1_1TBlockDiagonalOperator_aa8d9ac9d10de8b125eb2fcc19dd12ffa}
+
+\end{DoxyCompactItemize}
+\subsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void {\bfseries update\+Variance\+Matrix} ()\hypertarget{classkl1p_1_1TBlockDiagonalOperator_ac91ba0e41a0bb6420c591198493a2ea9}{}\label{classkl1p_1_1TBlockDiagonalOperator_ac91ba0e41a0bb6420c591198493a2ea9}
+
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/Block\+Diagonal\+Operator.\+h\end{DoxyCompactItemize}

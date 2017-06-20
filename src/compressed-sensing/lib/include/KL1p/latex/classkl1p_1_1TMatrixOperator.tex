@@ -1,0 +1,72 @@
+\hypertarget{classkl1p_1_1TMatrixOperator}{}\section{kl1p\+:\+:T\+Matrix\+Operator$<$ T $>$ Class Template Reference}
+\label{classkl1p_1_1TMatrixOperator}\index{kl1p\+::\+T\+Matrix\+Operator$<$ T $>$@{kl1p\+::\+T\+Matrix\+Operator$<$ T $>$}}
+
+
+Inheritance diagram for kl1p\+:\+:T\+Matrix\+Operator$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classkl1p_1_1TMatrixOperator__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for kl1p\+:\+:T\+Matrix\+Operator$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=215pt]{classkl1p_1_1TMatrixOperator__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries T\+Matrix\+Operator} (const arma\+::\+Mat$<$ T $>$ \&matrix, bool normalize=false)\hypertarget{classkl1p_1_1TMatrixOperator_a14f84aebf5010de974a34e1444e5347b}{}\label{classkl1p_1_1TMatrixOperator_a14f84aebf5010de974a34e1444e5347b}
+
+\item 
+{\bfseries T\+Matrix\+Operator} (const \hyperlink{classkl1p_1_1TMatrixOperator}{T\+Matrix\+Operator}$<$ T $>$ \&op)\hypertarget{classkl1p_1_1TMatrixOperator_a23c48117c83eb7cfda9b8f07e392d02a}{}\label{classkl1p_1_1TMatrixOperator_a23c48117c83eb7cfda9b8f07e392d02a}
+
+\item 
+const arma\+::\+Mat$<$ T $>$ \& {\bfseries matrix} () const \hypertarget{classkl1p_1_1TMatrixOperator_a77fda47c0d475c967ecfeb6339754623}{}\label{classkl1p_1_1TMatrixOperator_a77fda47c0d475c967ecfeb6339754623}
+
+\item 
+void {\bfseries normalize} ()\hypertarget{classkl1p_1_1TMatrixOperator_ad4b6c5ecd8c3c215bce8f32ba676a876}{}\label{classkl1p_1_1TMatrixOperator_ad4b6c5ecd8c3c215bce8f32ba676a876}
+
+\item 
+bool {\bfseries is\+Normalized} () const \hypertarget{classkl1p_1_1TMatrixOperator_a68609f8d727b36bc52529548fead572a}{}\label{classkl1p_1_1TMatrixOperator_a68609f8d727b36bc52529548fead572a}
+
+\item 
+virtual T {\bfseries squared\+Norm\+Frobenius} ()\hypertarget{classkl1p_1_1TMatrixOperator_a4453927ecff51de46cf5402d4b8827fd}{}\label{classkl1p_1_1TMatrixOperator_a4453927ecff51de46cf5402d4b8827fd}
+
+\item 
+virtual void {\bfseries apply} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TMatrixOperator_afc0988d50d36a7de247881edb2e1f2a9}{}\label{classkl1p_1_1TMatrixOperator_afc0988d50d36a7de247881edb2e1f2a9}
+
+\item 
+virtual void {\bfseries apply\+Adjoint} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TMatrixOperator_a10a7f5ea33ce73851078fcc9aa5ef773}{}\label{classkl1p_1_1TMatrixOperator_a10a7f5ea33ce73851078fcc9aa5ef773}
+
+\item 
+virtual void {\bfseries column} (klab\+::\+U\+Int32 i, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TMatrixOperator_aec50334a8ff1c438897a8f7abdf3b3b7}{}\label{classkl1p_1_1TMatrixOperator_aec50334a8ff1c438897a8f7abdf3b3b7}
+
+\item 
+virtual void {\bfseries column\+Adjoint} (klab\+::\+U\+Int32 i, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TMatrixOperator_aea91e234240321e0bd04a9e97d3748b1}{}\label{classkl1p_1_1TMatrixOperator_aea91e234240321e0bd04a9e97d3748b1}
+
+\item 
+virtual void {\bfseries to\+Matrix} (arma\+::\+Mat$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TMatrixOperator_af4b41d27d38c0388128e4f03f4c2edf1}{}\label{classkl1p_1_1TMatrixOperator_af4b41d27d38c0388128e4f03f4c2edf1}
+
+\item 
+virtual void {\bfseries to\+Matrix\+Adjoint} (arma\+::\+Mat$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TMatrixOperator_a30962334fe3b39731d8b7fceb17443af}{}\label{classkl1p_1_1TMatrixOperator_a30962334fe3b39731d8b7fceb17443af}
+
+\end{DoxyCompactItemize}
+\subsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+arma\+::\+Mat$<$ T $>$ \& {\bfseries matrix\+Reference} ()\hypertarget{classkl1p_1_1TMatrixOperator_a2898e0c14e8053529098669cf763c23d}{}\label{classkl1p_1_1TMatrixOperator_a2898e0c14e8053529098669cf763c23d}
+
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/Matrix\+Operator.\+h\end{DoxyCompactItemize}

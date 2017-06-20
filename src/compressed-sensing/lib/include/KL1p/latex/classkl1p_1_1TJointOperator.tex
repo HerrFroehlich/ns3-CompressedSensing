@@ -1,0 +1,66 @@
+\hypertarget{classkl1p_1_1TJointOperator}{}\section{kl1p\+:\+:T\+Joint\+Operator$<$ T, T\+Out, T\+Op $>$ Class Template Reference}
+\label{classkl1p_1_1TJointOperator}\index{kl1p\+::\+T\+Joint\+Operator$<$ T, T\+Out, T\+Op $>$@{kl1p\+::\+T\+Joint\+Operator$<$ T, T\+Out, T\+Op $>$}}
+
+
+Inheritance diagram for kl1p\+:\+:T\+Joint\+Operator$<$ T, T\+Out, T\+Op $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=189pt]{classkl1p_1_1TJointOperator__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for kl1p\+:\+:T\+Joint\+Operator$<$ T, T\+Out, T\+Op $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=189pt]{classkl1p_1_1TJointOperator__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+typedef std\+::vector$<$ klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ $>$ {\bfseries T\+Operator\+Array}\hypertarget{classkl1p_1_1TJointOperator_a6c2bb51863499482f5a88854dd4bcd76}{}\label{classkl1p_1_1TJointOperator_a6c2bb51863499482f5a88854dd4bcd76}
+
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries T\+Joint\+Operator} (klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ op)\hypertarget{classkl1p_1_1TJointOperator_ac501eb34d05431292f1fcb18a1ecd8c1}{}\label{classkl1p_1_1TJointOperator_ac501eb34d05431292f1fcb18a1ecd8c1}
+
+\item 
+{\bfseries T\+Joint\+Operator} (klab\+::\+U\+Int32 block\+Rows, klab\+::\+U\+Int32 block\+Columns, const typename \hyperlink{classkl1p_1_1TJointOperator}{T\+Joint\+Operator}$<$ T, T\+Out, T\+Op $>$\+::T\+Operator\+Array \&ops)\hypertarget{classkl1p_1_1TJointOperator_adf0afae3bd21a2765bd0189e2eda7ef7}{}\label{classkl1p_1_1TJointOperator_adf0afae3bd21a2765bd0189e2eda7ef7}
+
+\item 
+{\bfseries T\+Joint\+Operator} (const \hyperlink{classkl1p_1_1TJointOperator}{T\+Joint\+Operator}$<$ T, T\+Out, T\+Op $>$ \&op)\hypertarget{classkl1p_1_1TJointOperator_ac9a60eeb6bf92ed988d3d2a5d83ecdfd}{}\label{classkl1p_1_1TJointOperator_ac9a60eeb6bf92ed988d3d2a5d83ecdfd}
+
+\item 
+virtual klab\+::\+U\+Int32 {\bfseries count\+Block\+Rows} () const \hypertarget{classkl1p_1_1TJointOperator_a28a2f5c7f78e485620251e7e446d3d81}{}\label{classkl1p_1_1TJointOperator_a28a2f5c7f78e485620251e7e446d3d81}
+
+\item 
+virtual klab\+::\+U\+Int32 {\bfseries count\+Block\+Columns} () const \hypertarget{classkl1p_1_1TJointOperator_a8f70f4777040165a5d0170708803e243}{}\label{classkl1p_1_1TJointOperator_a8f70f4777040165a5d0170708803e243}
+
+\item 
+virtual klab\+::\+T\+Smart\+Pointer$<$ T\+Op $>$ {\bfseries block} (klab\+::\+U\+Int32 i, klab\+::\+U\+Int32 j) const \hypertarget{classkl1p_1_1TJointOperator_a5712b7c821695ed63a54d4516713dcd6}{}\label{classkl1p_1_1TJointOperator_a5712b7c821695ed63a54d4516713dcd6}
+
+\item 
+virtual void {\bfseries apply\+Block\+Variance} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TJointOperator_ae6c215a85649f95256b606e8d0f61971}{}\label{classkl1p_1_1TJointOperator_ae6c215a85649f95256b606e8d0f61971}
+
+\item 
+virtual void {\bfseries apply\+Block\+Variance\+Adjoint} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TJointOperator_a51f701e8fe0263b275babddde47d3a46}{}\label{classkl1p_1_1TJointOperator_a51f701e8fe0263b275babddde47d3a46}
+
+\end{DoxyCompactItemize}
+\subsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void {\bfseries update\+Variance\+Matrix} ()\hypertarget{classkl1p_1_1TJointOperator_a7970572aa8abdaddf5d88d4ec3993f64}{}\label{classkl1p_1_1TJointOperator_a7970572aa8abdaddf5d88d4ec3993f64}
+
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/Joint\+Operator.\+h\end{DoxyCompactItemize}

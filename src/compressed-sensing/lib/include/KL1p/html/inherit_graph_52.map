@@ -1,0 +1,11 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$classkl1p_1_1TOperator.html" title="kl1p::TOperator\&lt; std\l::complex\&lt; T \&gt;, std::\lcomplex\&lt; T \&gt; \&gt;" alt="" coords="5,227,151,283"/>
+<area shape="rect" id="node2" href="$classkl1p_1_1TGaussianBlur1DOperator_3_01std_1_1complex_3_01T_01_4_01_4.html" title="kl1p::TGaussianBlur1DOperator\l\&lt; std::complex\&lt; T \&gt; \&gt;" alt="" coords="202,5,409,47"/>
+<area shape="rect" id="node3" href="$classkl1p_1_1TGaussianBlur2DOperator_3_01std_1_1complex_3_01T_01_4_01_4.html" title="kl1p::TGaussianBlur2DOperator\l\&lt; std::complex\&lt; T \&gt; \&gt;" alt="" coords="202,71,409,112"/>
+<area shape="rect" id="node4" href="$classkl1p_1_1TInverseGaussianBlur1DOperator_3_01std_1_1complex_3_01T_01_4_01_4.html" title="kl1p::TInverseGaussianBlur1\lDOperator\&lt; std::complex\&lt; T \&gt; \&gt;" alt="" coords="199,136,412,177"/>
+<area shape="rect" id="node5" href="$classkl1p_1_1TInverseGaussianBlur2DOperator_3_01std_1_1complex_3_01T_01_4_01_4.html" title="kl1p::TInverseGaussianBlur2\lDOperator\&lt; std::complex\&lt; T \&gt; \&gt;" alt="" coords="199,201,412,243"/>
+<area shape="rect" id="node6" href="$classkl1p_1_1TFourier1DOperator.html" title="kl1p::TFourier1DOperator\l\&lt; std::complex\&lt; T \&gt; \&gt;" alt="" coords="221,267,390,308"/>
+<area shape="rect" id="node7" href="$classkl1p_1_1TFourier2DOperator.html" title="kl1p::TFourier2DOperator\l\&lt; std::complex\&lt; T \&gt; \&gt;" alt="" coords="221,332,390,373"/>
+<area shape="rect" id="node8" href="$classkl1p_1_1TInverseFourier1DOperator.html" title="kl1p::TInverseFourier1DOperator\l\&lt; std::complex\&lt; T \&gt; \&gt;" alt="" coords="199,397,411,439"/>
+<area shape="rect" id="node9" href="$classkl1p_1_1TInverseFourier2DOperator.html" title="kl1p::TInverseFourier2DOperator\l\&lt; std::complex\&lt; T \&gt; \&gt;" alt="" coords="199,463,411,504"/>
+</map>

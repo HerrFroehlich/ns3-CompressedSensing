@@ -1,0 +1,101 @@
+\hypertarget{classkl1p_1_1TOperator}{}\section{kl1p\+:\+:T\+Operator$<$ T, T\+Out $>$ Class Template Reference}
+\label{classkl1p_1_1TOperator}\index{kl1p\+::\+T\+Operator$<$ T, T\+Out $>$@{kl1p\+::\+T\+Operator$<$ T, T\+Out $>$}}
+
+
+Inheritance diagram for kl1p\+:\+:T\+Operator$<$ T, T\+Out $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classkl1p_1_1TOperator__inherit__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries T\+Operator} (klab\+::\+U\+Int32 n)\hypertarget{classkl1p_1_1TOperator_afe8ab1c8c844c9a5629234f04f6f1f1b}{}\label{classkl1p_1_1TOperator_afe8ab1c8c844c9a5629234f04f6f1f1b}
+
+\item 
+{\bfseries T\+Operator} (klab\+::\+U\+Int32 m, klab\+::\+U\+Int32 n)\hypertarget{classkl1p_1_1TOperator_a07108352bd48a44e142ec3fcb477d8ec}{}\label{classkl1p_1_1TOperator_a07108352bd48a44e142ec3fcb477d8ec}
+
+\item 
+{\bfseries T\+Operator} (const \hyperlink{classkl1p_1_1TOperator}{T\+Operator}$<$ T, T\+Out $>$ \&op)\hypertarget{classkl1p_1_1TOperator_ae20312fa653d1a24565826b206834a8e}{}\label{classkl1p_1_1TOperator_ae20312fa653d1a24565826b206834a8e}
+
+\item 
+klab\+::\+U\+Int32 {\bfseries count\+Rows} () const \hypertarget{classkl1p_1_1TOperator_a200628f972373846262200f824e83506}{}\label{classkl1p_1_1TOperator_a200628f972373846262200f824e83506}
+
+\item 
+klab\+::\+U\+Int32 {\bfseries count\+Columns} () const \hypertarget{classkl1p_1_1TOperator_a5cb92acc712b812de0644336244a8565}{}\label{classkl1p_1_1TOperator_a5cb92acc712b812de0644336244a8565}
+
+\item 
+klab\+::\+U\+Int32 {\bfseries m} () const \hypertarget{classkl1p_1_1TOperator_a0c819c04c0eaac27029f8bad67487b97}{}\label{classkl1p_1_1TOperator_a0c819c04c0eaac27029f8bad67487b97}
+
+\item 
+klab\+::\+U\+Int32 {\bfseries n} () const \hypertarget{classkl1p_1_1TOperator_aba32ce87c5bd3df280ed4a2359ccbf2d}{}\label{classkl1p_1_1TOperator_aba32ce87c5bd3df280ed4a2359ccbf2d}
+
+\item 
+virtual bool {\bfseries is\+Zero} ()\hypertarget{classkl1p_1_1TOperator_aa300f83e90d085428cff5910138c5a23}{}\label{classkl1p_1_1TOperator_aa300f83e90d085428cff5910138c5a23}
+
+\item 
+virtual T {\bfseries sum} ()\hypertarget{classkl1p_1_1TOperator_a97083e78b9b294e747895686cae26b76}{}\label{classkl1p_1_1TOperator_a97083e78b9b294e747895686cae26b76}
+
+\item 
+virtual T {\bfseries norm\+Frobenius} ()\hypertarget{classkl1p_1_1TOperator_ac34a9963d2412180e5ceea10dd6b90cf}{}\label{classkl1p_1_1TOperator_ac34a9963d2412180e5ceea10dd6b90cf}
+
+\item 
+virtual T {\bfseries squared\+Norm\+Frobenius} ()\hypertarget{classkl1p_1_1TOperator_a29e15b09b949a4db47226656601e4d3e}{}\label{classkl1p_1_1TOperator_a29e15b09b949a4db47226656601e4d3e}
+
+\item 
+virtual T {\bfseries mean} ()\hypertarget{classkl1p_1_1TOperator_a527585e541109e82f6b08727d1e4f933}{}\label{classkl1p_1_1TOperator_a527585e541109e82f6b08727d1e4f933}
+
+\item 
+virtual T {\bfseries variance} ()\hypertarget{classkl1p_1_1TOperator_a09390c93ff186c53cebd43836d1710ff}{}\label{classkl1p_1_1TOperator_a09390c93ff186c53cebd43836d1710ff}
+
+\item 
+virtual T {\bfseries standard\+Deviation} ()\hypertarget{classkl1p_1_1TOperator_a20759edecee084f43e0dab6fff83395d}{}\label{classkl1p_1_1TOperator_a20759edecee084f43e0dab6fff83395d}
+
+\item 
+virtual void {\bfseries apply} (const arma\+::\+Col$<$ T $>$ \&in, arma\+::\+Col$<$ T\+Out $>$ \&out)=0\hypertarget{classkl1p_1_1TOperator_a0eb9155ae2fcefa3d7554256515f6b54}{}\label{classkl1p_1_1TOperator_a0eb9155ae2fcefa3d7554256515f6b54}
+
+\item 
+virtual void {\bfseries apply\+Adjoint} (const arma\+::\+Col$<$ T\+Out $>$ \&in, arma\+::\+Col$<$ T $>$ \&out)=0\hypertarget{classkl1p_1_1TOperator_adf4e42675aa25e88cd780a78707cf666}{}\label{classkl1p_1_1TOperator_adf4e42675aa25e88cd780a78707cf666}
+
+\item 
+virtual void {\bfseries column} (klab\+::\+U\+Int32 i, arma\+::\+Col$<$ T\+Out $>$ \&out)\hypertarget{classkl1p_1_1TOperator_aeb09810e2a44d8df52a25974157eb4f0}{}\label{classkl1p_1_1TOperator_aeb09810e2a44d8df52a25974157eb4f0}
+
+\item 
+virtual void {\bfseries column\+Adjoint} (klab\+::\+U\+Int32 i, arma\+::\+Col$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TOperator_a20456d351538e1a5a4b1c8e640a26754}{}\label{classkl1p_1_1TOperator_a20456d351538e1a5a4b1c8e640a26754}
+
+\item 
+virtual void {\bfseries to\+Matrix} (arma\+::\+Mat$<$ T\+Out $>$ \&out)\hypertarget{classkl1p_1_1TOperator_a22da1003e7bc3e654251a5a7ff25accb}{}\label{classkl1p_1_1TOperator_a22da1003e7bc3e654251a5a7ff25accb}
+
+\item 
+virtual void {\bfseries to\+Matrix\+Adjoint} (arma\+::\+Mat$<$ T $>$ \&out)\hypertarget{classkl1p_1_1TOperator_afcc44bad9abb64b3216f4be2d5b8b284}{}\label{classkl1p_1_1TOperator_afcc44bad9abb64b3216f4be2d5b8b284}
+
+\end{DoxyCompactItemize}
+\subsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void {\bfseries resize} (klab\+::\+U\+Int32 n)\hypertarget{classkl1p_1_1TOperator_a0342d203fa96d76c281667cdbf3a8b32}{}\label{classkl1p_1_1TOperator_a0342d203fa96d76c281667cdbf3a8b32}
+
+\item 
+void {\bfseries resize} (klab\+::\+U\+Int32 m, klab\+::\+U\+Int32 n)\hypertarget{classkl1p_1_1TOperator_aa90c7eb0de08747321aecb0eb8ef2991}{}\label{classkl1p_1_1TOperator_aa90c7eb0de08747321aecb0eb8ef2991}
+
+\item 
+klab\+::\+U\+Int32 {\bfseries count\+References} () const \hypertarget{classkl1p_1_1TOperator_a4b6d8c577ea3d89ccebf42615ea3b4f4}{}\label{classkl1p_1_1TOperator_a4b6d8c577ea3d89ccebf42615ea3b4f4}
+
+\end{DoxyCompactItemize}
+\subsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$class U , class U\+Out $>$ }\\void {\bfseries Add\+Smart\+Pointer\+Reference} (const \hyperlink{classkl1p_1_1TOperator}{T\+Operator}$<$ U, U\+Out $>$ $\ast$op)\hypertarget{classkl1p_1_1TOperator_a4204374aad38b74f269303c3c038905d}{}\label{classkl1p_1_1TOperator_a4204374aad38b74f269303c3c038905d}
+
+\item 
+{\footnotesize template$<$class U , class U\+Out $>$ }\\void {\bfseries Release\+Smart\+Pointer\+Reference} (const \hyperlink{classkl1p_1_1TOperator}{T\+Operator}$<$ U, U\+Out $>$ $\ast$op)\hypertarget{classkl1p_1_1TOperator_a506941e768851fc99992dd5c3f4dc807}{}\label{classkl1p_1_1TOperator_a506941e768851fc99992dd5c3f4dc807}
+
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/Operator.\+h\end{DoxyCompactItemize}

@@ -1,0 +1,8 @@
+# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+def build(bld):
+	obj = bld.create_ns3_program('simple-device-channel-example',['simple-network'])
+	obj.source = 'simple-device-channel-example.cc'
+	
+	obj = bld.create_ns3_program('simple-topology-example',['simple-network'])
+	obj.source = ['simple-topology.cc']
