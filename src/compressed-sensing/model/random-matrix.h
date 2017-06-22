@@ -61,6 +61,11 @@ public:
 	*/
   arma::Col<uint32_t> Dim() const;
 
+  /**
+  * \brief normalizes the matrixby 1/sqrt(m)
+  */
+  void Normalize();
+
   operator arma::mat() const
   {
     return m_mat;
@@ -111,8 +116,18 @@ public:
 class GaussianRandomMatrix : public RandomMatrix
 {
 public:
+
   /**
-  * \brief create a GaussianRandomMatrix of size MxN
+  * \brief create a GaussianRandomMatrix of size MxN with mean = 0, var = 1
+  *
+  * \param m     NOF rows
+  * \param n     NOF columns
+  *
+  */
+  GaussianRandomMatrix(uint32_t m, uint32_t n);
+
+  /**
+  * \brief create a GaussianRandomMatrix of size MxN with parameterized mean and variance
   *
   * \param mean  mean value of distribution
   * \param var   variance value of distribution
@@ -135,11 +150,11 @@ public:
 /**
 * \class IdentRandomMatrix
 *
-* \brief a mxn matrix with entries (1/sqrt(m), -1/sqrt(m)) chosen from a bernoulli distribution
+* \brief a mxn matrix with entries (1, -1) or normalized(1/sqrt(m), -1/sqrt(m)) chosen from a bernoulli distribution
 *
 * The entries e_ij are distributed as such:
-* P(e_ij) = 0.5 if e_ij = 1/sqrt(m)
-* P(e_ij) = 0.5 if e_ij = -1/sqrt(m)
+* P(e_ij) = 0.5 if e_ij = 1   or 1/sqrt(m)
+* P(e_ij) = 0.5 if e_ij = -1  or -1/sqrt(m)
 * 
 * The distrubution is created with a uniform distribution and by using the inverse transform method.
 */
@@ -162,6 +177,8 @@ public:
   *
   */
   virtual void Generate(uint32_t seed);
-  private:
+
+
+private:
   const double m_bernP = 0.5; 
 };

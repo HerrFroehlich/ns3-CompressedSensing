@@ -31,6 +31,11 @@ arma::Col<uint32_t> RandomMatrix::Dim() const
 	return size;
 }
 
+void RandomMatrix::Normalize()
+{
+	m_mat = (1 / sqrt(nRows())) * m_mat;
+}
+
 arma::mat operator*(const RandomMatrix &lvl, const arma::mat &rvl)
 {
 	return lvl.m_mat * rvl;
@@ -77,6 +82,12 @@ void IdentRandomMatrix::Generate(uint32_t seed)
 }
 
 /*********  GaussianRandomMatrix  **********/
+GaussianRandomMatrix::GaussianRandomMatrix(uint32_t m, uint32_t n) : RandomMatrix(m, n)
+{
+	m_ranvar = CreateObject<NormalRandomVariable>();
+	m_ranvar->SetAttribute("Mean", DoubleValue(0));
+	m_ranvar->SetAttribute("Variance", DoubleValue(1));
+}
 GaussianRandomMatrix::GaussianRandomMatrix(double mean, double var, uint32_t m, uint32_t n) : RandomMatrix(m, n)
 {
 	m_ranvar = CreateObject<NormalRandomVariable>();
@@ -117,7 +128,6 @@ void BernRandomMatrix::Generate(uint32_t seed)
 
 	uint32_t n = nCols(),
 			 m = nRows();
-	double entryVal = sqrt(m);
 	for (uint32_t i = 0; i < m; i++)
 	{
 		for (uint32_t j = 0; j < n; j++) // use inverse transform method here
@@ -125,11 +135,11 @@ void BernRandomMatrix::Generate(uint32_t seed)
 			double p = m_ranvar->GetValue();
 			if(p < m_bernP)
 			{
-				m_mat(i, j) = entryVal;
+				m_mat(i, j) = 1;
 			}
 			else
 			{
-				m_mat(i, j) = -entryVal;
+				m_mat(i, j) = -1;
 				}
 
 		}

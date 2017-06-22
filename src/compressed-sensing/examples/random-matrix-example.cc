@@ -55,6 +55,17 @@ int main(int argc, char *argv[])
 	test.reshape(200, 1);
 	cout << var(test) << endl;
 
+
+	cout << "Normalized" << endl;
+	ranMat2.Normalize();
+	cout << ranMat2;
+	cout << "-Mean :" << endl;
+	cout << mean(mean(mat(ranMat2)))<< endl;
+	cout << "-Variance :" << endl;
+	test = mat(ranMat2);
+	test.reshape(200, 1);
+	cout << var(test) << endl;
+
 	cout << "########### 10x20 RANDOM BERNOULLIMATRIX###########" << endl;
 	BernRandomMatrix ranMat3(10,20);
 	cout << "-Seed : 1" << endl;
@@ -63,6 +74,10 @@ int main(int argc, char *argv[])
 
 	cout << "-Seed : 2" << endl;
 	ranMat3.Generate(2);
+	cout << ranMat3;
+
+	cout << "Normalized" << endl;
+	ranMat3.Normalize();
 	cout << ranMat3;
 
 	cout << "-Mean :" << endl;
