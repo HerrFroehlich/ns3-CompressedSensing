@@ -1,5 +1,5 @@
 /**
-* \file reconstructor
+* \file reconstructor.h
 *
 * \author Tobias Waurick
 * \date 03.06.2017
@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <map>
 #include "./utils/node-data-buffer.h"
+#include "random-matrix.h"
 
 using namespace ns3;
 using namespace arma;
@@ -34,6 +35,8 @@ using namespace arma;
 class Reconstructor : public ns3::Object
 {
   public:
+
+	static TypeId GetTypeId(void);
 	Reconstructor();
 
 	/**
@@ -90,7 +93,6 @@ class Reconstructor : public ns3::Object
 	* \param bufSize  size of data buffer	
 	*
 	*/
-
 	uint32_t WriteData(uint8_t nodeId, double *buffer, uint32_t bufSize);
 
 	/**
@@ -120,7 +122,7 @@ class Reconstructor : public ns3::Object
 	*
 	* \return Mat<double> the buffered data (const reference)
 	*/
-	const Mat<double> &GetBufMat(uint8_t nodeId);
+	Mat<double> GetBufMat(uint8_t nodeId);
 
 	/**
 	* \brief gets the sparse sensing matrix constructed out of the meta data for the given node ID
@@ -129,16 +131,25 @@ class Reconstructor : public ns3::Object
 	*
 	* \return sparse sensing matrix
 	*/
-	virtual Mat<double> GetSensMat(uint8_t nodeId);
+	Mat<double> GetSensMat(uint8_t nodeId);
 
   private:
 	typedef NodeDataBuffer<double> T_NodeBuffer;
 
+	struct T_NodeInfo /**< Structuring containing info on each node (seed, matrix sizes,...)*/
+	{
+		uint32_t seed;	 // seed of random sensing matrix
+		uint32_t nMeas;	 // original number of measurements to reconstruct
+		uint32_t m;		 // current compressed data vectors
+		uint32_t vectLen;// data vector length
+		uint32_t mMax;	 // maximum NOF compressed data vectors
+	};
 	uint32_t m_nNodes;									 /**< NOF nodes from which we are gathering data*/
 	std::map<uint8_t, Ptr<T_NodeBuffer>> m_nodeInBufMap, /**< input data of each node*/
 		m_nodeOutBufMap;								 /**< output data of each node after reconstruction*/
-	std::map<uint8_t, uint32_t> m_nodeSeedMap;			 /**< seed to construct the sensing matrix for each node*/
+	std::map<uint8_t, T_NodeInfo> m_nodeInfoMap;			 /**< map for node info<>node ID*/
 	uint32_t m_nMeasDef, m_mMaxDef, m_vecLenDef;		 /**< default buffer dimensions*/
+	Ptr<RandomMatrix> m_ranMat;							 /**< Random matrix form from which sensing matrix is constructed*/
 };
 
 #endif //RECONSTRUCTOR_H
