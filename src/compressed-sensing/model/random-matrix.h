@@ -23,6 +23,13 @@ using namespace ns3;
 class RandomMatrix : public Object
 {
 public:
+
+  /**
+  * \brief create a empty matrix
+  *
+  */
+  RandomMatrix();
+
   /**
   * \brief create a Random matrix of size MxN
   *
@@ -31,6 +38,15 @@ public:
   *
   */
   RandomMatrix(uint32_t m, uint32_t n);
+
+  /**
+  * \brief sets the size of the matrix
+  *
+  * \param m NOF rows
+  * \param n NOF columns
+  *
+  */
+  void SetSize(uint32_t m, uint32_t n);
 
   /**
   * \brief Generate random entries for a given seed
@@ -79,6 +95,7 @@ protected:
   Ptr<RandomVariableStream> m_ranvar; /**< random variable stream*/
 };
 
+
 /**
 * \class IdentRandomMatrix
 *
@@ -89,6 +106,13 @@ protected:
 class IdentRandomMatrix : public RandomMatrix
 {
 public:
+
+  /**
+  * \brief create a empty matrix
+  *
+  */
+  IdentRandomMatrix();
+
   /**
   * \brief create a IdentRandomMatrix of size MxN
   *
@@ -107,6 +131,7 @@ public:
   virtual void Generate(uint32_t seed);
 };
 
+
 /**
 * \class GaussianRandomMatrix 
 *
@@ -116,6 +141,12 @@ public:
 class GaussianRandomMatrix : public RandomMatrix
 {
 public:
+
+  /**
+  * \brief create a empty matrix
+  *
+  */
+  GaussianRandomMatrix();
 
   /**
   * \brief create a GaussianRandomMatrix of size MxN with mean = 0, var = 1
@@ -145,10 +176,9 @@ public:
   */
   virtual void Generate(uint32_t seed);
 };
-#endif //RANDOM_MATRIX_H
 
 /**
-* \class IdentRandomMatrix
+* \class BernRandomMatrix
 *
 * \brief a mxn matrix with entries (1, -1) or normalized(1/sqrt(m), -1/sqrt(m)) chosen from a bernoulli distribution
 *
@@ -161,6 +191,11 @@ public:
 class BernRandomMatrix : public RandomMatrix
 {
 public:
+  /**
+  * \brief create a empty matrix
+  *
+  */
+  BernRandomMatrix();
   /**
   * \brief create a BernRandomMatrix of size MxN
   *
@@ -182,3 +217,6 @@ public:
 private:
   const double m_bernP = 0.5; 
 };
+
+
+#endif //RANDOM_MATRIX_H
