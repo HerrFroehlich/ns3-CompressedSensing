@@ -68,7 +68,7 @@ class NodeDataBuffer : public ns3::Object
 	*
 	* \return remaining size of internal buffer matrix
 	*/
-	uint32_t WriteData(const T *buffer, uint32_t bufSize);
+	uint32_t WriteData(const T *buffer, const uint32_t &bufSize);
 
 	/**
 	* \brief writes a single data value to this matrix buffer
@@ -112,7 +112,7 @@ class NodeDataBuffer : public ns3::Object
 	* \brief reads the buffer matrix to an external buffer(ordered column by column)
 	*
 	*/
-	void ReadBuf(T *buffer, uint32_t bufSize);
+	void ReadBuf(T *buffer, const uint32_t& bufSize);
 
 	/**
 	* \brief reads a column from the buffer
@@ -243,7 +243,7 @@ uint32_t NodeDataBuffer<T>::WriteData(const T &data)
 }
 
 template <typename T>
-uint32_t NodeDataBuffer<T>::WriteData(const T *buffer, uint32_t bufSize)
+uint32_t NodeDataBuffer<T>::WriteData(const T *buffer, const uint32_t& bufSize)
 {
 	NS_ASSERT(buffer); //null pointer check
 	//calculate remaining space
@@ -353,7 +353,7 @@ Mat<T> NodeDataBuffer<T>::ReadAll() const
 }
 
 template <typename T>
-void NodeDataBuffer<T>::ReadBuf(T *buffer, uint32_t bufSize)
+void NodeDataBuffer<T>::ReadBuf(T *buffer, const uint32_t &bufSize)
 {
 	NS_ASSERT_MSG(bufSize == GetWrElem(), "NOF elements not matching!");
 
