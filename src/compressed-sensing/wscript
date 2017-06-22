@@ -22,11 +22,11 @@ def build(bld):
     module_test = bld.create_ns3_module_test_library('compressed-sensing')
     module_test.source = [
         ]
-    module.env.append_value("CXXFLAGS", "-I../src/compressed-sensing/lib/include/KL1p")
-    module.env.append_value("CXXFLAGS", "-I../src/compressed-sensing/lib/include/KLab")
-    module.env.append_value("CXXFLAGS", "-I../src/compressed-sensing/lib/include/KSci")
-    module.env.append_value("CXXFLAGS", "-I../src/compressed-sensing/lib/include/Armadillo")
-    module.env.append_value("CXXFLAGS", "-Wno-error")
+    module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KL1p")
+    module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KLab")
+    module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KSci")
+    module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/Armadillo")
+    #module.env.append_value("CXXFLAGS", "-Wno-error")
     module.env.append_value("LINKFLAGS", ["-L../src/compressed-sensing/lib/"])
     if Options.options.build_profile == 'debug':
     	module.env.append_value("LIB",["dl","KLab64_d"])
