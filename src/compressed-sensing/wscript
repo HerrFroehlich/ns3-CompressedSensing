@@ -16,7 +16,8 @@ def build(bld):
     module = bld.create_ns3_module('compressed-sensing', ['core'])
     module.source = [
         'model/reconstructor.cc',
-	'model/random-matrix.cc'
+	'model/random-matrix.cc',
+	'model/transform-matrix.cc'
         ]
 
     module_test = bld.create_ns3_module_test_library('compressed-sensing')
@@ -37,7 +38,8 @@ def build(bld):
     headers.module = 'compressed-sensing'
     headers.source = [
         'model/reconstructor.h',
-	'model/random-matrix.h'
+	'model/random-matrix.h',
+	'model/transform-matrix.h'
 ]
 
     if bld.env.ENABLE_EXAMPLES:
