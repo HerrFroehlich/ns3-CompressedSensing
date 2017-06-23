@@ -9,18 +9,35 @@
 #include "random-matrix.h"
 
 /*********  Random Matrix  **********/
-RandomMatrix::RandomMatrix() : m_mat()
+NS_OBJECT_ENSURE_REGISTERED(RandomMatrix);
+
+TypeId RandomMatrix::GetTypeId(void)
+{
+	static TypeId tid = TypeId("RandomMatrix")
+							.SetParent<Object>()
+							.SetGroupName("CompressedSensing")
+							.AddAttribute("Stream", "RNG stream number",
+										  IntegerValue(0),
+										  MakeIntegerAccessor(&RandomMatrix::m_stream),
+										  MakeIntegerChecker<int64_t>());
+	return tid;
+}
+
+RandomMatrix::RandomMatrix() : m_prevSeed(0), m_mat()
 {
 }
 
-RandomMatrix::RandomMatrix(uint32_t m, uint32_t n)
+RandomMatrix::RandomMatrix(uint32_t m, uint32_t n) : m_prevSeed(0), m_mat(m, n)
 {
-	m_mat = arma::zeros<arma::mat>(m, n);
 }
 
 void RandomMatrix::SetSize(uint32_t m, uint32_t n)
 {
-	m_mat.set_size(m, n);
+	if ((m != nRows()) && (n != nCols()))
+	{
+		m_mat.set_size(m, n);
+		Generate(m_prevSeed);
+	}
 }
 
 uint32_t RandomMatrix::nRows() const
@@ -69,75 +86,77 @@ IdentRandomMatrix::IdentRandomMatrix()
 
 IdentRandomMatrix::IdentRandomMatrix(uint32_t m, uint32_t n) : RandomMatrix(m, n)
 {
-	m_ranvar = CreateObject<UniformRandomVariable>();
-	m_ranvar->SetAttribute("Min", DoubleValue(0));
-	m_ranvar->SetAttribute("Max", DoubleValue(n - 1));
 }
 
 void IdentRandomMatrix::Generate(uint32_t seed)
 {
-	uint32_t seedOld = RngSeedManager::GetSeed(); // save back old seed
-	RngSeedManager::SetSeed(seed);
-
-	uint32_t n = nCols(),
-			 m = nRows();
-	arma::mat ident = arma::eye<arma::mat>(n, n);
-	if (n > 1)
+	if (seed != m_prevSeed) // only regenerate if nescessary
 	{
-		//Fisher-Yates-Shuffle
-		for (uint32_t i = 0; i < n - 2; i++)
+		uint32_t seedOld = RngSeedManager::GetSeed(); // save back old seed
+		RngSeedManager::SetSeed(seed);
+		uint32_t n = nCols(),
+				 m = nRows();
+		arma::mat ident = arma::eye<arma::mat>(n, n);
+		Ptr<T_RanVar> ranvar = CreateObject<T_RanVar>();
+		ranvar->SetAttribute("Min", DoubleValue(0));
+		ranvar->SetAttribute("Max", DoubleValue(n - 1));
+		ranvar->SetStream(m_stream);
+
+		if (n > 1)
 		{
-			m_ranvar->SetAttribute("Min", DoubleValue(i));
-			uint32_t j = m_ranvar->GetInteger();
-			ident.swap_rows(i, j);
+			//Fisher-Yates-Shuffle
+			for (uint32_t i = 0; i < n - 2; i++)
+			{
+				ranvar->SetAttribute("Min", DoubleValue(i));
+				uint32_t j = ranvar->GetInteger();
+				ident.swap_rows(i, j);
+			}
+			m_mat = ident.rows(0, m - 1);
 		}
-		m_mat = ident.rows(0, m - 1);
-	}
-	else if (n == 1)
-	{
-		m_mat = 1;
-	}
+		else if (n == 1)
+		{
+			m_mat = 1;
+		}
 
-	RngSeedManager::SetSeed(seedOld);
+		RngSeedManager::SetSeed(seedOld);
+	}
 }
-
 
 /*********  GaussianRandomMatrix  **********/
 GaussianRandomMatrix::GaussianRandomMatrix()
 {
 }
 
-GaussianRandomMatrix::GaussianRandomMatrix(uint32_t m, uint32_t n) : RandomMatrix(m, n)
+GaussianRandomMatrix::GaussianRandomMatrix(uint32_t m, uint32_t n) : RandomMatrix(m, n), m_mean(0), m_var(1)
 {
-	m_ranvar = CreateObject<NormalRandomVariable>();
-	m_ranvar->SetAttribute("Mean", DoubleValue(0));
-	m_ranvar->SetAttribute("Variance", DoubleValue(1));
 }
-GaussianRandomMatrix::GaussianRandomMatrix(double mean, double var, uint32_t m, uint32_t n) : RandomMatrix(m, n)
+GaussianRandomMatrix::GaussianRandomMatrix(double mean, double var, uint32_t m, uint32_t n) : RandomMatrix(m, n), m_mean(mean), m_var(var)
 {
-	m_ranvar = CreateObject<NormalRandomVariable>();
-	m_ranvar->SetAttribute("Mean", DoubleValue(mean));
-	m_ranvar->SetAttribute("Variance", DoubleValue(var));
 }
 
 void GaussianRandomMatrix::Generate(uint32_t seed)
 {
-	uint32_t seedOld = RngSeedManager::GetSeed(); // save back old seed
-	RngSeedManager::SetSeed(seed);
-
-	uint32_t n = nCols(),
-			 m = nRows();
-	for (uint32_t i = 0; i < m; i++)
+	if (seed != m_prevSeed) // only regenerate if nescessary
 	{
-		for (uint32_t j = 0; j < n; j++)
+		uint32_t seedOld = RngSeedManager::GetSeed(); // save back old seed
+		RngSeedManager::SetSeed(seed);
+		Ptr<T_RanVar> ranvar = CreateObject<T_RanVar>();
+		ranvar->SetAttribute("Mean", DoubleValue(m_mean));
+		ranvar->SetAttribute("Variance", DoubleValue(m_var));
+		ranvar->SetStream(m_stream);
+		uint32_t n = nCols(),
+				 m = nRows();
+		for (uint32_t i = 0; i < m; i++)
 		{
-			m_mat(i, j) = m_ranvar->GetValue();
+			for (uint32_t j = 0; j < n; j++)
+			{
+				m_mat(i, j) = ranvar->GetValue();
+			}
 		}
+
+		RngSeedManager::SetSeed(seedOld);
 	}
-
-	RngSeedManager::SetSeed(seedOld);
 }
-
 
 /*********  BernRandomMatrix  **********/
 BernRandomMatrix::BernRandomMatrix()
@@ -146,33 +165,38 @@ BernRandomMatrix::BernRandomMatrix()
 
 BernRandomMatrix::BernRandomMatrix(uint32_t m, uint32_t n) : RandomMatrix(m, n)
 {
-	m_ranvar = CreateObject<UniformRandomVariable>();
-	m_ranvar->SetAttribute("Min", DoubleValue(0));
-	m_ranvar->SetAttribute("Max", DoubleValue(1));
 }
 
 void BernRandomMatrix::Generate(uint32_t seed)
 {
-	uint32_t seedOld = RngSeedManager::GetSeed(); // save back old seed
-	RngSeedManager::SetSeed(seed);
-
-	uint32_t n = nCols(),
-			 m = nRows();
-	for (uint32_t i = 0; i < m; i++)
+	if (seed != m_prevSeed) // only regenerate if nescessary
 	{
-		for (uint32_t j = 0; j < n; j++) // use inverse transform method here
+		uint32_t seedOld = RngSeedManager::GetSeed(); // save back old seed
+		RngSeedManager::SetSeed(seed);
+
+		Ptr<T_RanVar> ranvar = CreateObject<T_RanVar>();
+		ranvar->SetAttribute("Min", DoubleValue(0));
+		ranvar->SetAttribute("Max", DoubleValue(1));
+		ranvar->SetStream(m_stream);
+
+		uint32_t n = nCols(),
+				 m = nRows();
+		for (uint32_t i = 0; i < m; i++)
 		{
-			double p = m_ranvar->GetValue();
-			if (p < m_bernP)
+			for (uint32_t j = 0; j < n; j++) // use inverse transform method here
 			{
-				m_mat(i, j) = 1;
-			}
-			else
-			{
-				m_mat(i, j) = -1;
+				double p = ranvar->GetValue();
+				if (p < m_bernP)
+				{
+					m_mat(i, j) = 1;
+				}
+				else
+				{
+					m_mat(i, j) = -1;
+				}
 			}
 		}
-	}
 
-	RngSeedManager::SetSeed(seedOld);
+		RngSeedManager::SetSeed(seedOld);
+	}
 }

@@ -11,7 +11,7 @@
 
 #include "ns3/core-module.h"
 #include <armadillo>
-#include <math.h>  //sqrt
+#include <math.h> //sqrt
 using namespace ns3;
 
 /**
@@ -23,7 +23,8 @@ using namespace ns3;
 class RandomMatrix : public Object
 {
 public:
-
+	static TypeId GetTypeId();
+  
   /**
   * \brief create a empty matrix
   *
@@ -91,10 +92,10 @@ public:
   friend std::ostream &operator<<(std::ostream &os, const RandomMatrix &obj);
 
 protected:
+  uint32_t m_prevSeed;                  /**< seed used previously*/
   arma::mat m_mat;                    /**< underlying matrix*/
-  Ptr<RandomVariableStream> m_ranvar; /**< random variable stream*/
+  int64_t m_stream; /**< stream number*/
 };
-
 
 /**
 * \class IdentRandomMatrix
@@ -106,7 +107,6 @@ protected:
 class IdentRandomMatrix : public RandomMatrix
 {
 public:
-
   /**
   * \brief create a empty matrix
   *
@@ -129,8 +129,10 @@ public:
   *
   */
   virtual void Generate(uint32_t seed);
+  
+  private:
+    typedef UniformRandomVariable T_RanVar; /**< random variable used*/
 };
-
 
 /**
 * \class GaussianRandomMatrix 
@@ -141,7 +143,6 @@ public:
 class GaussianRandomMatrix : public RandomMatrix
 {
 public:
-
   /**
   * \brief create a empty matrix
   *
@@ -175,6 +176,10 @@ public:
   *
   */
   virtual void Generate(uint32_t seed);
+
+  private:
+    typedef NormalRandomVariable T_RanVar; /**< random variable used*/
+    double m_mean, m_var; /**< mean& variance of distribution*/
 };
 
 /**
@@ -213,10 +218,9 @@ public:
   */
   virtual void Generate(uint32_t seed);
 
-
 private:
-  const double m_bernP = 0.5; 
+  const double m_bernP = 0.5;
+    typedef UniformRandomVariable T_RanVar; /**< random variable used*/
 };
-
 
 #endif //RANDOM_MATRIX_H

@@ -17,63 +17,69 @@ using namespace arma;
 
 int main(int argc, char *argv[])
 {
+	CommandLine cmd;
+	uint32_t seed1 = 1,
+			seed2 = 1;
+	cmd.AddValue("seed1", "first seed", seed1);
+	cmd.AddValue("seed2", "second", seed2);
+	cmd.Parse(argc, argv);
+
 	cout << "########### 10x20 RANDOM IDENTITY MATRIX ###########" << endl;
 	IdentRandomMatrix ranMat(10, 20);
-	Col<double> x = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10,11,12,13,14,15,16,17,18,19,20};
+	Col<double> x = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
 	Row<double> y = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 	mat test = ranMat;
 
-	cout << "-Seed : 1" << endl;
-	ranMat.Generate(1);
+	cout << "-Seed: " << seed1 << endl;
+	ranMat.Generate(seed1);
 	cout << ranMat;
 
-	cout << "-Seed : 2" << endl;
-	ranMat.Generate(2);
+	cout << "-Seed: " << seed2 << endl;
+	ranMat.Generate(seed2);
 	cout << ranMat;
 
 	cout << "-Multiplication: Mat * [1 2 3 ... 20]T" << endl;
 	cout << (ranMat * x);
 
 	cout << "-Multiplication: [1 2 3 .. 10]*Mat" << endl;
-	cout << (y*ranMat);
+	cout << (y * ranMat);
 
 	cout << "########### 10x20 RANDOM GAUSSIAN MATRIX with mean 0 var 1###########" << endl;
 	GaussianRandomMatrix ranMat2(0, 1, 10, 20);
 
-	cout << "-Seed : 1" << endl;
-	ranMat2.Generate(1);
+		cout << "-Seed: " << seed1 << endl;
+	ranMat2.Generate(seed1);
 	cout << ranMat2;
 
-	cout << "-Seed : 2" << endl;
-	ranMat2.Generate(2);
+	cout << "-Seed: " << seed2 << endl;
+	ranMat2.Generate(seed2);
 	cout << ranMat2;
 
 	cout << "-Mean :" << endl;
-	cout << mean(mean(mat(ranMat2)))<< endl;
+	cout << mean(mean(mat(ranMat2))) << endl;
 	cout << "-Variance :" << endl;
 	test = mat(ranMat2);
 	test.reshape(200, 1);
 	cout << var(test) << endl;
 
-
 	cout << "Normalized" << endl;
 	ranMat2.Normalize();
 	cout << ranMat2;
 	cout << "-Mean :" << endl;
-	cout << mean(mean(mat(ranMat2)))<< endl;
+	cout << mean(mean(mat(ranMat2))) << endl;
 	cout << "-Variance :" << endl;
 	test = mat(ranMat2);
 	test.reshape(200, 1);
 	cout << var(test) << endl;
 
 	cout << "########### 10x20 RANDOM BERNOULLIMATRIX###########" << endl;
-	BernRandomMatrix ranMat3(10,20);
-	cout << "-Seed : 1" << endl;
-	ranMat3.Generate(1);
+	BernRandomMatrix ranMat3(10, 20);
+		cout << "-Seed: " << seed1 << endl;
+	ranMat3.Generate(seed1);
 	cout << ranMat3;
 
-	cout << "-Seed : 2" << endl;
-	ranMat3.Generate(2);
+	cout << "-Seed: " << seed2 << endl;
+	ranMat3.Generate(seed2);
 	cout << ranMat3;
 
 	cout << "Normalized" << endl;
@@ -81,5 +87,5 @@ int main(int argc, char *argv[])
 	cout << ranMat3;
 
 	cout << "-Mean :" << endl;
-	cout << mean(mean(mat(ranMat3)))<< endl;
+	cout << mean(mean(mat(ranMat3))) << endl;
 }
