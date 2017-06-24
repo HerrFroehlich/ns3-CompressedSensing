@@ -44,6 +44,9 @@ int main(int argc, char *argv[])
 	cout << "-Multiplication: [1 2 3 .. 10]*Mat" << endl;
 	cout << (y * ranMat);
 
+	cout << "Rescaling to 5x10" << endl;
+	ranMat.SetSize(5, 10);
+	cout << ranMat;
 	cout << "########### 10x20 RANDOM GAUSSIAN MATRIX with mean 0 var 1###########" << endl;
 	GaussianRandomMatrix ranMat2(0, 1, 10, 20);
 
@@ -72,6 +75,9 @@ int main(int argc, char *argv[])
 	test.reshape(200, 1);
 	cout << var(test) << endl;
 
+	cout << "Rescaling to 5x10" << endl;
+	ranMat2.SetSize(5, 10);
+	cout << ranMat2;
 	cout << "########### 10x20 RANDOM BERNOULLIMATRIX###########" << endl;
 	BernRandomMatrix ranMat3(10, 20);
 		cout << "-Seed: " << seed1 << endl;

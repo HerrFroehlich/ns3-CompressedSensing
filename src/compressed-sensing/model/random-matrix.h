@@ -50,12 +50,13 @@ public:
   void SetSize(uint32_t m, uint32_t n);
 
   /**
-  * \brief Generate random entries for a given seed
+  * \brief Generate random entries for a given seed (if it is different than the previous one, or if forced to)
   *
   * \param seed seed to use
+  * \param force force generation
   *
   */
-  virtual void Generate(uint32_t seed) = 0;
+  virtual void Generate(uint32_t seed, bool force = false) = 0;
 
   /**
   * \brief gets the NOF rows
@@ -123,12 +124,13 @@ public:
   IdentRandomMatrix(uint32_t m, uint32_t n);
 
   /**
-  * \brief Generate random entries for a given seed (current seed of RNG is presevered)
+  * \brief Generate random entries for a given seed (if it is different than the previous one, or if forced to)
   *
   * \param seed seed to use
+  * \param force force generation
   *
   */
-  virtual void Generate(uint32_t seed);
+  virtual void Generate(uint32_t seed, bool force = false);
   
   private:
     typedef UniformRandomVariable T_RanVar; /**< random variable used*/
@@ -168,14 +170,15 @@ public:
   *
   */
   GaussianRandomMatrix(double mean, double var, uint32_t m, uint32_t n);
-
+ 
   /**
-  * \brief Generate random entries for a given seed (current seed of RNG is presevered)
+  * \brief Generate random entries for a given seed (if it is different than the previous one, or if forced to)
   *
   * \param seed seed to use
+  * \param force force generation
   *
   */
-  virtual void Generate(uint32_t seed);
+  virtual void Generate(uint32_t seed, bool force = false);
 
   private:
     typedef NormalRandomVariable T_RanVar; /**< random variable used*/
@@ -209,14 +212,15 @@ public:
   *
   */
   BernRandomMatrix(uint32_t m, uint32_t n);
-
+ 
   /**
-  * \brief Generate random entries for a given seed (current seed of RNG is presevered)
+  * \brief Generate random entries for a given seed (if it is different than the previous one, or if forced to)
   *
   * \param seed seed to use
+  * \param force force generation
   *
   */
-  virtual void Generate(uint32_t seed);
+  virtual void Generate(uint32_t seed, bool force = false);
 
 private:
   const double m_bernP = 0.5;

@@ -36,7 +36,7 @@ void RandomMatrix::SetSize(uint32_t m, uint32_t n)
 	if ((m != nRows()) && (n != nCols()))
 	{
 		m_mat.set_size(m, n);
-		Generate(m_prevSeed);
+		Generate(m_prevSeed, true);
 	}
 }
 
@@ -88,9 +88,9 @@ IdentRandomMatrix::IdentRandomMatrix(uint32_t m, uint32_t n) : RandomMatrix(m, n
 {
 }
 
-void IdentRandomMatrix::Generate(uint32_t seed)
+void IdentRandomMatrix::Generate(uint32_t seed, bool force)
 {
-	if (seed != m_prevSeed) // only regenerate if nescessary
+	if ((seed != m_prevSeed) || force) // only regenerate if nescessary or forced to
 	{
 		uint32_t seedOld = RngSeedManager::GetSeed(); // save back old seed
 		RngSeedManager::SetSeed(seed);
@@ -117,7 +117,7 @@ void IdentRandomMatrix::Generate(uint32_t seed)
 		{
 			m_mat = 1;
 		}
-
+		m_prevSeed = seed;
 		RngSeedManager::SetSeed(seedOld);
 	}
 }
@@ -134,9 +134,9 @@ GaussianRandomMatrix::GaussianRandomMatrix(double mean, double var, uint32_t m, 
 {
 }
 
-void GaussianRandomMatrix::Generate(uint32_t seed)
+void GaussianRandomMatrix::Generate(uint32_t seed, bool force)
 {
-	if (seed != m_prevSeed) // only regenerate if nescessary
+	if ((seed != m_prevSeed) || force) // only regenerate if nescessary or forced to
 	{
 		uint32_t seedOld = RngSeedManager::GetSeed(); // save back old seed
 		RngSeedManager::SetSeed(seed);
@@ -154,6 +154,7 @@ void GaussianRandomMatrix::Generate(uint32_t seed)
 			}
 		}
 
+		m_prevSeed = seed;
 		RngSeedManager::SetSeed(seedOld);
 	}
 }
@@ -167,9 +168,9 @@ BernRandomMatrix::BernRandomMatrix(uint32_t m, uint32_t n) : RandomMatrix(m, n)
 {
 }
 
-void BernRandomMatrix::Generate(uint32_t seed)
+void BernRandomMatrix::Generate(uint32_t seed, bool force)
 {
-	if (seed != m_prevSeed) // only regenerate if nescessary
+	if ((seed != m_prevSeed) || force) // only regenerate if nescessary or forced to
 	{
 		uint32_t seedOld = RngSeedManager::GetSeed(); // save back old seed
 		RngSeedManager::SetSeed(seed);
@@ -197,6 +198,7 @@ void BernRandomMatrix::Generate(uint32_t seed)
 			}
 		}
 
+		m_prevSeed = seed;
 		RngSeedManager::SetSeed(seedOld);
 	}
 }
