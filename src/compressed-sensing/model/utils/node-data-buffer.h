@@ -112,7 +112,7 @@ class NodeDataBuffer : public ns3::Object
 	* \brief reads the buffer matrix to an external buffer(ordered column by column)
 	*
 	*/
-	void ReadBuf(T *buffer, const uint32_t& bufSize);
+	void ReadBuf(T *buffer, const uint32_t &bufSize);
 
 	/**
 	* \brief reads a column from the buffer
@@ -243,7 +243,7 @@ uint32_t NodeDataBuffer<T>::WriteData(const T &data)
 }
 
 template <typename T>
-uint32_t NodeDataBuffer<T>::WriteData(const T *buffer, const uint32_t& bufSize)
+uint32_t NodeDataBuffer<T>::WriteData(const T *buffer, const uint32_t &bufSize)
 {
 	NS_ASSERT(buffer); //null pointer check
 	//calculate remaining space
@@ -262,7 +262,10 @@ uint32_t NodeDataBuffer<T>::WriteData(const T *buffer, const uint32_t& bufSize)
 		{
 			m_rowWrIdx++;
 			if (m_rowWrIdx == m_nRow)
+			{
 				m_isFull = true;
+				return 0;
+			}
 			m_colWrIdx = 0;
 		}
 	}
@@ -323,7 +326,7 @@ void NodeDataBuffer<T>::ReadBuf(T *buffer, const uint32_t &bufSize)
 	NS_ASSERT_MSG(bufSize == GetWrElem(), "NOF elements not matching!");
 
 	Mat<T> subMat = ReadAll();
-	std::copy(subMat.memptr(), subMat.memptr()+bufSize, buffer);
+	std::copy(subMat.memptr(), subMat.memptr() + bufSize, buffer);
 }
 
 template <typename T>
