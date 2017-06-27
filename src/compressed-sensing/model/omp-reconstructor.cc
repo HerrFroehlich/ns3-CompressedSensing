@@ -14,8 +14,9 @@ NS_OBJECT_ENSURE_REGISTERED(OMP_TempReconstructor);
 TypeId OMP_TempReconstructor::GetTypeId(void)
 {
 	static TypeId tid = TypeId("OMP_TempReconstructor")
-							.SetParent<Object>()
+							.SetParent<Reconstructor>()
 							.SetGroupName("CompressedSensing")
+							.AddConstructor<OMP_TempReconstructor>()
 							.AddAttribute("nMeas", "Default NOF measurement vectors to reconstruct",
 										  UintegerValue(0),
 										  MakeUintegerAccessor(&OMP_TempReconstructor::m_nMeasDef),
@@ -29,7 +30,7 @@ TypeId OMP_TempReconstructor::GetTypeId(void)
 										  MakeUintegerAccessor(&OMP_TempReconstructor::m_kDef),
 										  MakeUintegerChecker<uint32_t>())
 							.AddAttribute("Tolerance", "Tolerance of solution",
-										  DoubleValue(0),
+										  DoubleValue(1e-3),
 										  MakeDoubleAccessor(&OMP_TempReconstructor::m_tolerance),
 										  MakeDoubleChecker<double>());
 
@@ -63,26 +64,39 @@ uint32_t OMP_TempReconstructor::Write(T_NodeIdTag nodeId, double data)
 int64_t OMP_TempReconstructor::Reconstruct(T_NodeIdTag nodeId, uint32_t kspars, uint32_t iter)
 {
 	NS_LOG_FUNCTION(this << nodeId << kspars << iter);
+	typedef klab::TSmartPointer<kl1p::TOperator<double>> T_OpPtr;
 
 	SystemWallClockMs wallClock;
 	int64_t time = 0;
 	uint32_t k = kspars;
-	kl1p::TOMPSolver<double, cx_double> omp(m_tolerance);
-	Col<cx_double> y, cx;
-	kl1p::TMatrixOperator<cx_double> A = GetMatOp(nodeId);
-	klab::TSmartPointer< kl1p::TOperator<cx_double>> A_ptr = &A;
+	kl1p::TOMPSolver<double, double> omp(m_tolerance);
+	Col<double> y, x;
+	T_OpPtr A = new kl1p::TMatrixOperator<double>(GetMatOp(nodeId));
 
 	y = GetBufMat(nodeId);
-	if(k == 0)
-		k = GetNofMeas(nodeId)/2;
-	if(iter)
+	// y.save("ry" + std::to_string(nodeId), arma_ascii);
+	if (k == 0)
+		k = GetNofMeas(nodeId) / 2;
+	if (iter)
 		omp.setIterationLimit(iter);
-	
-	wallClock.Start();
-	omp.solve(y, A_ptr, k, cx);
-	time = wallClock.End();
-	WriteRecBuf(nodeId, real(cx));
 
+	wallClock.Start();
+	omp.solve(y, A, k, x);
+	time = wallClock.End();
+
+	WriteRecBuf(nodeId, x);
+
+	m_completeCb(time, omp.iterations());
 	return time;
 }
 
+int64_t OMP_TempReconstructor::Reconstruct(T_NodeIdTag nodeId)
+{
+	return Reconstruct(nodeId, m_kDef, 0);
+}
+
+int64_t OMP_TempReconstructor::ReconstructAll()
+{
+	//TODO
+	return 0;
+}

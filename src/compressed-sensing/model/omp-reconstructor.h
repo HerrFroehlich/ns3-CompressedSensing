@@ -40,7 +40,7 @@ class OMP_TempReconstructor : public Reconstructor
 	*
 	*/
 	void AddSrcNode(T_NodeIdTag nodeId, uint32_t seed, uint32_t nMeas, uint32_t mMax);
-
+	using Reconstructor::AddSrcNode;
 	/**
 	* \brief write a data sample to the input buffer
 	*
