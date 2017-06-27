@@ -27,13 +27,13 @@ RandomMatrix::RandomMatrix() : m_prevSeed(0), m_mat()
 {
 }
 
-RandomMatrix::RandomMatrix(uint32_t m, uint32_t n) : m_prevSeed(0), m_mat(m, n)
+RandomMatrix::RandomMatrix(uint32_t m, uint32_t n) : m_prevSeed(1), m_mat(m, n)
 {
 }
 
 void RandomMatrix::SetSize(uint32_t m, uint32_t n)
 {
-	if ((m != nRows()) && (n != nCols()))
+	if ((m != nRows()) || (n != nCols()))
 	{
 		m_mat.set_size(m, n);
 		Generate(m_prevSeed, true);
@@ -86,6 +86,7 @@ IdentRandomMatrix::IdentRandomMatrix()
 
 IdentRandomMatrix::IdentRandomMatrix(uint32_t m, uint32_t n) : RandomMatrix(m, n)
 {
+	Generate(m_prevSeed, true);
 }
 
 void IdentRandomMatrix::Generate(uint32_t seed, bool force)
@@ -129,9 +130,11 @@ GaussianRandomMatrix::GaussianRandomMatrix()
 
 GaussianRandomMatrix::GaussianRandomMatrix(uint32_t m, uint32_t n) : RandomMatrix(m, n), m_mean(0), m_var(1)
 {
+	Generate(m_prevSeed, true);
 }
 GaussianRandomMatrix::GaussianRandomMatrix(double mean, double var, uint32_t m, uint32_t n) : RandomMatrix(m, n), m_mean(mean), m_var(var)
 {
+	Generate(m_prevSeed, true);
 }
 
 void GaussianRandomMatrix::Generate(uint32_t seed, bool force)
@@ -166,6 +169,7 @@ BernRandomMatrix::BernRandomMatrix()
 
 BernRandomMatrix::BernRandomMatrix(uint32_t m, uint32_t n) : RandomMatrix(m, n)
 {
+	Generate(m_prevSeed, true);
 }
 
 void BernRandomMatrix::Generate(uint32_t seed, bool force)
