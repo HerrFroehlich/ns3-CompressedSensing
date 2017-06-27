@@ -250,41 +250,6 @@ uint32_t NodeDataBuffer<T>::WriteData(const T *buffer, const uint32_t& bufSize)
 	uint32_t space = (m_nRow - m_rowWrIdx) * (m_nCol) + m_nCol - m_colWrIdx;
 	NS_ASSERT_MSG(bufSize <= space, "Not enough space in buffer!");
 
-	// uint32_t nElem;
-	// if (m_rowWrIdx) //fill current row(if necessary)
-	// {
-	// 	nElem = m_nRow-m_rowWrIdx;
-
-	// 	Row<T> dataVect(buffer, nElem, false, true); // speed up: use memory of buffer, since we copy only anyway
-	// 	WriteData(dataVect);
-	// 	bufSize -= nElem;
-	// 	buffer += nElem;
-	// 	meta += nElem;
-	// }
-	// if (bufSize)// TODO -> USE MATRIX instead of for
-	// {
-	// 	uint32_t nRow = bufSize / space; // NOF full(!) rows to write
-	// 	nElem = m_nRow;
-	// 	for (uint32_t row = 0; row < nRow; row++)
-	// 	{
-	// 		Row<T> dataVect(buffer, nElem, false, true); // speed up: use memory of buffer, since we copy only anyway
-	// 		WriteData(dataVect);
-	// 		bufSize -= nElem;
-	// 		buffer += nElem;
-	// 		meta += nElem;
-	// 	}
-	// 	 // start writing new incomplete
-	// }
-	// if (bufSize)
-	// {
-	// 	nElem = bufSize;
-	// 	Row<T> dataVect(buffer, nElem, false, true); // speed up: use memory of buffer, since we copy only anyway
-	// 	WriteData(dataVect);
-	// 	bufSize -= nElem;
-	// 	buffer += nElem;
-	// 	meta += nElem;
-	// }
-
 	T *matMem_ptr = m_dataMat.memptr(); // here data is stored in a column by column order
 										//	T *bufEnd_ptr = buffer + bufSize;
 	for (uint32_t i = 0; i < bufSize; i++)
@@ -316,7 +281,7 @@ uint32_t NodeDataBuffer<T>::GetWrRow() const
 {
 	if (IsEmpty())
 		return 0;
-	return m_rowWrIdx - 1;
+	return m_rowWrIdx;
 }
 
 template <typename T>
@@ -324,7 +289,7 @@ uint32_t NodeDataBuffer<T>::GetWrCol() const
 {
 	if (IsEmpty())
 		return 0;
-	return m_colWrIdx - 1;
+	return m_colWrIdx;
 }
 
 template <typename T>
