@@ -10,35 +10,42 @@
 #include <KL1pInclude.h>
 
 /*--------  TransMatrix  --------*/
-TransMatrix::TransMatrix() : m_mat()
+template<typename T>
+TransMatrix<T>::TransMatrix() : m_mat()
 {
 }
 
-TransMatrix::TransMatrix(uint32_t n) : m_mat(n, n)
+template<typename T>
+TransMatrix<T>::TransMatrix(uint32_t n) : m_mat(n, n)
 {
 }
 
-void TransMatrix::SetSize(uint32_t n)
+template<typename T>
+void TransMatrix<T>::SetSize(uint32_t n)
 {
 	m_mat.set_size(n, n);
 }
 
-uint32_t TransMatrix::GetSize() const
+template<typename T>
+uint32_t TransMatrix<T>::GetSize() const
 {
 	return m_mat.n_rows;
 }
 
-Mat<cx_double> operator*(const TransMatrix &lvl, const Mat<cx_double> &rvl)
+template<typename T>
+Mat<T> operator*(const TransMatrix<T> &lvl, const Mat<T> &rvl)
 {
 	return lvl.m_mat * rvl;
 }
 
-Mat<cx_double> operator*(const Mat<cx_double> &lvl, const TransMatrix &rvl)
+template<typename T>
+Mat<T> operator*(const Mat<T> &lvl, const TransMatrix<T> &rvl)
 {
 	return lvl * rvl.m_mat;
 }
 
-std::ostream &operator<<(std::ostream &os, const TransMatrix &obj)
+template<typename T>
+std::ostream &operator<<(std::ostream &os, const TransMatrix<T> &obj)
 {
 	// write obj to stream
 	os << obj.m_mat;

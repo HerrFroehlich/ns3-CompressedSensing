@@ -19,6 +19,7 @@ using namespace arma;
 *
 * \tparam T data type entries of underlying matrix
 */
+template<typename T>
 class TransMatrix : public ns3::Object
 {
   public:
@@ -50,18 +51,21 @@ class TransMatrix : public ns3::Object
 	*/
 	uint32_t GetSize() const;
 
-	operator Mat<cx_double>() const
+	operator Mat<T>() const
 	{
 		return m_mat;
 	};
 
-	friend Mat<cx_double> operator*(const TransMatrix &, const Mat<cx_double> &);
+template<typename T2>
+	friend Mat<T2> operator*(const TransMatrix<T2> &, const Mat<T2> &);
 
-	friend Mat<cx_double> operator*(const Mat<cx_double> &, const TransMatrix &);
-	friend std::ostream &operator<<(std::ostream &os, const TransMatrix &obj);
+template<typename T2>
+	friend Mat<T2> operator*(const Mat<T2> &, const TransMatrix<T2> &);
+template<typename T2>
+	friend std::ostream &operator<<(std::ostream &os, const TransMatrix<T2> &obj);
 
   protected:
-	Mat<cx_double> m_mat; /**< underlying matrix*/
+	Mat<T> m_mat; /**< underlying matrix*/
 };
 
 
@@ -71,7 +75,7 @@ class TransMatrix : public ns3::Object
 * \brief matrix inducing a 1D fourier transformation
 *
 */
-class FourierTransMatrix : public TransMatrix
+class FourierTransMatrix : public TransMatrix<cx_double>
 {
 public:
 	/**
