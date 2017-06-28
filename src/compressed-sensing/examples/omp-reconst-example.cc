@@ -25,12 +25,12 @@ int main(int argc, char *argv[])
  	* ==========  COMMAND LINE ARGUMENTS  ========== *
  	* ================================================== */
 	CommandLine cmd;
-	bool verbose = false, cont = false;
+	bool verbose = false, cont = false, write = false;
 	uint32_t seed = 1,
 			 n = 256,
 			 mMin = 0;
 	uint32_t nNodes = 1, ranType = 0, iter = 100;
-	double alpha = 0.5, rho = 0.1;
+	double alpha = 0.5, rho = 0.1, tol = 1e-3;
 
 	cmd.AddValue("verbose", "enable verbose messages", verbose);
 	cmd.AddValue("cont", "Adding data and reconstructing continously", cont);
@@ -38,10 +38,12 @@ int main(int argc, char *argv[])
 	cmd.AddValue("seed", "initial seed. The Nodes have the following seeds: Node 0: seed, Node 1: seed+1, Node 2: seed+2 ....", seed);
 	cmd.AddValue("n", "Size of the original signal x0", n);
 	cmd.AddValue("nNodes", "NOF nodes [1...255] ", nNodes);
-	cmd.AddValue("alpha", "Ratio of the cs-measurements", alpha);
-	cmd.AddValue("rho", "Ratio of the sparsity of the signal x0", rho);
+	cmd.AddValue("alpha", "Ratio of the cs-measurements [0...1]", alpha);
+	cmd.AddValue("rho", "Ratio of the sparsity of the signal x0 [0...1]", rho);
+	cmd.AddValue("tol", "Tolerance of solution", tol);
 	cmd.AddValue("ranType", "Type of random sensing matrix: 0->Gaussian, 1-> Identity, 2 -> Bernoulli", ranType);
 	cmd.AddValue("iter", "Maximum NOF iterations", iter);
+	cmd.AddValue("write", "Write x,y and the sensing matrix to an Ascii file", write);
 	cmd.Parse(argc, argv);
 
 	/**================================================== *
@@ -68,6 +70,16 @@ int main(int argc, char *argv[])
 	{
 		NS_LOG_WARN("ranType not supported, setting it to 1");
 		ranType = 1;
+	}
+	if (alpha > 1)
+	{
+		NS_LOG_WARN("alpha > 1, setting it to 1");
+		alpha = 1.0;
+	}
+	if (rho > 1)
+	{
+		NS_LOG_WARN("rho > 1, setting it to 1");
+		rho = 1.0;
 	}
 
 	uint32_t m = alpha * n, k = rho * n;
@@ -96,9 +108,13 @@ int main(int argc, char *argv[])
 		sensMat = CreateObject<BernRandomMatrix>(m, n);
 		break;
 	}
+	
+	Ptr<TransMatrix<cx_double>> trans = CreateObject<FourierTransMatrix>(n);
 
+	omp->SetAttribute("Tolerance", DoubleValue(tol));
 	omp->Setup(n, m, k, 1e-3);
-	omp->SetRanMat(sensMat);
+//	omp->SetRanMat(sensMat);
+	omp->SetAttribute("RanMatrix", PointerValue(sensMat));
 	omp->TraceConnectWithoutContext("RecComplete", MakeCallback(&PrintStats));
 
 	for (uint32_t i = 0; i < nNodes; i++)
@@ -109,8 +125,11 @@ int main(int argc, char *argv[])
 		sensMat->Generate(seed + i);
 		y = *(sensMat)*x0;
 		mat A = *(sensMat);
-		// A.save("mat" + to_string(i), arma_ascii);
-		// y.save("y" + to_string(i), arma_ascii);
+		if (write)
+		{
+			A.save("./ompExamp/mat" + to_string(i), arma_ascii);
+			y.save("./ompExamp/y" + to_string(i), arma_ascii);
+		}
 		yVals.at(i) = y;
 		xVals.at(i) = x0;
 
@@ -136,13 +155,18 @@ int main(int argc, char *argv[])
 			for (uint32_t j = mMin; j < m; j++)
 			{
 				omp->WriteData(i, y.memptr() + j, 1);
-				cout << "---Attempt with " << j+1 << " Samples " << endl;
+				cout << "---Attempt with " << j + 1 << " Samples " << endl;
 				vector<double> data;
 				omp->Reconstruct(i, k, iter);
 				data = omp->ReadRecData(i);
 				vec x(data.data(), n, false, false);
 				// cout << arma::join_rows(x, xVals.at(i));
 				cout << "SNR: " << setprecision(5) << klab::SNR(x, xVals.at(i)) << endl;
+				if (write)
+				{
+					mat xCmp = arma::join_rows(x, xVals.at(i));
+					xCmp.save("./ompExamp/x" + to_string(i) + "_" + to_string(j + 1), arma_ascii);
+				}
 			}
 		}
 	}
@@ -158,6 +182,11 @@ int main(int argc, char *argv[])
 			vec x(data.data(), n, false, false);
 			// cout << arma::join_rows(x, xVals.at(i));
 			cout << "SNR: " << setprecision(5) << klab::SNR(x, xVals.at(i)) << endl;
+			if (write)
+			{
+				mat xCmp = arma::join_rows(x, xVals.at(i));
+				xCmp.save("./ompExamp/x" + to_string(i), arma_ascii);
+			}
 		}
 	}
 }
