@@ -14,7 +14,7 @@ NS_OBJECT_ENSURE_REGISTERED(OMP_TempReconstructor);
 TypeId OMP_TempReconstructor::GetTypeId(void)
 {
 	static TypeId tid = TypeId("OMP_TempReconstructor")
-							.SetParent<Reconstructor>()
+							.SetParent<Reconstructor<double>>()
 							.SetGroupName("CompressedSensing")
 							.AddConstructor<OMP_TempReconstructor>()
 							.AddAttribute("nMeas", "Default NOF measurement vectors to reconstruct",
@@ -83,7 +83,6 @@ int64_t OMP_TempReconstructor::Reconstruct(T_NodeIdTag nodeId, uint32_t kspars, 
 	wallClock.Start();
 	omp.solve(y, A, k, x);
 	time = wallClock.End();
-
 	WriteRecBuf(nodeId, x);
 
 	m_completeCb(time, omp.iterations());

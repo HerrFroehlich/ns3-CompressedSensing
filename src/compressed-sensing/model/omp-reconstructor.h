@@ -11,9 +11,9 @@
 #include "reconstructor.h"
 using namespace kl1p;
 
-typedef Reconstructor::T_NodeIdTag T_NodeIdTag;
+//typedef Reconstructor::T_NodeIdTag T_NodeIdTag;
 
-class OMP_TempReconstructor : public Reconstructor
+class OMP_TempReconstructor : public Reconstructor<double>
 {
   public:
 	static TypeId GetTypeId(void);
@@ -40,7 +40,7 @@ class OMP_TempReconstructor : public Reconstructor
 	*
 	*/
 	void AddSrcNode(T_NodeIdTag nodeId, uint32_t seed, uint32_t nMeas, uint32_t mMax);
-	using Reconstructor::AddSrcNode;
+	using Reconstructor<double>::AddSrcNode;
 	/**
 	* \brief write a data sample to the input buffer
 	*

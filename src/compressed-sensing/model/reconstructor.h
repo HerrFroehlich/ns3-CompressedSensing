@@ -27,17 +27,18 @@ using namespace arma;
 * \brief A base class template for compressed sensing reconstructors using KL1p
 *
 * This class is used as a base class for different CS reconstructors (using KL1p).
-* The base takes care of storing data (doubles) for indivudal nodes. Aside a Seed  to caonstruct a sensing matrix);
+* The base takes care of storing data for indivudal nodes. Aside a Seed  to caonstruct a sensing matrix);
 *
 * \author Tobias Waurick
 * \date 03.06.17
 */
-
+typedef uint8_t T_NodeIdTag;
+template <typename T = double>
 class Reconstructor : public ns3::Object
 {
-  public:
-	typedef uint8_t T_NodeIdTag; /**< type of node ID*/
-	typedef void (* CompleteTracedCallback)(int64_t time, uint32_t iter); 
+  public:																 /**< type of node ID*/
+	typedef void (*CompleteTracedCallback)(int64_t time, uint32_t iter); /**< callback signature when completed a reconstruction*/
+	typedef void (*ErrorTracedCallback)(klab::KException e);			 /**< callback signature when reconstruction fails*/
 	static TypeId GetTypeId(void);
 	Reconstructor();
 
@@ -74,16 +75,16 @@ class Reconstructor : public ns3::Object
 	* \param bufSize  size of data buffer	
 	*
 	*/
-	uint32_t WriteData(T_NodeIdTag nodeId, const double *buffer, const uint32_t bufSize);
+	uint32_t WriteData(T_NodeIdTag nodeId, const T *buffer, const uint32_t bufSize);
 
 	/**
 	* \brief reads reconstructed data matrix and returns a vector (matrix ordered column by column)
 	*
 	* \param nodeId	8bit-ID of the node
 	*
-	* \return vector of doubles containing the reconstructed data matrix
+	* \return vector of T containing the reconstructed data matrix
 	*/
-	std::vector<double> ReadRecData(T_NodeIdTag nodeId) const;
+	std::vector<T> ReadRecData(T_NodeIdTag nodeId) const;
 
 	/**
 	* \brief sets the internal random matrix object
@@ -98,7 +99,7 @@ class Reconstructor : public ns3::Object
 	* \param trans Mat_ptr pointer to a TransMatrix object
 	*
 	*/
-	void SetTransMat(Ptr<TransMatrix<double>> transMat_ptr);
+	void SetTransMat(Ptr<TransMatrix<T>> transMat_ptr);
 
   protected:
 	/**
@@ -141,9 +142,9 @@ class Reconstructor : public ns3::Object
 	*
 	* \param nodeId node ID
 	*
-	* \return Mat<double> the buffered data
+	* \return Mat<T> the buffered data
 	*/
-	Mat<double> GetBufMat(T_NodeIdTag nodeId) const;
+	Mat<T> GetBufMat(T_NodeIdTag nodeId) const;
 
 	/**
 	* \brief write matrix to reconstruction buffer
@@ -152,7 +153,7 @@ class Reconstructor : public ns3::Object
 	* \param mat matrix to be written
 	*
 	*/
-	void WriteRecBuf(T_NodeIdTag nodeId, const Mat<double> &mat);
+	void WriteRecBuf(T_NodeIdTag nodeId, const Mat<T> &mat);
 
 	/**
 	* \brief gets the matrix operator used for reconstructing, which is created by multiplying the sensing matrix with a transformation
@@ -162,7 +163,7 @@ class Reconstructor : public ns3::Object
 	*
 	* \return returnDesc
 	// */
-	 kl1p::TMatrixOperator<double> GetMatOp(T_NodeIdTag nodeId, bool norm = false); 
+	kl1p::TMatrixOperator<T> GetMatOp(T_NodeIdTag nodeId, bool norm = false);
 	// auto GetMatOp(T_NodeIdTag nodeId, bool norm = false);
 
 	/**
@@ -177,10 +178,12 @@ class Reconstructor : public ns3::Object
 	*/
 	void AddSrcNode(T_NodeIdTag nodeId, uint32_t seed, uint32_t nMeas, uint32_t mMax, uint32_t vecLen);
 
-	uint32_t m_nMeasDef, m_mMaxDef, m_vecLenDef; /**< default buffer dimensions*/
-	TracedCallback<int64_t, uint32_t> m_completeCb; /**< callback when completed returning time+iterations needed*/
+	uint32_t m_nMeasDef, m_mMaxDef, m_vecLenDef;	/**< default buffer dimensions*/
+	TracedCallback<int64_t, uint32_t> m_completeCb; /**< callback when completed reconstruction, returning time+iterations needed*/
+	TracedCallback<klab::KException> m_errorCb;		/**< callback when reconstruction fails, returning KExeception type*/
+
   private:
-	typedef NodeDataBuffer<double> T_NodeBuffer;
+	typedef NodeDataBuffer<T> T_NodeBuffer ;
 	class T_NodeInfo : public SimpleRefCount<T_NodeInfo> /**< Class containing info on each node (seed, matrix sizes, buffer Ptrs)*/
 	{
 	  public:
@@ -219,7 +222,7 @@ class Reconstructor : public ns3::Object
 	*
 	* \return the transformation matrix	
 	*/
-	Mat<double> GetTransMat(uint32_t n);
+	Mat<T> GetTransMat(uint32_t n);
 
 	/**
 	* \brief checks out node info to avoid redundent look ups		
@@ -234,10 +237,11 @@ class Reconstructor : public ns3::Object
 	uint32_t m_nNodes;								   /**< NOF nodes from which we are gathering data*/
 	std::map<T_NodeIdTag, T_NodeInfo> m_nodeInfoMap;   /**< map for node info<>node ID*/
 	Ptr<RandomMatrix> m_ranMat;						   /**< Random matrix form from which sensing matrix is constructed*/
-	Ptr<TransMatrix<double>> m_transMat;					   /**< Transformation matrix form from which sensing matrix is constructed*/
+	Ptr<TransMatrix<T>> m_transMat;					   /**< Transformation matrix form from which sensing matrix is constructed*/
 	mutable T_NodeIdTag m_nodeIdNow, m_nodeIdNowConst; /**< current nodeId*/
 	mutable Ptr<const T_NodeInfo> m_infoNowConst;	  /**< current nodeId for const call*/
 	mutable Ptr<T_NodeInfo> m_infoNow;				   /**< current selected info structure*/
 };
+
 
 #endif //RECONSTRUCTOR_H
