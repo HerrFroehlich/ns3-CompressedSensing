@@ -71,13 +71,6 @@ class OMP_TempReconstructor : public Reconstructor<double>
 	*/
 	virtual int64_t  Reconstruct(T_NodeIdTag nodeId);
 
-	/**
-	* \brief starts the reconstruction for all nodes
-	*
-	* \return time in ms needed for reconstruction
-	*/
-	virtual int64_t  ReconstructAll();
-
   private:
 	double m_tolerance; /**< tolerance of solution*/
 	uint32_t m_kDef;	/**< sparsity of solution*/

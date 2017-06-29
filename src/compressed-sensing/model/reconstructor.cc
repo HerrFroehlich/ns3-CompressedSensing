@@ -49,6 +49,17 @@ Reconstructor<T>::Reconstructor() : m_nMeasDef(0),
 }
 
 template <typename T>
+int64_t Reconstructor<T>::ReconstructAll()
+{
+	int64_t time = 0;
+	for (auto const &entry : m_nodeInfoMap)
+	{
+		time += Reconstruct(entry.first);
+	}
+	return time;
+}
+
+template <typename T>
 void Reconstructor<T>::AddSrcNode(T_NodeIdTag nodeId, uint32_t seed)
 {
 	AddSrcNode(nodeId, seed, m_nMeasDef, m_mMaxDef, m_vecLenDef);

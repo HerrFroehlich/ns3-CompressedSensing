@@ -93,9 +93,3 @@ int64_t OMP_TempReconstructor::Reconstruct(T_NodeIdTag nodeId)
 {
 	return Reconstruct(nodeId, m_kDef, 0);
 }
-
-int64_t OMP_TempReconstructor::ReconstructAll()
-{
-	//TODO
-	return 0;
-}

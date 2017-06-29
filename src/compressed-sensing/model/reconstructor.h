@@ -29,6 +29,8 @@ using namespace arma;
 * This class is used as a base class for different CS reconstructors (using KL1p).
 * The base takes care of storing data for indivudal nodes. Aside a Seed  to caonstruct a sensing matrix);
 *
+* \tparam T type of internal data (either double or arma::cx_double)
+*
 * \author Tobias Waurick
 * \date 03.06.17
 */
@@ -56,7 +58,7 @@ class Reconstructor : public ns3::Object
 	*
 	* \return time in ms needed for reconstruction
 	*/
-	virtual int64_t ReconstructAll() = 0;
+	int64_t ReconstructAll();
 
 	/**
 	* \brief Adds a source node whose measurement data shall be reconstructed, default sizes are used for the buffer
