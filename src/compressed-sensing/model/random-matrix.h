@@ -11,20 +11,22 @@
 
 #include "ns3/core-module.h"
 #include <armadillo>
+#include <KL1pInclude.h> 
+#include <KSciInclude.h>
 #include <math.h> //sqrt
 using namespace ns3;
-
+using namespace kl1p;
 /**
 * \class RandomMatrix
 *
 * \brief base clase to create matrices with random entries
 *
 */
-class RandomMatrix : public Object
+class RandomMatrix : public Object, public kl1p::TOperator<double>
 {
 public:
-	static TypeId GetTypeId();
-  
+  static TypeId GetTypeId();
+
   /**
   * \brief create a empty matrix
   *
@@ -80,22 +82,36 @@ public:
   arma::Col<uint32_t> Dim() const;
 
   /**
-  * \brief normalizes the matrixby 1/sqrt(m)
+  * \brief normalizes the matrix by 1/sqrt(m)
   */
-  void Normalize();
+  void NormalizeToM();
 
+  /**
+  * \brief clones the matrix
+  *
+  * \return pointer to a new matrix
+  */
+  virtual RandomMatrix *Clone() const = 0;
+
+  virtual void apply(const arma::Col<double> &in, arma::Col<double> &out);
+  virtual void applyAdjoint(const arma::Col<double> &in, arma::Col<double> &out);
+  virtual void column(klab::UInt32 i, arma::Col<double> &out);
+  virtual void columnAdjoint(klab::UInt32 i, arma::Col<double> &out);
+  virtual void toMatrix(arma::Mat<double> &out);
+  virtual void toMatrixAdjoint(arma::Mat<double> &out);
   operator arma::mat() const
   {
     return m_mat;
   };
+
   friend arma::mat operator*(const RandomMatrix &, const arma::mat &);
   friend arma::mat operator*(const arma::mat &, const RandomMatrix &);
   friend std::ostream &operator<<(std::ostream &os, const RandomMatrix &obj);
 
 protected:
-  uint32_t m_prevSeed;                  /**< seed used previously*/
-  arma::mat m_mat;                    /**< underlying matrix*/
-  int64_t m_stream; /**< stream number*/
+  uint32_t m_prevSeed; /**< seed used previously*/
+  arma::mat m_mat;     /**< underlying matrix*/
+  int64_t m_stream;    /**< stream number*/
 };
 
 /**
@@ -131,9 +147,16 @@ public:
   *
   */
   virtual void Generate(uint32_t seed, bool force = false);
-  
-  private:
-    typedef UniformRandomVariable T_RanVar; /**< random variable used*/
+
+  /**
+  * \brief clones the matrix
+  *
+  * \return pointer to a new matrix
+  */
+  virtual IdentRandomMatrix *Clone() const;
+
+private:
+  typedef UniformRandomVariable T_RanVar; /**< random variable used*/
 };
 
 /**
@@ -170,7 +193,7 @@ public:
   *
   */
   GaussianRandomMatrix(double mean, double var, uint32_t m, uint32_t n);
- 
+
   /**
   * \brief Generate random entries for a given seed (if it is different than the previous one, or if forced to)
   *
@@ -180,9 +203,16 @@ public:
   */
   virtual void Generate(uint32_t seed, bool force = false);
 
-  private:
-    typedef NormalRandomVariable T_RanVar; /**< random variable used*/
-    double m_mean, m_var; /**< mean& variance of distribution*/
+  /**
+  * \brief clones the matrix
+  *
+  * \return pointer to a new matrix
+  */
+  virtual GaussianRandomMatrix *Clone() const;
+
+private:
+  typedef NormalRandomVariable T_RanVar; /**< random variable used*/
+  double m_mean, m_var;                  /**< mean& variance of distribution*/
 };
 
 /**
@@ -212,7 +242,7 @@ public:
   *
   */
   BernRandomMatrix(uint32_t m, uint32_t n);
- 
+
   /**
   * \brief Generate random entries for a given seed (if it is different than the previous one, or if forced to)
   *
@@ -222,9 +252,16 @@ public:
   */
   virtual void Generate(uint32_t seed, bool force = false);
 
+  /**
+  * \brief clones the matrix
+  *
+  * \return pointer to a new matrix
+  */
+  virtual BernRandomMatrix *Clone() const;
+
 private:
   const double m_bernP = 0.5;
-    typedef UniformRandomVariable T_RanVar; /**< random variable used*/
+  typedef UniformRandomVariable T_RanVar; /**< random variable used*/
 };
 
 #endif //RANDOM_MATRIX_H

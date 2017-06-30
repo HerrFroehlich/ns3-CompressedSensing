@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 	cout << var(test) << endl;
 
 	cout << "Normalized" << endl;
-	ranMat2.Normalize();
+	ranMat2.NormalizeToM();
 	cout << ranMat2;
 	cout << "-Mean :" << endl;
 	cout << mean(mean(mat(ranMat2))) << endl;
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 	cout << ranMat3;
 
 	cout << "Normalized" << endl;
-	ranMat3.Normalize();
+	ranMat3.NormalizeToM();
 	cout << ranMat3;
 
 	cout << "-Mean :" << endl;

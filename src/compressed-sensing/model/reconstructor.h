@@ -158,14 +158,14 @@ class Reconstructor : public ns3::Object
 	void WriteRecBuf(T_NodeIdTag nodeId, const Mat<T> &mat);
 
 	/**
-	* \brief gets the matrix operator used for reconstructing, which is created by multiplying the sensing matrix with a transformation
+	* \brief gets the operator used for reconstructing, which is created by multiplying the sensing matrix with a transformation
 	*
 	* \param nodeId node ID
 	* \param norm	Normalize sensing matrix?
 	*
-	* \return returnDesc
+	* \return multiplication operator
 	// */
-	kl1p::TMatrixOperator<T> GetMatOp(T_NodeIdTag nodeId, bool norm = false);
+	klab::TSmartPointer<kl1p::TOperator<T>> GetOp(T_NodeIdTag nodeId, bool norm = false);
 	// auto GetMatOp(T_NodeIdTag nodeId, bool norm = false);
 
 	/**
@@ -185,7 +185,7 @@ class Reconstructor : public ns3::Object
 	TracedCallback<klab::KException> m_errorCb;		/**< callback when reconstruction fails, returning KExeception type*/
 
   private:
-	typedef NodeDataBuffer<T> T_NodeBuffer ;
+	typedef NodeDataBuffer<T> T_NodeBuffer;
 	class T_NodeInfo : public SimpleRefCount<T_NodeInfo> /**< Class containing info on each node (seed, matrix sizes, buffer Ptrs)*/
 	{
 	  public:
@@ -215,7 +215,7 @@ class Reconstructor : public ns3::Object
 	*
 	* \return sparse sensing matrix
 	*/
-	Mat<double> GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm);
+	klab::TSmartPointer<kl1p::TOperator<double>> GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm);
 
 	/**
 	* \brief Gets the NxN transformation matrix		
@@ -224,7 +224,7 @@ class Reconstructor : public ns3::Object
 	*
 	* \return the transformation matrix	
 	*/
-	Mat<T> GetTransMat(uint32_t n);
+	klab::TSmartPointer<kl1p::TOperator<T>> GetTransMat(uint32_t n);
 
 	/**
 	* \brief checks out node info to avoid redundent look ups		
@@ -236,14 +236,14 @@ class Reconstructor : public ns3::Object
 	T_NodeInfo &CheckOutInfo(T_NodeIdTag nodeId);
 	const T_NodeInfo &CheckOutInfo(T_NodeIdTag nodeId) const;
 
-	uint32_t m_nNodes;								   /**< NOF nodes from which we are gathering data*/
-	std::map<T_NodeIdTag, T_NodeInfo> m_nodeInfoMap;   /**< map for node info<>node ID*/
-	Ptr<RandomMatrix> m_ranMat;						   /**< Random matrix form from which sensing matrix is constructed*/
-	Ptr<TransMatrix<T>> m_transMat;					   /**< Transformation matrix form from which sensing matrix is constructed*/
-	mutable T_NodeIdTag m_nodeIdNow, m_nodeIdNowConst; /**< current nodeId*/
-	mutable Ptr<const T_NodeInfo> m_infoNowConst;	  /**< current nodeId for const call*/
-	mutable Ptr<T_NodeInfo> m_infoNow;				   /**< current selected info structure*/
+	uint32_t m_nNodes;													/**< NOF nodes from which we are gathering data*/
+	std::map<T_NodeIdTag, T_NodeInfo> m_nodeInfoMap;					/**< map for node info<>node ID*/
+	klab::TSmartPointer<RandomMatrix> m_ranMat;							/**< Random matrix form from which sensing matrix is constructed*/
+	klab::TSmartPointer<kl1p::TOperator<T>> m_transMat;					/**< Transformation matrix form from which sensing matrix is constructed*/
+	// klab::TSmartPointer<kl1p::TMultiplicationOperator<T, T> m_multOp; /**< multiplication operator*/
+	mutable T_NodeIdTag m_nodeIdNow, m_nodeIdNowConst;					/**< current nodeId*/
+	mutable Ptr<const T_NodeInfo> m_infoNowConst;						/**< current nodeId for const call*/
+	mutable Ptr<T_NodeInfo> m_infoNow;									/**< current selected info structure*/
 };
-
 
 #endif //RECONSTRUCTOR_H

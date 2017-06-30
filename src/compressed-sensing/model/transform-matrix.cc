@@ -7,67 +7,75 @@
 */
 
 #include "transform-matrix.h"
-#include <KL1pInclude.h>
 
 /*--------  TransMatrix  --------*/
-template<typename T>
-TransMatrix<T>::TransMatrix() : m_mat()
+template <typename T>
+TransMatrix<T>::TransMatrix() : TOperator<T>()
 {
 }
 
-template<typename T>
-TransMatrix<T>::TransMatrix(uint32_t n) : m_mat(n, n)
+template <typename T>
+TransMatrix<T>::TransMatrix(uint32_t n) : TOperator<T>(n)
 {
 }
 
-template<typename T>
+template <typename T>
 void TransMatrix<T>::SetSize(uint32_t n)
 {
-	m_mat.set_size(n, n);
+	TOperator<T>::resize(n);
 }
 
-template<typename T>
+template <typename T>
 uint32_t TransMatrix<T>::GetSize() const
 {
-	return m_mat.n_rows;
+	return TOperator<T>::n();
 }
 
-template<typename T>
-Mat<T> operator*(const TransMatrix<T> &lvl, const Mat<T> &rvl)
+template <typename T>
+arma::Mat<T> TransMatrix<T>::GetMatrix()
 {
-	return lvl.m_mat * rvl;
+	arma::Mat<T> out;
+	TOperator<T>::toMatrix(out);
+	return out;
 }
 
-template<typename T>
-Mat<T> operator*(const Mat<T> &lvl, const TransMatrix<T> &rvl)
+template <typename T>
+arma::Mat<T> operator*(const TransMatrix<T> &lvl, const arma::Mat<T> &rvl)
 {
-	return lvl * rvl.m_mat;
+	return lvl.GetMatrix() * rvl;
 }
 
-template<typename T>
+template <typename T>
+arma::Mat<T> operator*(const arma::Mat<T> &lvl, const TransMatrix<T> &rvl)
+{	
+	return lvl * rvl.GetMatrix();
+}
+
+template <typename T>
 std::ostream &operator<<(std::ostream &os, const TransMatrix<T> &obj)
 {
 	// write obj to stream
-	os << obj.m_mat;
+	os << obj.GetMatrix();
 	return os;
 }
 
-/*--------  FourierTransMatrix  --------*/
-FourierTransMatrix::FourierTransMatrix()
-{
-}
+template class TransMatrix<double>;
+template class TransMatrix<cx_double>;
 
-FourierTransMatrix::FourierTransMatrix(uint32_t n) : TransMatrix(n)
-{
-	SetSize(n);
-}
+// /*--------  FourierTransMatrix  --------*/
+// FourierTransMatrix::FourierTransMatrix() : TransMatrix(0), TFourier1DOperator<cx_double>(0)
+// {
+// }
 
-void FourierTransMatrix::SetSize(uint32_t n)
-{
-	if (n != GetSize())
-	{
-		TransMatrix::SetSize(n);
-		kl1p::TFourier1DOperator<cx_double> op(n);
-		op.toMatrix(m_mat);
-	}
-}
+// FourierTransMatrix::FourierTransMatrix(uint32_t n) : TransMatrix(n), TFourier1DOperator<cx_double>(n)
+// {
+// 	SetSize(n);
+// }
+
+// void FourierTransMatrix::SetSize(uint32_t n)
+// {
+// 	if (n != GetSize())
+// 	{
+// 		TransMatrix::SetSize(n);
+// 	}
+// }

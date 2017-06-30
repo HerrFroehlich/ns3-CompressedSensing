@@ -45,6 +45,7 @@ Reconstructor<T>::Reconstructor() : m_nMeasDef(0),
 									m_vecLenDef(0),
 									m_nodeIdNow(0),
 									m_nodeIdNowConst(0)
+
 {
 }
 
@@ -120,13 +121,13 @@ std::vector<T> Reconstructor<T>::ReadRecData(T_NodeIdTag nodeId) const
 template <typename T>
 void Reconstructor<T>::SetRanMat(Ptr<RandomMatrix> ranMat_ptr)
 {
-	m_ranMat = ranMat_ptr;
+	m_ranMat = ranMat_ptr->Clone();
 }
 
 template <typename T>
 void Reconstructor<T>::SetTransMat(Ptr<TransMatrix<T>> transMat_ptr)
 {
-	m_transMat = transMat_ptr;
+	//m_transMat = new kl1p::TOperator<T>(*transMat_ptr);
 }
 
 template <typename T>
@@ -173,54 +174,57 @@ void Reconstructor<T>::WriteRecBuf(T_NodeIdTag nodeId, const Mat<T> &mat)
 	info.outBufPtr->WriteAll(mat);
 }
 
-template <>
-kl1p::TMatrixOperator<double> Reconstructor<double>::GetMatOp(T_NodeIdTag nodeId, bool norm)
+// template <>
+// kl1p::TMatrixOperator<double> Reconstructor<double>::GetMatOp(T_NodeIdTag nodeId, bool norm)
+// {
+// 	NS_LOG_FUNCTION(this << nodeId << norm);
+// 	T_NodeInfo info = CheckOutInfo(nodeId);
+// 	Mat<double> Phi = GetSensMat(info.seed, info.m, info.nMeas, norm);
+// 	if (m_transMat)
+// 	{
+// 		Mat<double> Psi = GetTransMat(info.nMeas);
+// 		Phi = Phi * Psi;
+// 	}
+// 	// Phi.save("rmat" + std::to_string(nodeId), arma_ascii);
+// 	return kl1p::TMatrixOperator<double>(Phi);
+// }
+
+template <typename T>
+klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor<T>::GetOp(T_NodeIdTag nodeId, bool norm)
 {
 	NS_LOG_FUNCTION(this << nodeId << norm);
 	T_NodeInfo info = CheckOutInfo(nodeId);
-	Mat<double> Phi = GetSensMat(info.seed, info.m, info.nMeas, norm);
-	if (m_transMat)
-	{
-		Mat<double> Psi = GetTransMat(info.nMeas);
-		Phi = Phi * Psi;
-	}
+	// Mat<T> Phi = conv_to<Mat<T>>::from(GetSensMat(info.seed, info.m, info.nMeas, norm));
+	// if (m_transMat)
+	// {
+	// 	Mat<T> Psi = GetTransMat(info.nMeas);
+	// 	Phi = Phi * Psi;
+	// }
 	// Phi.save("rmat" + std::to_string(nodeId), arma_ascii);
-	return kl1p::TMatrixOperator<double>(Phi);
+	// return kl1p::TMatrixOperator<T>(Phi);
+	// return  * GetTransMat(n);.
+	klab::TSmartPointer<kl1p::TOperator<double>> sensMat_ptr = GetSensMat(info.seed, info.m, info.nMeas, norm);
+	return sensMat_ptr * m_transMat;
 }
 
 template <typename T>
-kl1p::TMatrixOperator<T> Reconstructor<T>::GetMatOp(T_NodeIdTag nodeId, bool norm)
-{
-	NS_LOG_FUNCTION(this << nodeId << norm);
-	T_NodeInfo info = CheckOutInfo(nodeId);
-	Mat<T> Phi = conv_to<Mat<T>>::from(GetSensMat(info.seed, info.m, info.nMeas, norm));
-	if (m_transMat)
-	{
-		Mat<T> Psi = GetTransMat(info.nMeas);
-		Phi = Phi * Psi;
-	}
-	// Phi.save("rmat" + std::to_string(nodeId), arma_ascii);
-	return kl1p::TMatrixOperator<T>(Phi);
-}
-
-template <typename T>
-Mat<T> Reconstructor<T>::GetTransMat(uint32_t n)
+klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor<T>::GetTransMat(uint32_t n)
 {
 	NS_LOG_FUNCTION(this << n);
-	return Mat<T>();
+	return m_transMat;
 }
 
 template <typename T>
-Mat<double> Reconstructor<T>::GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm)
+klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor<T>::GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm)
 {
 	NS_LOG_FUNCTION(this << seed << m << n << norm);
-	NS_ASSERT_MSG(m_ranMat, "No sensing Matrix! To create an object use CreateObject!");
+	// NS_ASSERT_MSG(m_ranMat, "No sensing Matrix! To create an object use CreateObject!");
 
 	m_ranMat->SetSize(m, n);
 	m_ranMat->Generate(seed);
 	if (norm)
-		m_ranMat->Normalize();
-	return *m_ranMat;
+		m_ranMat->NormalizeToM();
+	return m_ranMat;
 }
 
 template <typename T>
@@ -256,4 +260,4 @@ const typename Reconstructor<T>::T_NodeInfo &Reconstructor<T>::CheckOutInfo(T_No
 }
 
 template class Reconstructor<double>;
-template class Reconstructor<cx_double>;
+// template class Reconstructor<cx_double>;

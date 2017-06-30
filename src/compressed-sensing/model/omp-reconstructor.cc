@@ -71,7 +71,7 @@ int64_t OMP_TempReconstructor::Reconstruct(T_NodeIdTag nodeId, uint32_t kspars, 
 	uint32_t k = kspars;
 	kl1p::TOMPSolver<double, double> omp(m_tolerance);
 	Col<double> y, x;
-	T_OpPtr A = new kl1p::TMatrixOperator<double>(GetMatOp(nodeId));
+	T_OpPtr A = GetOp(nodeId);
 
 	y = GetBufMat(nodeId);
 	// y.save("ry" + std::to_string(nodeId), arma_ascii);
