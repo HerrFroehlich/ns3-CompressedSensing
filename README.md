@@ -16,3 +16,10 @@ We want to make use of compressed sensing techniques to exploit temporal and spa
 4. SimpleSrcApp: application, which creates random data and relays incoming packets
 5. SimpleSink: application, which prints out received data
 6. simple-topology-example: an example presenting a tree based graph, where packets are created from outer nodes and beeing relayed from inner nodes to a single sink
+
+
+### Compressed Sensing ###
+* Using kl1p this module provides several classes needed for using compressive sensing in a network
+* So far a mighty class used for reconstruction of sparse data was created (Reconstructor)
+* The sofar implemented classes are shown in this collaboration diagram:
+![reconstructorCollab.png](https://bitbucket.org/repo/BgkAo9z/images/2703443595-reconstructorCollab.png)
