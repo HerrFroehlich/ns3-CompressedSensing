@@ -62,20 +62,36 @@ std::ostream &operator<<(std::ostream &os, const TransMatrix<T> &obj)
 template class TransMatrix<double>;
 template class TransMatrix<cx_double>;
 
-// /*--------  FourierTransMatrix  --------*/
-// FourierTransMatrix::FourierTransMatrix() : TransMatrix(0), TFourier1DOperator<cx_double>(0)
-// {
-// }
+/*--------  FourierTransMatrix  --------*/
+FourierTransMatrix::FourierTransMatrix() : TransMatrix<cx_double>(0), TFourier1DOperator<cx_double>(0)
+{
+}
 
-// FourierTransMatrix::FourierTransMatrix(uint32_t n) : TransMatrix(n), TFourier1DOperator<cx_double>(n)
-// {
-// 	SetSize(n);
-// }
+FourierTransMatrix::FourierTransMatrix(uint32_t n) : TransMatrix<cx_double>(n), TFourier1DOperator<cx_double>(n)
+{
+	SetSize(n);
+}
 
-// void FourierTransMatrix::SetSize(uint32_t n)
-// {
-// 	if (n != GetSize())
-// 	{
-// 		TransMatrix::SetSize(n);
-// 	}
-// }
+void FourierTransMatrix::SetSize(uint32_t n)
+{
+	if (n != GetSize())
+	{
+		TransMatrix::SetSize(n);
+	}
+}
+
+FourierTransMatrix* FourierTransMatrix::Clone() const 
+{
+	return new FourierTransMatrix(*this);
+}
+
+
+void FourierTransMatrix::apply(const arma::Col<cx_double> &in, arma::Col<cx_double> &out)
+  {
+	  TFourier1DOperator<cx_double>::apply(in, out);
+  }
+
+void FourierTransMatrix::applyAdjoint(const arma::Col<cx_double> &in, arma::Col<cx_double> &out)
+  {
+	  TFourier1DOperator<cx_double>::applyAdjoint(in, out);
+  }

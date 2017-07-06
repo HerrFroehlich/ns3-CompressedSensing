@@ -21,8 +21,8 @@ typedef std::complex<double> cx_double;
 *
 * \tparam T data type entries of underlying matrix
 */
-template<typename T>
-class TransMatrix : public ns3::Object, public TOperator<T>
+template <typename T>
+class TransMatrix : public ns3::Object, public virtual TOperator<T>
 {
   public:
 	/**
@@ -61,6 +61,13 @@ class TransMatrix : public ns3::Object, public TOperator<T>
 	*/
 	arma::Mat<T> GetMatrix();
 
+	/**
+	* \brief clones the object
+	*
+	* \return pointer to a new TransMatrix
+	*/
+	virtual TransMatrix *Clone() const = 0;
+
 	operator arma::Mat<T>()
 	{
 		return GetMatrix();
@@ -73,39 +80,48 @@ class TransMatrix : public ns3::Object, public TOperator<T>
 	friend arma::Mat<T2> operator*(const arma::Mat<T2> &, const TransMatrix<T2> &);
 	template <typename T2>
 	friend std::ostream &operator<<(std::ostream &os, const TransMatrix<T2> &obj);
-	
 };
 
+/**
+* \class FourierTransMatrix
+*
+* \brief matrix inducing a 1D fourier transformation
+*
+*/
+class FourierTransMatrix : public virtual TransMatrix<cx_double>, public virtual TFourier1DOperator<cx_double>
+{
+  public:
+	/**
+	* \brief create empty matrix
+	*/
+	FourierTransMatrix();
 
-// /**
-// * \class FourierTransMatrix
-// *
-// * \brief matrix inducing a 1D fourier transformation
-// *
-// */
-// class FourierTransMatrix : public virtual TFourier1DOperator<cx_double>, public TransMatrix<cx_double>
-// {
-// public:
-// 	/**
-// 	* \brief create empty matrix
-// 	*/
-// 	FourierTransMatrix();
+	/**
+	* \brief create a transformation matrix of size MxN
+	*
+	* \param n NOF rows/columms
+	*
+	*/
+	FourierTransMatrix(uint32_t n);
 
-// 	/**
-// 	* \brief create a transformation matrix of size MxN
-// 	*
-// 	* \param n NOF rows/columms
-// 	*
-// 	*/
-// 	FourierTransMatrix(uint32_t n);
+	/**
+	* \brief sets the size of the matrix (and thus changing its entries)
+	*
+	* \param n NOF rows/columms
+	*
+	*/
+	virtual void SetSize(uint32_t n);
 
-// 	/**
-// 	* \brief sets the size of the matrix (and thus changing its entries)
-// 	*
-// 	* \param n NOF rows/columms
-// 	*
-// 	*/
-// 	virtual void SetSize(uint32_t n);
-// };
+	/**
+	* \brief clones the object
+	*
+	* \return pointer to a new TransMatrix
+	*/
+	virtual FourierTransMatrix *Clone() const;
+
+	/*inherited from TOperator*/
+	virtual void apply(const arma::Col<cx_double> &in, arma::Col<cx_double> &out);
+	virtual void applyAdjoint(const arma::Col<cx_double> &in, arma::Col<cx_double> &out);
+};
 
 #endif //TRANSFORM_MATRIX_H
