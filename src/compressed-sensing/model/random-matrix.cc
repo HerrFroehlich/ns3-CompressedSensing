@@ -23,25 +23,26 @@ TypeId RandomMatrix::GetTypeId(void)
 	return tid;
 }
 
-RandomMatrix::RandomMatrix() : m_prevSeed(1),m_mat() 
+RandomMatrix::RandomMatrix() : m_prevSeed(1), m_mat()
 {
 }
 
-RandomMatrix::RandomMatrix(uint32_t m, uint32_t n) : kl1p::TOperator<double>(m,n),
-													   m_prevSeed(1),
-													 m_mat(m,n)
+RandomMatrix::RandomMatrix(uint32_t m, uint32_t n) : kl1p::TOperator<double>(m, n),
+													 m_prevSeed(1),
+													 m_mat(m, n)
 {
-		// m_mat.set_size(m, n);
+	// m_mat.set_size(m, n);
 }
 
-void RandomMatrix::SetSize(uint32_t m, uint32_t n)
+void RandomMatrix::SetSize(uint32_t m, uint32_t n, bool regenerate)
 {
 	if ((m != nRows()) || (n != nCols()))
 	{
-		kl1p::TOperator<double>::resize(m,n);
+		kl1p::TOperator<double>::resize(m, n);
 		m_mat.set_size(m, n);
 		//m_mat = arma::mat(m, n);
-		Generate(m_prevSeed, true);
+		if (regenerate)
+			Generate(m_prevSeed, true);
 	}
 }
 
@@ -67,52 +68,45 @@ void RandomMatrix::NormalizeToM()
 	m_mat = (1 / sqrt(nRows())) * m_mat;
 }
 
-
-void RandomMatrix::apply(const arma::Col<double>& in, arma::Col<double>& out)
+void RandomMatrix::apply(const arma::Col<double> &in, arma::Col<double> &out)
 {
-    ThrowTraceExceptionIf(KIncompatibleSizeOperatorException, in.n_rows!=this->n());
-
-    out = m_mat * in;
+	ThrowTraceExceptionIf(KIncompatibleSizeOperatorException, in.n_rows != this->n());
+	out = m_mat * in;
 }
 
-
-void RandomMatrix::applyAdjoint(const arma::Col<double>& in, arma::Col<double>& out)
+void RandomMatrix::applyAdjoint(const arma::Col<double> &in, arma::Col<double> &out)
 {
-    ThrowTraceExceptionIf(KIncompatibleSizeOperatorException, in.n_rows!=this->m());
+	ThrowTraceExceptionIf(KIncompatibleSizeOperatorException, in.n_rows != this->m());
 
-    out = arma::trans(m_mat) * in;
+	out = arma::trans(m_mat) * in;
 }
 
-
-void RandomMatrix::column(klab::UInt32 i, arma::Col<double>& out)
+void RandomMatrix::column(klab::UInt32 i, arma::Col<double> &out)
 {
-    ThrowTraceExceptionIf(KOutOfBoundOperatorException, i>=this->n());
+	ThrowTraceExceptionIf(KOutOfBoundOperatorException, i >= this->n());
 
-    out.set_size(this->m());
-    for(klab::UInt32 j=0; j<out.n_rows; ++j)
-        out[j] = m_mat(j, i);
+	out.set_size(this->m());
+	for (klab::UInt32 j = 0; j < out.n_rows; ++j)
+		out[j] = m_mat(j, i);
 }
 
-void RandomMatrix::columnAdjoint(klab::UInt32 i, arma::Col<double>& out)
+void RandomMatrix::columnAdjoint(klab::UInt32 i, arma::Col<double> &out)
 {
-    ThrowTraceExceptionIf(KOutOfBoundOperatorException, i>=this->m());
+	ThrowTraceExceptionIf(KOutOfBoundOperatorException, i >= this->m());
 
-    out.set_size(this->n());
-    for(klab::UInt32 j=0; j<out.n_rows; ++j)
-        out[j] = klab::Conj(m_mat(i, j));
+	out.set_size(this->n());
+	for (klab::UInt32 j = 0; j < out.n_rows; ++j)
+		out[j] = klab::Conj(m_mat(i, j));
 }
 
-void RandomMatrix::toMatrix(arma::Mat<double>& out)
+void RandomMatrix::toMatrix(arma::Mat<double> &out)
 {
-    out = m_mat;
+	out = m_mat;
 }
 
-
-
-
-void RandomMatrix::toMatrixAdjoint(arma::Mat<double>& out)
+void RandomMatrix::toMatrixAdjoint(arma::Mat<double> &out)
 {
-    out = arma::trans(m_mat);
+	out = arma::trans(m_mat);
 }
 
 arma::mat operator*(const RandomMatrix &lvl, const arma::mat &rvl)
@@ -176,8 +170,7 @@ void IdentRandomMatrix::Generate(uint32_t seed, bool force)
 	}
 }
 
-
-IdentRandomMatrix* IdentRandomMatrix::Clone() const
+IdentRandomMatrix *IdentRandomMatrix::Clone() const
 {
 	return new IdentRandomMatrix(*this);
 }
@@ -220,7 +213,7 @@ void GaussianRandomMatrix::Generate(uint32_t seed, bool force)
 	}
 }
 
-GaussianRandomMatrix* GaussianRandomMatrix::Clone() const
+GaussianRandomMatrix *GaussianRandomMatrix::Clone() const
 {
 	return new GaussianRandomMatrix(*this);
 }
@@ -269,8 +262,7 @@ void BernRandomMatrix::Generate(uint32_t seed, bool force)
 	}
 }
 
-
-BernRandomMatrix * BernRandomMatrix::Clone() const
+BernRandomMatrix *BernRandomMatrix::Clone() const
 {
 	return new BernRandomMatrix(*this);
 }

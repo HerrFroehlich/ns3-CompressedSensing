@@ -49,7 +49,7 @@ public:
   * \param n NOF columns
   *
   */
-  void SetSize(uint32_t m, uint32_t n);
+  void SetSize(uint32_t m, uint32_t n, bool regenerate = true);
 
   /**
   * \brief Generate random entries for a given seed (if it is different than the previous one, or if forced to)
@@ -92,17 +92,39 @@ public:
   * \return pointer to a new matrix
   */
   virtual RandomMatrix *Clone() const = 0;
-
+  
+  /**
+  * \brief cast to complex operator pointer
+  *
+  * \return complex operator pointe
+  */  /**
+  * \brief cast to complex operator pointer
+  *
+  * \return complex operator pointer
+  */
+  typedef std::complex<double> cx_double;
+  operator klab::TSmartPointer<kl1p::TOperator<cx_double>>() const
+  {
+    return new kl1p::TMatrixOperator<cx_double>(arma::conv_to<arma::cx_mat>::from(m_mat));
+  };
+  /**
+  * \brief cast to matrix
+  *
+  * \return matrix
+  */
+  operator arma::mat() const
+  {
+    return m_mat;
+  };
+  
+  /*inherited from TOperator*/
   virtual void apply(const arma::Col<double> &in, arma::Col<double> &out);
   virtual void applyAdjoint(const arma::Col<double> &in, arma::Col<double> &out);
   virtual void column(klab::UInt32 i, arma::Col<double> &out);
   virtual void columnAdjoint(klab::UInt32 i, arma::Col<double> &out);
   virtual void toMatrix(arma::Mat<double> &out);
   virtual void toMatrixAdjoint(arma::Mat<double> &out);
-  operator arma::mat() const
-  {
-    return m_mat;
-  };
+
 
   friend arma::mat operator*(const RandomMatrix &, const arma::mat &);
   friend arma::mat operator*(const arma::mat &, const RandomMatrix &);
