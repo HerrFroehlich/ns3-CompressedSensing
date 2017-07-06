@@ -1,5 +1,5 @@
 // KSci - A portable C++ numerical analysis library.
-// Copyright (c) 2011-2012 René Gebel
+// Copyright (c) 2011-2012 Renï¿½ Gebel
 // 
 // This file is part of the KSci C++ library.
 // This library is distributed in the hope that it will be useful, 
@@ -75,8 +75,8 @@ inline klab::DoubleReal     SquaredError(const arma::Mat<T>& x0, const arma::Mat
     klab::UInt32 n0 = x0.n_cols;
     klab::UInt32 n  = x.n_cols;
 
-    klab::UInt32 mMin = klab::Min(n0, m);
-    klab::UInt32 mMax = klab::Max(n0, m);
+    klab::UInt32 mMin = klab::Min(m0, m);
+    klab::UInt32 mMax = klab::Max(m0, m);
     klab::UInt32 nMin = klab::Min(n0, n);
     klab::UInt32 nMax = klab::Max(n0, n);
 
