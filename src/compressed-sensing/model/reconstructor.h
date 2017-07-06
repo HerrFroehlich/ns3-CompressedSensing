@@ -20,6 +20,7 @@
 
 using namespace ns3;
 using namespace arma;
+typedef std::complex<double> cx_double;
 
 /**
 * \class Reconstructor
@@ -115,12 +116,12 @@ class Reconstructor : public ns3::Object
 	void SetBufferDim(uint32_t nMeas, uint32_t mMax, uint32_t vecLen);
 
 	/**
-	* \brief resets a node's in- and output buffer
+	* \brief resets a node's in buffer if it's full
 	*
 	* \param nodeId ID of node
 	*
 	*/
-	void ResetBuf(T_NodeIdTag nodeId);
+	void ResetFullBuf(T_NodeIdTag nodeId);
 
 	/**
 	* \brief gets the NOF buffered measurement vectors for a node
@@ -130,6 +131,24 @@ class Reconstructor : public ns3::Object
 	* \return NOF  measurement vectors
 	*/
 	uint32_t GetNofMeas(T_NodeIdTag nodeId) const;
+
+	/**
+	* \brief gets the length of a measurement vectors for a node
+	*
+	* \param nodeId 8bitNodeId
+	*
+	* \return size of measurement vectors
+	*/
+	uint32_t GetVecLen(T_NodeIdTag nodeId) const;
+
+	/**
+	* \brief gets the NOF measurement vectors to be reconstructed for a node
+	*
+	* \param nodeId 8bitNodeId
+	*
+	* \return NOF  measurement vectors (out)
+	*/
+	uint32_t GetN(T_NodeIdTag nodeId) const;
 
 	/**
 	* \brief gets the NOF nodes added
@@ -185,21 +204,21 @@ class Reconstructor : public ns3::Object
 	TracedCallback<klab::KException> m_errorCb;		/**< callback when reconstruction fails, returning KExeception type*/
 
   private:
-	typedef NodeDataBuffer<T> T_NodeBuffer;
+	typedef NodeDataBuffer<T> T_NodeBuffer;				 /**< NodeDataBuffer with elements of type T*/
 	class T_NodeInfo : public SimpleRefCount<T_NodeInfo> /**< Class containing info on each node (seed, matrix sizes, buffer Ptrs)*/
 	{
 	  public:
-		T_NodeInfo() : seed(0), nMeas(0), m(0), vectLen(0), mMax(0) {}
+		T_NodeInfo() : seed(0), nMeas(0), m(0), vecLen(0), mMax(0) {}
 		T_NodeInfo(uint32_t s, uint32_t n, uint32_t m, uint32_t vl,
 				   uint32_t mMax, Ptr<T_NodeBuffer> in, Ptr<T_NodeBuffer> out) : seed(s), nMeas(n),
-																				 m(m), vectLen(vl),
+																				 m(m), vecLen(vl),
 																				 mMax(mMax), inBufPtr(in), outBufPtr(out)
 		{
 		}
 		uint32_t seed;				// seed of random sensing matrix
 		uint32_t nMeas;				// original number of measurements to reconstruct
 		uint32_t m;					// current compressed data vectors
-		uint32_t vectLen;			// data vector length
+		uint32_t vecLen;			// data vector length
 		uint32_t mMax;				// maximum NOF compressed data vectors
 		Ptr<T_NodeBuffer> inBufPtr, /**< input data of each node*/
 			outBufPtr;				/**< output data of each node after reconstruction*/
@@ -213,7 +232,7 @@ class Reconstructor : public ns3::Object
   	* \param n NOF columns
 	* \param norm	Normalize sensing matrix?
 	*
-	* \return sparse sensing matrix
+	* \return sparse sensing matrix, may be NULL
 	*/
 	klab::TSmartPointer<kl1p::TOperator<double>> GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm);
 
@@ -222,7 +241,7 @@ class Reconstructor : public ns3::Object
 	* 
 	* n	size of matrix
 	*
-	* \return the transformation matrix	
+	* \return the transformation matrix	, may be NULL
 	*/
 	klab::TSmartPointer<kl1p::TOperator<T>> GetTransMat(uint32_t n);
 
@@ -236,14 +255,14 @@ class Reconstructor : public ns3::Object
 	T_NodeInfo &CheckOutInfo(T_NodeIdTag nodeId);
 	const T_NodeInfo &CheckOutInfo(T_NodeIdTag nodeId) const;
 
-	uint32_t m_nNodes;													/**< NOF nodes from which we are gathering data*/
-	std::map<T_NodeIdTag, T_NodeInfo> m_nodeInfoMap;					/**< map for node info<>node ID*/
-	klab::TSmartPointer<RandomMatrix> m_ranMat;							/**< Random matrix form from which sensing matrix is constructed*/
-	klab::TSmartPointer<kl1p::TOperator<T>> m_transMat;					/**< Transformation matrix form from which sensing matrix is constructed*/
+	uint32_t m_nNodes;									/**< NOF nodes from which we are gathering data*/
+	std::map<T_NodeIdTag, T_NodeInfo> m_nodeInfoMap;	/**< map for node info<>node ID*/
+	klab::TSmartPointer<RandomMatrix> m_ranMat;			/**< Random matrix form from which sensing matrix is constructed*/
+	klab::TSmartPointer<kl1p::TOperator<T>> m_transMat; /**< Transformation matrix form from which sensing matrix is constructed*/
 	// klab::TSmartPointer<kl1p::TMultiplicationOperator<T, T> m_multOp; /**< multiplication operator*/
-	mutable T_NodeIdTag m_nodeIdNow, m_nodeIdNowConst;					/**< current nodeId*/
-	mutable Ptr<const T_NodeInfo> m_infoNowConst;						/**< current nodeId for const call*/
-	mutable Ptr<T_NodeInfo> m_infoNow;									/**< current selected info structure*/
+	mutable T_NodeIdTag m_nodeIdNow, m_nodeIdNowConst; /**< current nodeId*/
+	mutable Ptr<const T_NodeInfo> m_infoNowConst;	  /**< current nodeId for const call*/
+	mutable Ptr<T_NodeInfo> m_infoNow;				   /**< current selected info structure*/
 };
 
 #endif //RECONSTRUCTOR_H

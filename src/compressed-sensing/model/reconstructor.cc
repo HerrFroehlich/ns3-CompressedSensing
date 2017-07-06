@@ -30,6 +30,18 @@ TypeId Reconstructor<T>::GetTypeId(void)
 										  PointerValue(),
 										  MakePointerAccessor(&Reconstructor::SetTransMat),
 										  MakePointerChecker<TransMatrix<T>>())
+							// .AddAttribute("nMeas", "Default NOF measurement vectors to reconstruct",
+							// 			  UintegerValue(0),
+							// 			  MakeUintegerAccessor(&Reconstructor::m_nMeasDef),
+							// 			  MakeUintegerChecker<uint32_t>())
+							// .AddAttribute("mMax", "Default maximum NOF measurement vectors used for reconstruction",
+							// 			  UintegerValue(0),
+							// 			  MakeUintegerAccessor(&Reconstructor::m_mMaxDef),
+							// 			  MakeUintegerChecker<uint32_t>())
+							// .AddAttribute("vecLen", "Default length of each measurement vector",
+							// 			  UintegerValue(0),
+							// 			  MakeUintegerAccessor(&Reconstructor::m_vecLenDef),
+							// 			  MakeUintegerChecker<uint32_t>())
 							.AddTraceSource("RecComplete", "Callback when Reconstuction completed",
 											MakeTraceSourceAccessor(&Reconstructor::m_completeCb),
 											"Reconstructor::CompleteTracedCallback")
@@ -108,14 +120,16 @@ template <typename T>
 std::vector<T> Reconstructor<T>::ReadRecData(T_NodeIdTag nodeId) const
 {
 	NS_LOG_FUNCTION(this << nodeId);
-	std::vector<T> retVect;
 
 	const T_NodeInfo &info = CheckOutInfo(nodeId);
+	NS_ASSERT_MSG(!info.outBufPtr->IsEmpty(), "No reconstructed data, run Reconstruct() first!");
 
-	uint32_t bufSize = info.nMeas * info.vectLen;
-	retVect.reserve(bufSize);
-	info.outBufPtr->ReadBuf(retVect.data(), bufSize);
-	return retVect;
+	uint32_t bufSize = info.nMeas * info.vecLen;
+	std::vector<T> retVec(bufSize);
+	info.outBufPtr->ReadBuf(retVec.data(), bufSize);
+
+	return retVec;
+	
 }
 
 template <typename T>
@@ -127,17 +141,17 @@ void Reconstructor<T>::SetRanMat(Ptr<RandomMatrix> ranMat_ptr)
 template <typename T>
 void Reconstructor<T>::SetTransMat(Ptr<TransMatrix<T>> transMat_ptr)
 {
-	//m_transMat = new kl1p::TOperator<T>(*transMat_ptr);
+	m_transMat = transMat_ptr->Clone();
 }
 
 template <typename T>
-void Reconstructor<T>::ResetBuf(T_NodeIdTag nodeId)
+void Reconstructor<T>::ResetFullBuf(T_NodeIdTag nodeId)
 {
 	NS_LOG_FUNCTION(this << nodeId);
 
 	T_NodeInfo &info = CheckOutInfo(nodeId);
-	info.inBufPtr->Reset();
-	info.outBufPtr->Reset();
+	if (info.m == info.mMax)
+		info.inBufPtr->Reset();
 }
 
 template <typename T>
@@ -147,6 +161,24 @@ uint32_t Reconstructor<T>::GetNofMeas(T_NodeIdTag nodeId) const
 
 	T_NodeInfo info = CheckOutInfo(nodeId);
 	return info.m;
+}
+
+template <typename T>
+uint32_t Reconstructor<T>::GetVecLen(T_NodeIdTag nodeId) const
+{
+	NS_LOG_FUNCTION(this << nodeId);
+
+	T_NodeInfo info = CheckOutInfo(nodeId);
+	return info.vecLen;
+}
+
+template <typename T>
+uint32_t Reconstructor<T>::GetN(T_NodeIdTag nodeId) const
+{
+	NS_LOG_FUNCTION(this << nodeId);
+
+	T_NodeInfo info = CheckOutInfo(nodeId);
+	return info.nMeas;
 }
 
 template <typename T>
@@ -170,24 +202,11 @@ template <typename T>
 void Reconstructor<T>::WriteRecBuf(T_NodeIdTag nodeId, const Mat<T> &mat)
 {
 	NS_LOG_FUNCTION(this << nodeId << mat);
+	
 	T_NodeInfo info = CheckOutInfo(nodeId);
+
 	info.outBufPtr->WriteAll(mat);
 }
-
-// template <>
-// kl1p::TMatrixOperator<double> Reconstructor<double>::GetMatOp(T_NodeIdTag nodeId, bool norm)
-// {
-// 	NS_LOG_FUNCTION(this << nodeId << norm);
-// 	T_NodeInfo info = CheckOutInfo(nodeId);
-// 	Mat<double> Phi = GetSensMat(info.seed, info.m, info.nMeas, norm);
-// 	if (m_transMat)
-// 	{
-// 		Mat<double> Psi = GetTransMat(info.nMeas);
-// 		Phi = Phi * Psi;
-// 	}
-// 	// Phi.save("rmat" + std::to_string(nodeId), arma_ascii);
-// 	return kl1p::TMatrixOperator<double>(Phi);
-// }
 
 template <typename T>
 klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor<T>::GetOp(T_NodeIdTag nodeId, bool norm)
@@ -211,20 +230,44 @@ template <typename T>
 klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor<T>::GetTransMat(uint32_t n)
 {
 	NS_LOG_FUNCTION(this << n);
+<<<<<<< HEAD
 	return m_transMat;
 }
 
 template <typename T>
 klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor<T>::GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm)
+=======
+	if (m_transMat.isValid())
+		m_transMat->SetSize(n);
+	return m_transMat;
+}
+
+template <>
+klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor<double>::GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm)
+>>>>>>> 2ad0564... Cleanup
 {
 	NS_LOG_FUNCTION(this << seed << m << n << norm);
-	// NS_ASSERT_MSG(m_ranMat, "No sensing Matrix! To create an object use CreateObject!");
-
-	m_ranMat->SetSize(m, n);
-	m_ranMat->Generate(seed);
-	if (norm)
-		m_ranMat->NormalizeToM();
+	if (m_ranMat.isValid())
+	{
+		m_ranMat->SetSize(m, n, false);
+		m_ranMat->Generate(seed,true);
+		if (norm)
+			m_ranMat->NormalizeToM();
+	}
 	return m_ranMat;
+}
+
+template <typename T>
+klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor<T>::GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm)
+{
+	if (m_ranMat.isValid())
+	{
+		m_ranMat->SetSize(m, n, false);
+		m_ranMat->Generate(seed,true);
+		if (norm)
+			m_ranMat->NormalizeToM();
+	}
+	return klab::TSmartPointer<kl1p::TOperator<T>>(*m_ranMat);
 }
 
 template <typename T>
@@ -260,4 +303,4 @@ const typename Reconstructor<T>::T_NodeInfo &Reconstructor<T>::CheckOutInfo(T_No
 }
 
 template class Reconstructor<double>;
-// template class Reconstructor<cx_double>;
+template class Reconstructor<cx_double>;
