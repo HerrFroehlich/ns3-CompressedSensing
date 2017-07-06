@@ -1,7 +1,7 @@
 # README #
 
 ## What is this repository for? ##
-We want to make use of compressed sensing techniques to exploit temporal and spatial correlation in data of large sensor networks. By creating new models for the network simulator ns3 and by using the kl1p libary, a simulation environment shall be formed. The source files in this repo consist of already existing, default  ns3 models and our own developed models. A doxygen is present, but so far too big for uploading.
+We want to make use of compressed sensing techniques to exploit temporal and spatial correlation in data of large sensor networks. By creating new models for the network simulator ns3 and by using the kl1p libary, a simulation environment shall be formed. The source files in this repo consist of already existing, default  ns3 models and our own developed models. A doxygen is present, but currently it is too big for uploading.
 
 ## Progress so far##
 ### Simple Network ###
