@@ -129,7 +129,6 @@ std::vector<T> Reconstructor<T>::ReadRecData(T_NodeIdTag nodeId) const
 	info.outBufPtr->ReadBuf(retVec.data(), bufSize);
 
 	return retVec;
-	
 }
 
 template <typename T>
@@ -202,7 +201,7 @@ template <typename T>
 void Reconstructor<T>::WriteRecBuf(T_NodeIdTag nodeId, const Mat<T> &mat)
 {
 	NS_LOG_FUNCTION(this << nodeId << mat);
-	
+
 	T_NodeInfo info = CheckOutInfo(nodeId);
 
 	info.outBufPtr->WriteAll(mat);
@@ -212,31 +211,18 @@ template <typename T>
 klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor<T>::GetOp(T_NodeIdTag nodeId, bool norm)
 {
 	NS_LOG_FUNCTION(this << nodeId << norm);
+
 	T_NodeInfo info = CheckOutInfo(nodeId);
-	// Mat<T> Phi = conv_to<Mat<T>>::from(GetSensMat(info.seed, info.m, info.nMeas, norm));
-	// if (m_transMat)
-	// {
-	// 	Mat<T> Psi = GetTransMat(info.nMeas);
-	// 	Phi = Phi * Psi;
-	// }
-	// Phi.save("rmat" + std::to_string(nodeId), arma_ascii);
-	// return kl1p::TMatrixOperator<T>(Phi);
-	// return  * GetTransMat(n);.
-	klab::TSmartPointer<kl1p::TOperator<double>> sensMat_ptr = GetSensMat(info.seed, info.m, info.nMeas, norm);
-	return sensMat_ptr * m_transMat;
+
+	klab::TSmartPointer<kl1p::TOperator<T>> sensMat_ptr = GetSensMat(info.seed, info.m, info.nMeas, norm);
+	klab::TSmartPointer<kl1p::TOperator<T>> transMat_ptr = GetTransMat(info.nMeas);
+	return sensMat_ptr * transMat_ptr;
 }
 
 template <typename T>
 klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor<T>::GetTransMat(uint32_t n)
 {
 	NS_LOG_FUNCTION(this << n);
-<<<<<<< HEAD
-	return m_transMat;
-}
-
-template <typename T>
-klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor<T>::GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm)
-=======
 	if (m_transMat.isValid())
 		m_transMat->SetSize(n);
 	return m_transMat;
@@ -244,7 +230,6 @@ klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor<T>::GetSensMat(uint32
 
 template <>
 klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor<double>::GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm)
->>>>>>> 2ad0564... Cleanup
 {
 	NS_LOG_FUNCTION(this << seed << m << n << norm);
 	if (m_ranMat.isValid())
@@ -257,8 +242,8 @@ klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor<double>::GetSensMat(u
 	return m_ranMat;
 }
 
-template <typename T>
-klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor<T>::GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm)
+template <>
+klab::TSmartPointer<kl1p::TOperator<cx_double>> Reconstructor<cx_double>::GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm)
 {
 	if (m_ranMat.isValid())
 	{
@@ -267,7 +252,7 @@ klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor<T>::GetSensMat(uint32_t se
 		if (norm)
 			m_ranMat->NormalizeToM();
 	}
-	return klab::TSmartPointer<kl1p::TOperator<T>>(*m_ranMat);
+	return klab::TSmartPointer<kl1p::TOperator<cx_double>>(*m_ranMat);
 }
 
 template <typename T>

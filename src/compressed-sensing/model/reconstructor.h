@@ -234,7 +234,7 @@ class Reconstructor : public ns3::Object
 	*
 	* \return sparse sensing matrix, may be NULL
 	*/
-	klab::TSmartPointer<kl1p::TOperator<double>> GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm);
+	klab::TSmartPointer<kl1p::TOperator<T>> GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm);
 
 	/**
 	* \brief Gets the NxN transformation matrix		
@@ -258,7 +258,7 @@ class Reconstructor : public ns3::Object
 	uint32_t m_nNodes;									/**< NOF nodes from which we are gathering data*/
 	std::map<T_NodeIdTag, T_NodeInfo> m_nodeInfoMap;	/**< map for node info<>node ID*/
 	klab::TSmartPointer<RandomMatrix> m_ranMat;			/**< Random matrix form from which sensing matrix is constructed*/
-	klab::TSmartPointer<kl1p::TOperator<T>> m_transMat; /**< Transformation matrix form from which sensing matrix is constructed*/
+	klab::TSmartPointer<TransMatrix<T>> m_transMat; /**< Transformation matrix form from which sensing matrix is constructed*/
 	// klab::TSmartPointer<kl1p::TMultiplicationOperator<T, T> m_multOp; /**< multiplication operator*/
 	mutable T_NodeIdTag m_nodeIdNow, m_nodeIdNowConst; /**< current nodeId*/
 	mutable Ptr<const T_NodeInfo> m_infoNowConst;	  /**< current nodeId for const call*/
