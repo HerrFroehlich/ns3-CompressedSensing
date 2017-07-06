@@ -51,6 +51,26 @@ def build(bld):
     obj.env.append_value("LINKFLAGS", "-L../src/compressed-sensing/lib/")
     obj.env.append_value("LIB",["dl","KLab64_d"]) 
     
+    obj = bld.create_ns3_program('omp-reconst-spatial-example', ['compressed-sensing'])
+    obj.source = 'omp-reconst-spatial-example.cc'
+    obj.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KL1p")
+    obj.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KLab")
+    obj.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KSci")
+    obj.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/Armadillo")
+    #obj.env.append_value("CXXFLAGS", "-Wno-error")
+    obj.env.append_value("LINKFLAGS", "-L../src/compressed-sensing/lib/")
+    obj.env.append_value("LIB",["dl","KLab64_d"]) 
+    
+    obj = bld.create_ns3_program('omp-reconst-fourier-example', ['compressed-sensing'])
+    obj.source = 'omp-reconst-fourier-example.cc'
+    obj.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KL1p")
+    obj.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KLab")
+    obj.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KSci")
+    obj.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/Armadillo")
+    #obj.env.append_value("CXXFLAGS", "-Wno-error")
+    obj.env.append_value("LINKFLAGS", "-L../src/compressed-sensing/lib/")
+    obj.env.append_value("LIB",["dl","KLab64_d"]) 
+
     obj = bld.create_ns3_program('omp-cont-example', ['compressed-sensing'])
     obj.source = 'omp-cont-example.cc'
     obj.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KL1p")

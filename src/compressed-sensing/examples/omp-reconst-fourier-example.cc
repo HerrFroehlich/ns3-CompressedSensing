@@ -4,7 +4,7 @@
 * \author Tobias Waurick
 * \date 26.06.17
 *
-* An CS example where random sparse data of several nodes is reconstructed
+* An CS example where random sparse (in the frequency domain) data of several nodes is reconstructed
 */
 #include "ns3/omp-reconstructor.h"
 #include <iostream>
@@ -96,13 +96,14 @@ int main(int argc, char *argv[])
 		NS_LOG_WARN("mMin set to m/2");
 		mMin = m / 2;
 	}
-	else if(!cont)
+	else if (!cont)
 	{
 		mMin = m;
 	}
 
-	vector<vec> xVals(nNodes), xValsN(nNodes), yVals(nNodes);
-	Ptr<OMP_ReconstructorTemp<double>> omp = CreateObject<OMP_ReconstructorTemp<double>>();
+	vector<vec> xVals(nNodes), xValsN(nNodes);
+	vector<cx_vec> yVals(nNodes);
+	Ptr<OMP_ReconstructorTemp<cx_double>> omp = CreateObject<OMP_ReconstructorTemp<cx_double>>();
 	Ptr<RandomMatrix> sensMat;
 	string ranName;
 	switch (ranType)
@@ -121,18 +122,20 @@ int main(int argc, char *argv[])
 		break;
 	}
 
-	// Ptr<TransMatrix<cx_double>> trans = CreateObject<FourierTransMatrix>(n);
+	Ptr<TransMatrix<cx_double>> transMat = CreateObject<FourierTransMatrix>(n);
 
 	omp->SetAttribute("Tolerance", DoubleValue(tol));
 	omp->Setup(n, m, k, tol);
 	omp->SetRanMat(sensMat);
-	//	omp->SetAttribute("RanMatrix", PointerValue(sensMat));
+	omp->SetAttribute("TransMatrix", PointerValue(transMat));
 	omp->TraceConnectWithoutContext("RecComplete", MakeCallback(&PrintStats));
 
 	for (uint32_t i = 0; i < nNodes; i++)
 	{
 		vec x0;
-		vec y;
+		cx_vec y, cx0(n);
+		klab::TSmartPointer<kl1p::TOperator<cx_double>> sOp, tOp, op;
+
 		CreateGaussianSignal(n, k, 0.0, 1.0, x0); // Create randomly the original signal x0.
 		xVals.at(i) = x0;
 		if (nVar > 0)
@@ -140,12 +143,22 @@ int main(int argc, char *argv[])
 			AddNoise(x0, nVar);
 		}
 		xValsN.at(i) = x0;
+
+		for (klab::UInt32 i = 0; i < x0.n_rows; ++i)
+			cx0[i] = std::complex<klab::DoubleReal>(x0[i], 0.0);
+
 		sensMat->Generate(seed + i);
-		y = *(sensMat)*x0;
+		sOp = klab::TSmartPointer<kl1p::TOperator<cx_double>>(*sensMat);
+		tOp = transMat->Clone();
+		op = sOp * tOp;
+		op->apply(cx0, y);
+
 		if (write)
 		{
-			mat A = *(sensMat);
+			cx_mat A;
+			op->toMatrix(A);
 			A.save("./fOut/mat" + to_string(i), csv_ascii);
+			mat(*sensMat).save("./fOut/sens", csv_ascii);
 			y.save("./fOut/y" + to_string(i), csv_ascii);
 		}
 		yVals.at(i) = y;
@@ -167,15 +180,16 @@ int main(int argc, char *argv[])
 		for (uint32_t i = 0; i < nNodes; i++)
 		{
 			cout << "--Reconstruction of Node " << i << " :" << endl;
-			vec y = yVals.at(i);
+			cx_vec y = yVals.at(i);
 			for (uint32_t j = mMin; j < m; j++)
 			{
 				omp->WriteData(i, y.memptr() + j, 1);
 				cout << "---Attempt with " << j + 1 << " Samples " << endl;
-				vector<double> data;
+				vector<cx_double> data;
 				omp->Reconstruct(i, k, iter);
 				data = omp->ReadRecData(i);
-				vec x(data.data(), n, false, false);
+				cx_vec cx(data.data(), n, false, false);
+				vec x = real(cx);
 				// cout << arma::join_rows(x, xVals.at(i));
 
 				//SNR : 20*log(sqrt|x|²/sqrt|x-xR|²)
@@ -194,11 +208,12 @@ int main(int argc, char *argv[])
 
 		for (uint32_t i = 0; i < nNodes; i++)
 		{
-			vector<double> data;
+			vector<cx_double> data;
 			cout << "--Reconstruction of Node " << i << " :" << endl;
 			omp->Reconstruct(i, k, iter);
 			data = omp->ReadRecData(i);
-			vec x(data.data(), n, false, false);
+			cx_vec cx(data.data(), n, false, false);
+			vec x = real(cx);
 			// cout << arma::join_rows(x, xVals.at(i));
 			cout << "SNR: " << setprecision(5) << klab::SNR(x, xVals.at(i)) << endl;
 			if (write)
