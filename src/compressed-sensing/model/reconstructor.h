@@ -14,13 +14,15 @@
 #include <KL1pInclude.h>
 #include <stdint.h>
 #include <map>
-#include "ns3/node-data-buffer.h"
+#include "node-data-buffer.h"
 #include "random-matrix.h"
 #include "transform-matrix.h"
+#include "cs-header.h"
 
 using namespace ns3;
 using namespace arma;
 typedef std::complex<double> cx_double;
+typedef CsHeader::T_IdField T_NodeIdTag;
 
 /**
 * \class Reconstructor
@@ -35,7 +37,6 @@ typedef std::complex<double> cx_double;
 * \author Tobias Waurick
 * \date 03.06.17
 */
-typedef uint8_t T_NodeIdTag;
 template <typename T = double>
 class Reconstructor : public ns3::Object
 {
