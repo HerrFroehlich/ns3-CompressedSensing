@@ -43,8 +43,8 @@ def build(bld):
         'model/omp-reconstructor.h',
     	'model/random-matrix.h',
     	'model/transform-matrix.h',
-        'model/utils/node-data-buffer.h',
-        'model/cs-header.cc'
+        'model/node-data-buffer.h',
+        'model/cs-header.h'
 ]
 
     if bld.env.ENABLE_EXAMPLES:

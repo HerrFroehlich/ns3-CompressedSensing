@@ -1,4 +1,4 @@
-#include "../model/utils/node-data-buffer.h"
+#include "ns3/node-data-buffer.h"
 #include "ns3/core-module.h"
 #include <iostream>
 #include <stdint.h>
