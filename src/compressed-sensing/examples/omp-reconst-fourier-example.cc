@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
  	* ================================================== */
 	CommandLine cmd;
 	bool verbose = false, cont = false, write = false;
-	uint32_t seed = 1,
+	uint32_t seed = 2,
 			 n = 256,
 			 mMin = 0;
 	uint32_t nNodes = 1, ranType = 0, iter = 100;
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 	/**================================================== *
  	* ==========  			INIT			  ========== *
  	* ================================================== */
-	klab::KRandom::Instance().setSeed(1);
+	klab::KRandom::Instance().setSeed(seed);
 	LogComponentEnable("OMP_ReconstExample", LOG_LEVEL_WARN);
 	if (verbose)
 	{
