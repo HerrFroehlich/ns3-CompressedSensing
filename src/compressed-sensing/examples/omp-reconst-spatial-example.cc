@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 	/**================================================== *
  	* ==========  			INIT			  ========== *
  	* ================================================== */
-	klab::KRandom::Instance().setSeed(1);
+	klab::KRandom::Instance().setSeed(seed);
 	LogComponentEnable("OMP_ReconstExample", LOG_LEVEL_WARN);
 	if (verbose)
 	{
