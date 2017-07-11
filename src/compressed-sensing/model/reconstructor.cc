@@ -234,8 +234,8 @@ klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor<double>::GetSensMat(u
 	NS_LOG_FUNCTION(this << seed << m << n << norm);
 	if (m_ranMat.isValid())
 	{
-		m_ranMat->SetSize(m, n, false);
-		m_ranMat->Generate(seed,true);
+		m_ranMat->SetSize(m, n, seed);
+		// m_ranMat->Generate(seed,true);
 		if (norm)
 			m_ranMat->NormalizeToM();
 	}
@@ -247,8 +247,8 @@ klab::TSmartPointer<kl1p::TOperator<cx_double>> Reconstructor<cx_double>::GetSen
 {
 	if (m_ranMat.isValid())
 	{
-		m_ranMat->SetSize(m, n, false);
-		m_ranMat->Generate(seed,true);
+		m_ranMat->SetSize(m, n, seed);
+		// m_ranMat->Generate(seed,true);
 		if (norm)
 			m_ranMat->NormalizeToM();
 	}
