@@ -137,6 +137,15 @@ std::ostream &operator<<(std::ostream &os, const RandomMatrix &obj)
 	return os;
 }
 
+klab::TSmartPointer<kl1p::TOperator<double>> operator*(const klab::TSmartPointer<RandomMatrix> ranMat_ptr, const klab::TSmartPointer<TransMatrix<double>> transMat_ptr)
+{
+	return new kl1p::TMultiplicationOperator<double>(ranMat_ptr, transMat_ptr);
+}
+klab::TSmartPointer<kl1p::TOperator<cx_double>> operator*(const klab::TSmartPointer<RandomMatrix> ranMat_ptr, const klab::TSmartPointer<TransMatrix<cx_double>> transMat_ptr)
+{
+	return new kl1p::TMultiplicationOperator<cx_double>(klab::TSmartPointer<kl1p::TOperator<cx_double>>(*ranMat_ptr), transMat_ptr);
+}
+
 /*********  IdentRandomMatrix  **********/
 IdentRandomMatrix::IdentRandomMatrix()
 {

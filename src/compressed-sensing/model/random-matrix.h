@@ -11,9 +11,10 @@
 
 #include "ns3/core-module.h"
 #include <armadillo>
-#include <KL1pInclude.h> 
+#include <KL1pInclude.h>
 #include <KSciInclude.h>
 #include <math.h> //sqrt
+#include "transform-matrix.h"
 using namespace ns3;
 using namespace kl1p;
 /**
@@ -103,12 +104,12 @@ public:
   * \return pointer to a new matrix
   */
   virtual RandomMatrix *Clone() const = 0;
-  
+
   /**
   * \brief cast to complex operator pointer
   *
   * \return complex operator pointe
-  */  /**
+  */ /**
   * \brief cast to complex operator pointer
   *
   * \return complex operator pointer
@@ -127,7 +128,7 @@ public:
   {
     return m_mat;
   };
-  
+
   /*inherited from TOperator*/
   virtual void apply(const arma::Col<double> &in, arma::Col<double> &out);
   virtual void applyAdjoint(const arma::Col<double> &in, arma::Col<double> &out);
@@ -136,9 +137,9 @@ public:
   virtual void toMatrix(arma::Mat<double> &out);
   virtual void toMatrixAdjoint(arma::Mat<double> &out);
 
-
   friend arma::mat operator*(const RandomMatrix &, const arma::mat &);
   friend arma::mat operator*(const arma::mat &, const RandomMatrix &);
+
   friend std::ostream &operator<<(std::ostream &os, const RandomMatrix &obj);
 
 protected:
@@ -146,6 +147,9 @@ protected:
   arma::mat m_mat;     /**< underlying matrix*/
   int64_t m_stream;    /**< stream number*/
 };
+
+klab::TSmartPointer<kl1p::TOperator<double>> operator*(const klab::TSmartPointer<RandomMatrix>, const klab::TSmartPointer<TransMatrix<double>>);
+klab::TSmartPointer<kl1p::TOperator<cx_double>> operator*(const klab::TSmartPointer<RandomMatrix>, const klab::TSmartPointer<TransMatrix<cx_double>>);
 
 /**
 * \class IdentRandomMatrix
