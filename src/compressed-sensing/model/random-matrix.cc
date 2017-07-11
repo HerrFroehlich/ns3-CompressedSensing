@@ -23,13 +23,14 @@ TypeId RandomMatrix::GetTypeId(void)
 	return tid;
 }
 
-RandomMatrix::RandomMatrix() : m_prevSeed(1), m_mat()
+RandomMatrix::RandomMatrix() : m_prevSeed(1), m_mat(), m_stream(0)
 {
 }
 
 RandomMatrix::RandomMatrix(uint32_t m, uint32_t n) : kl1p::TOperator<double>(m, n),
 													 m_prevSeed(1),
-													 m_mat(m, n)
+													 m_mat(m, n),
+													 m_stream(0)
 {
 	// m_mat.set_size(m, n);
 }
