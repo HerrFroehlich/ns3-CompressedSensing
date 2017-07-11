@@ -43,13 +43,24 @@ public:
   RandomMatrix(uint32_t m, uint32_t n);
 
   /**
-  * \brief sets the size of the matrix
+  * \brief sets the size of the matrix, may regenerate the entries
   *
   * \param m NOF rows
   * \param n NOF columns
+  * \param regenerate  regenerate matrix?
   *
   */
   void SetSize(uint32_t m, uint32_t n, bool regenerate = true);
+
+  /**
+  * \brief sets the size of the matrix and regenerates with the given seed
+  *
+  * \param m NOF rows
+  * \param n NOF columns
+  * \param seed seed to use
+  *
+  */
+  void SetSize(uint32_t m, uint32_t n, uint32_t seed);
 
   /**
   * \brief Generate random entries for a given seed (if it is different than the previous one, or if forced to)

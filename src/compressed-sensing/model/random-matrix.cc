@@ -46,6 +46,17 @@ void RandomMatrix::SetSize(uint32_t m, uint32_t n, bool regenerate)
 	}
 }
 
+void RandomMatrix::SetSize(uint32_t m, uint32_t n, uint32_t seed)
+{
+	if ((m != nRows()) || (n != nCols()) || (seed != m_prevSeed))
+	{
+		kl1p::TOperator<double>::resize(m, n);
+		m_mat.set_size(m, n);
+		//m_mat = arma::mat(m, n);
+		Generate(seed, true);
+	}
+}
+
 uint32_t RandomMatrix::nRows() const
 {
 	return m_mat.n_rows;
