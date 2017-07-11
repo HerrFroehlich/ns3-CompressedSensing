@@ -30,7 +30,8 @@ typedef CsHeader::T_IdField T_NodeIdTag;
 * \brief A base class template for compressed sensing reconstructors using KL1p
 *
 * This class is used as a base class for different CS reconstructors (using KL1p).
-* The base takes care of storing data for indivudal nodes. Aside a Seed  to caonstruct a sensing matrix);
+* The base takes care of storing data for multiple nodes. Their individual random sensing matrix is recreated from used seed, which is also stored.
+* Additionally a transformation matrix if needed can be aggregated.
 *
 * \tparam T type of internal data (either double or arma::cx_double)
 *
