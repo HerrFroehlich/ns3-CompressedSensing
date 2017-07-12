@@ -23,8 +23,14 @@ using namespace ns3;
 using namespace arma;
 typedef std::complex<double> cx_double;
 typedef CsHeader::T_IdField T_NodeIdTag;
-
 /**
+* \ingroup compsens
+ * \defgroup rec Reconstructors
+ *
+ * Various classes for reconstructing spatial dependent, compressed data with compressed sensing algorithms
+ */
+/**
+* \ingroup rec
 * \class Reconstructor
 *
 * \brief A base class template for compressed sensing reconstructors using KL1p

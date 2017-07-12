@@ -12,6 +12,7 @@
 #include "reconstructor.h"
 using namespace kl1p;
 /**
+* \ingroup rec
 * \class OMP_ReconstructorBase
 *
 * \brief base class template for several omp reconstructors
@@ -62,6 +63,7 @@ class OMP_Reconstructor : public Reconstructor<T>
 };
 
 /**
+* \ingroup rec
 * \class OMP_ReconstructorTemp
 *
 * \brief an reconstructor using OMP to recover real data from several nodes, which is for each temporally correlated

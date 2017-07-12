@@ -18,6 +18,13 @@
 using namespace ns3;
 using namespace kl1p;
 /**
+* \ingroup compsens
+ * \defgroup ranmat Random Sensing Matrices
+ *
+ * Various classes for generating random sub-sampling matrices
+ */
+/**
+* \ingroup ranmat
 * \class RandomMatrix
 *
 * \brief base clase to create matrices with random entries
@@ -152,6 +159,7 @@ klab::TSmartPointer<kl1p::TOperator<double>> operator*(const klab::TSmartPointer
 klab::TSmartPointer<kl1p::TOperator<cx_double>> operator*(const klab::TSmartPointer<RandomMatrix>, const klab::TSmartPointer<TransMatrix<cx_double>>);
 
 /**
+* \ingroup ranmat
 * \class IdentRandomMatrix
 *
 * \brief a mxn matrix with rows chosen randomly from a nxn identity matrix
@@ -197,6 +205,7 @@ private:
 };
 
 /**
+* \ingroup ranmat
 * \class GaussianRandomMatrix 
 *
 * \brief a random mxn matrix containing gaussian values
@@ -253,6 +262,7 @@ private:
 };
 
 /**
+* \ingroup ranmat
 * \class BernRandomMatrix
 *
 * \brief a mxn matrix with entries (1, -1) or normalized(1/sqrt(m), -1/sqrt(m)) chosen from a bernoulli distribution

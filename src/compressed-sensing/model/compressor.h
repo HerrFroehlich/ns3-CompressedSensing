@@ -17,6 +17,7 @@
 using namespace ns3;
 
 /**
+* \ingroup compsens
 * \class Compressor	
 *
 * compresses measurement vectors X into a lower dimensional space Y

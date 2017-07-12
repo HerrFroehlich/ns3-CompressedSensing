@@ -13,8 +13,14 @@
 #include <armadillo>
 using namespace kl1p;
 typedef std::complex<double> cx_double;
-
 /**
+* \ingroup compsens
+ * \defgroup transmat Transform Matrices
+ *
+ * Various classes for transformations
+ */
+/**
+* \ingroup transmat
 * \class TransMatrix
 *
 * \brief a base clase template to create transformation matrices
@@ -83,6 +89,7 @@ class TransMatrix : public ns3::Object, public virtual TOperator<T>
 };
 
 /**
+* \ingroup transmat
 * \class FourierTransMatrix
 *
 * \brief matrix inducing a 1D fourier transformation

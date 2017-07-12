@@ -14,6 +14,7 @@
 #include "ns3/buffer.h"
 using namespace ns3;
 /**
+* \ingroup compsens
 * \class CsHeader
 *
 * \brief header for a clustered sensor network performing in-network compressions and recovery via compressed sensing techniques
