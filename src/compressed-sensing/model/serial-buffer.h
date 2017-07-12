@@ -1,19 +1,26 @@
 /**
-* \file SerialDataBuffers.h
+* \file serial-buffer.h
 *
 * \author Tobias Waurick
 * \date 30.05
 *
 * Includes several SerialDataBuffer templates
 */
-#ifndef UTILBUFFERS_H
-#define UTILBUFFERS_H
+#ifndef SERIALBUFFER_H
+#define SERIALBUFFER_H
 
 #include <stdint.h>
 #include "ns3/object.h"
 #include "assert.h"
-
+#include <algorithm> //copy
 /**
+* \ingroup compsens
+ * \defgroup util Utilities
+ *
+ * Various utility classes like buffers...
+ */
+/**
+* \ingroup util
 * \class SerialDataBuffer
 *
 * \brief a general buffer class to store and read data
@@ -43,7 +50,15 @@ class SerialDataBuffer<T> : public Object
 	SerialDataBuffer(uint32_t size);
 
 	/**
-	* \brief destroy the Biffer
+	* \brief copy constructor
+	*
+	* \param buf buffer to copy
+	*
+	*/
+	SerialDataBuffer(const SerialDataBuffer& buf);
+
+	/**
+	* \brief destroy the Buffer
 	*
 	*/
 	~SerialDataBuffer();
@@ -142,6 +157,14 @@ SerialDataBuffer<T>::SerialDataBuffer(uint32_t dataSize) : m_dataSize(dataSize),
 }
 
 template <typename T>
+SerialDataBuffer<T>::SerialDataBuffer(const SerialDataBuffer& buf)
+{
+	m_dataSize = buf.m_dataSize;
+	m_data_ptr = new T[m_dataSize];
+	std::copy(std::begin(buf.m_data_ptr), std::end(buf.m_data_ptr), std::begin(m_data_ptr));
+}
+
+template <typename T>
 SerialDataBuffer<T>::~SerialDataBuffer()
 {
 	delete[] m_data_ptr;
@@ -218,4 +241,4 @@ void SerialDataBuffer<T>::Resize(uint32_t size)
 	m_data_ptr = new T[m_dataSize];
 }
 
-#endif //UTILBUFFERS_H
+#endif //SERIALBUFFER_H
