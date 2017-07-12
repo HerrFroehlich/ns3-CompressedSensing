@@ -77,7 +77,7 @@ class Compressor : public Object
 	/**
 	* \brief sets the internal transformation object
 	*
-	* \param trans Mat_ptr pointer to a TransMatrix object
+	* \param transMat_ptr pointer to a TransMatrix object
 	*
 	*/
 	void SetTransMat(Ptr<TransMatrix<T>> transMat_ptr);
