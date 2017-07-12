@@ -10,12 +10,14 @@
 #include <iostream>
 #include <stdint.h>
 #include <sys/stat.h>
+#include "ns3/compressor.h"
 
 using namespace std;
 using namespace arma;
 NS_LOG_COMPONENT_DEFINE("OMP_ReconstExample");
 void CreateGaussianSignal(uint32_t size, uint32_t sparsity, double mean, double sigma, arma::Col<double> &out);
-void AddNoise(arma::Col<double> &out, double nVar);
+void CreateGaussianSignal(uint32_t m, uint32_t n, uint32_t sparsity, double mean, double sigma, arma::mat &out);
+void AddNoise(arma::mat &out, double nVar);
 void WriteToCSVFile(const arma::Col<klab::DoubleReal> &signal, const std::string &filePath);
 void PrintStats(int64_t time, uint32_t iter);
 
@@ -32,7 +34,7 @@ int main(int argc, char *argv[])
 	uint32_t seed = 1,
 			 n = 256,
 			 mMin = 0;
-	uint32_t nNodes = 1, ranType = 0, iter = 100;
+	uint32_t len = 1, nNodes = 1, ranType = 0, iter = 100;
 	double alpha = 0.5, rho = 0.1, tol = 1e-3, nVar = 0, snr = INFINITY;
 
 	cmd.AddValue("verbose", "enable verbose messages", verbose);
@@ -40,6 +42,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("mMin", "Minimum NOF sampes to start reconstructing continously", mMin);
 	cmd.AddValue("seed", "initial seed. The Nodes have the following seeds: Node 0: seed, Node 1: seed+1, Node 2: seed+2 ....", seed);
 	cmd.AddValue("n", "Size of the original signal x0", n);
+	cmd.AddValue("len", "length of each measurement vector", len);
 	cmd.AddValue("nNodes", "NOF nodes [1...255] ", nNodes);
 	cmd.AddValue("alpha", "Ratio of the cs-measurements [0...1]", alpha);
 	cmd.AddValue("rho", "Ratio of the sparrsity of the signal x0 [0...1]", rho);
@@ -96,13 +99,15 @@ int main(int argc, char *argv[])
 		NS_LOG_WARN("mMin set to m/2");
 		mMin = m / 2;
 	}
-	else if(!cont)
+	else if (!cont)
 	{
 		mMin = m;
 	}
 
-	vector<vec> xVals(nNodes), xValsN(nNodes), yVals(nNodes);
-	Ptr<OMP_ReconstructorTemp<double>> omp = CreateObject<OMP_ReconstructorTemp<double>>();
+	vector<arma::mat> xVals(nNodes), yVals(nNodes);
+
+	Ptr<OMP_Reconstructor<double>> omp = CreateObject<OMP_Reconstructor<double>>();
+	Ptr<Compressor<double>> comp = CreateObject<Compressor<double>>();
 	Ptr<RandomMatrix> sensMat;
 	string ranName;
 	switch (ranType)
@@ -121,36 +126,45 @@ int main(int argc, char *argv[])
 		break;
 	}
 
-	// Ptr<TransMatrix<cx_double>> trans = CreateObject<FourierTransMatrix>(n);
-
+	// Setting up reconstructor
 	omp->SetAttribute("Tolerance", DoubleValue(tol));
-	omp->Setup(n, m, k, tol);
+	omp->Setup(n, m, len, k, tol);
 	omp->SetRanMat(sensMat);
-	//	omp->SetAttribute("RanMatrix", PointerValue(sensMat));
+	//	omp->SetAttribute("RanMatrix", PointerValue(sensMat)); //<- also possible this way
 	omp->TraceConnectWithoutContext("RecComplete", MakeCallback(&PrintStats));
+
+	// Setting up compressor
+	comp->SetRanMat(sensMat);
+	//	comp->SetAttribute("RanMatrix", PointerValue(sensMat)); //<- also possible this way
 
 	for (uint32_t i = 0; i < nNodes; i++)
 	{
-		vec x0;
-		vec y;
-		CreateGaussianSignal(n, k, 0.0, 1.0, x0); // Create randomly the original signal x0.
+		arma::mat x0(n, len), xN(n, len), y(m, len);
+
+		CreateGaussianSignal(n, len, k, 0.0, 1.0, x0); // Create randomly the original signal x0.
 		xVals.at(i) = x0;
+		xN = x0;
 		if (nVar > 0)
 		{
-			AddNoise(x0, nVar);
+			AddNoise(xN, nVar);
 		}
-		xValsN.at(i) = x0;
-		sensMat->Generate(seed + i);
-		y = *(sensMat)*x0;
+
+		comp->Setup(seed + i, m, n, len);
+		comp->Compress(xN.memptr(), n*len, y.memptr(), m*len); //we need the memptr stuff only here, later we won't work with arma::Mat's anymore!
 		if (write)
 		{
 			mat A = *(sensMat);
-			A.save("./fOut/mat" + to_string(i), csv_ascii);
+			A.save("./fOut/A" + to_string(i), csv_ascii);
 			y.save("./fOut/y" + to_string(i), csv_ascii);
+			xN.save("./fOut/xN" + to_string(i), csv_ascii);
+			x0.save("./fOut/x" + to_string(i), csv_ascii);
 		}
+		//we need to transpose y since the buffer is written row wise (which is needed for a real tx/rx szenario)
+		//but armadillo stores the matrix data column by column!
+		y = y.t();
 		yVals.at(i) = y;
 		omp->AddSrcNode(i, seed + i);
-		omp->WriteData(i, y.memptr(), mMin);
+		omp->WriteData(i, y.memptr(), mMin * len);
 	}
 	// Display signal informations.
 	cout << "==============================" << endl;
@@ -167,24 +181,22 @@ int main(int argc, char *argv[])
 		for (uint32_t i = 0; i < nNodes; i++)
 		{
 			cout << "--Reconstruction of Node " << i << " :" << endl;
-			vec y = yVals.at(i);
+			mat y = yVals.at(i);
 			for (uint32_t j = mMin; j < m; j++)
 			{
-				omp->WriteData(i, y.memptr() + j, 1);
+				omp->WriteData(i, y.memptr() + (j * len), len);
 				cout << "---Attempt with " << j + 1 << " Samples " << endl;
 				vector<double> data;
 				omp->Reconstruct(i, k, iter);
 				data = omp->ReadRecData(i);
-				vec x(data.data(), n, false, false);
+				mat x(data.data(), n, len, false, false);
 				// cout << arma::join_rows(x, xVals.at(i));
 
 				//SNR : 20*log(sqrt|x|²/sqrt|x-xR|²)
 				cout << "SNR: " << setprecision(5) << klab::SNR(x, xVals.at(i)) << endl;
 				if (write)
 				{
-					mat xCmp = arma::join_rows(xVals.at(i), xValsN.at(i));
-					xCmp = arma::join_rows(xCmp, x);
-					xCmp.save("./fOut/x" + to_string(i) + "_" + to_string(j + 1), csv_ascii);
+					x.save("./fOut/xR" + to_string(i) + "_" + to_string(j + 1), csv_ascii);
 				}
 			}
 		}
@@ -198,14 +210,12 @@ int main(int argc, char *argv[])
 			cout << "--Reconstruction of Node " << i << " :" << endl;
 			omp->Reconstruct(i, k, iter);
 			data = omp->ReadRecData(i);
-			vec x(data.data(), n, false, false);
+			mat x(data.data(), n, len, false, false);
 			// cout << arma::join_rows(x, xVals.at(i));
 			cout << "SNR: " << setprecision(5) << klab::SNR(x, xVals.at(i)) << endl;
 			if (write)
 			{
-				mat xCmp = arma::join_rows(xVals.at(i), xValsN.at(i));
-				xCmp = arma::join_rows(xCmp, x);
-				xCmp.save("./fOut/x" + to_string(i), csv_ascii);
+				x.save("./fOut/xR" + to_string(i), csv_ascii);
 			}
 		}
 	}
@@ -232,9 +242,22 @@ void CreateGaussianSignal(uint32_t size, uint32_t sparsity, double mean, double 
 	}
 }
 
-void AddNoise(arma::Col<double> &out, double nVar)
+void CreateGaussianSignal(uint32_t m, uint32_t n, uint32_t sparsity, double mean, double sigma, arma::mat &out)
 {
-	uint32_t size = out.n_rows;
+	out.set_size(m, n);
+
+	vector<klab::TArrayElement<double>> indices;
+	for (uint32_t i = 0; i < n; ++i)
+	{
+		arma::vec x;
+		CreateGaussianSignal(m, sparsity, mean, sigma, x);
+		out.col(i) = x;
+	}
+}
+
+void AddNoise(arma::mat &out, double nVar)
+{
+	uint32_t size = out.n_elem;
 	for (uint32_t i = 0; i < size; i++)
 	{
 		double u3 = klab::KRandom::Instance().generateDoubleReal(0.0, 1.0);
