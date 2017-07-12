@@ -14,7 +14,7 @@
 #include "assert.h"
 using namespace arma;
 /**
-* \ingroup compsens
+* \ingroup util
 * \class NodeDataBuffer
 *
 * \brief a buffer template to save data(considered as a vector) from a node to a matrix
