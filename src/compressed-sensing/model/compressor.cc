@@ -11,6 +11,8 @@
 
 NS_LOG_COMPONENT_DEFINE("Compressor");
 
+/*--------  Compressor  --------*/
+
 template <>
 TypeId Compressor<double>::GetTypeId(void)
 {
@@ -109,7 +111,7 @@ template <typename T>
 void Compressor<T>::SetRanMat(Ptr<RandomMatrix> ranMat_ptr)
 {
 	m_ranMat = ranMat_ptr->Clone();
-	
+
 	if (m_ranMat.isValid())
 		m_ranMat->SetSize(m_m, m_n, m_seed);
 }
@@ -125,3 +127,24 @@ void Compressor<T>::SetTransMat(Ptr<TransMatrix<T>> transMat_ptr)
 
 template class Compressor<double>;
 template class Compressor<cx_double>;
+
+/*--------  CompressorTemp  --------*/
+
+template <typename T>
+CompressorTemp<T>::CompressorTemp() : Compressor<T>()
+{
+}
+
+template <typename T>
+CompressorTemp<T>::CompressorTemp(uint32_t m, uint32_t n) : Compressor<T>(m, n, VECLEN)
+{
+}
+
+template <typename T>
+void CompressorTemp<T>::Setup(uint32_t seed, uint32_t m, uint32_t n, bool norm)
+{
+	Compressor<T>::Setup(seed, m, n, VECLEN, norm);
+}
+
+template class CompressorTemp<double>;
+template class CompressorTemp<cx_double>;

@@ -18,6 +18,13 @@ using namespace ns3;
 
 /**
 * \ingroup compsens
+ * \defgroup compr Compressors
+ *
+ * Classes to compress data via random matrices
+ */
+
+/**
+* \ingroup compr
 * \class Compressor	
 *
 * compresses measurement vectors X into a lower dimensional space Y
@@ -82,9 +89,9 @@ class Compressor : public Object
 	*
 	*/
 	void SetTransMat(Ptr<TransMatrix<T>> transMat_ptr);
+	
 
   private:
-
 	uint32_t
 		m_seed,										/**< seed to create random matrix from*/
 		m_m,										/**< length of Y*/
@@ -95,6 +102,47 @@ class Compressor : public Object
 	bool m_normalize;								/**< normalize random matrix?*/
 	klab::TSmartPointer<RandomMatrix> m_ranMat;		/**< Random matrix form from which sensing matrix is constructed*/
 	klab::TSmartPointer<TransMatrix<T>> m_transMat; /**< Transformation matrix form from which sensing matrix is constructed*/
+};
+
+/**
+* \ingroup compr
+* \class CompressorTemp
+*
+* compresses measurements X into a lower dimensional space Y (temporal coding)
+*
+* \tparam T type of internal data (either double or arma::cx_double)
+*
+* \author Tobias Waurick
+* \date 12.07.17
+*/
+template <typename T>
+class CompressorTemp : public Compressor<T>
+{
+  public:
+	static TypeId GetTypeId(void);
+	CompressorTemp();
+
+	/**
+	* \brief creates a compressor and sets the dimension for X and Y 
+	*
+	* \param n 		NOF original measurment vectors (X)
+	* \param m  	NOF  measurments vectors when compreesed
+*
+	*/
+	CompressorTemp(uint32_t m, uint32_t n);
+
+	/**
+	* \brief sets the dimension for X and Y 
+	*
+	* \param n 		NOF original measurment vectors (X)
+	* \param m  	NOF  measurments vectors when compreesed
+	* \param norm	normalize random matrix to 1/sqrt(m)?
+	*
+	*/
+	void Setup(uint32_t seed, uint32_t m, uint32_t n, bool norm = false);
+
+	private:
+	const static uint32_t VECLEN = 1;
 };
 
 #endif //COMPRESSOR_H
