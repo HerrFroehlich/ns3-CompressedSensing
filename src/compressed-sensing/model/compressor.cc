@@ -61,14 +61,14 @@ Compressor<T>::Compressor() : m_seed(1), m_m(0),
 }
 
 template <typename T>
-Compressor<T>::Compressor(uint32_t m, uint32_t n, uint32_t vecLen) : m_seed(1), m_m(m),
+Compressor<T>::Compressor(uint32_t n, uint32_t m, uint32_t vecLen) : m_seed(1), m_m(m),
 																	 m_n(n), m_vecLen(vecLen),
 																	 m_bufLenIn(n * vecLen), m_bufLenOut(m * vecLen)
 {
 }
 
 template <typename T>
-void Compressor<T>::Setup(uint32_t seed, uint32_t m, uint32_t n, uint32_t vecLen, bool norm)
+void Compressor<T>::Setup(uint32_t seed, uint32_t n, uint32_t m, uint32_t vecLen, bool norm)
 {
 	NS_LOG_FUNCTION(this << seed << m << n << vecLen << norm);
 	m_seed = seed;
@@ -89,7 +89,7 @@ void Compressor<T>::Setup(uint32_t seed, uint32_t m, uint32_t n, uint32_t vecLen
 }
 
 template <typename T>
-void Compressor<T>::Compress(const T *bufferIn, uint32_t bufLenIn, T *bufferOut, uint32_t bufLenOut)
+void Compressor<T>::Compress(const T *bufferIn, uint32_t bufLenIn, T *bufferOut, uint32_t bufLenOut) const
 {
 	NS_LOG_FUNCTION(this << bufferIn << bufLenIn << bufferOut << bufLenOut);
 	NS_ASSERT_MSG(bufLenIn == m_bufLenIn, "Incorrect input buffer size");
@@ -104,6 +104,19 @@ void Compressor<T>::Compress(const T *bufferIn, uint32_t bufLenIn, T *bufferOut,
 		Col<T> yVec(m_m);
 		op_ptr->apply(x.col(i), yVec);
 		y.col(i) = yVec;
+	}
+}
+
+template <typename T>
+void Compressor<T>::SetSeed(uint32_t seed, bool norm)
+{
+	m_seed = seed;
+	if (m_ranMat.isValid())
+	{
+		m_ranMat->Generate(seed);
+
+		if (norm)
+			m_ranMat->NormalizeToM();
 	}
 }
 
@@ -136,12 +149,12 @@ CompressorTemp<T>::CompressorTemp() : Compressor<T>()
 }
 
 template <typename T>
-CompressorTemp<T>::CompressorTemp(uint32_t m, uint32_t n) : Compressor<T>(m, n, VECLEN)
+CompressorTemp<T>::CompressorTemp(uint32_t n, uint32_t m) : Compressor<T>(m, n, VECLEN)
 {
 }
 
 template <typename T>
-void CompressorTemp<T>::Setup(uint32_t seed, uint32_t m, uint32_t n, bool norm)
+void CompressorTemp<T>::Setup(uint32_t seed, uint32_t n, uint32_t m, bool norm)
 {
 	Compressor<T>::Setup(seed, m, n, VECLEN, norm);
 }

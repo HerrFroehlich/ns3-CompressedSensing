@@ -49,7 +49,7 @@ class Compressor : public Object
 	* \param vecLen	length of each measurement vector (e.g. 1 for temporal reconstruction, x for spatial reconstruction)
 	*
 	*/
-	Compressor(uint32_t m, uint32_t n, uint32_t vecLen);
+	Compressor(uint32_t n, uint32_t m, uint32_t vecLen);
 
 	/**
 	* \brief sets the dimension for X and Y 
@@ -60,7 +60,7 @@ class Compressor : public Object
 	* \param norm	normalize random matrix to 1/sqrt(m)?
 	*
 	*/
-	void Setup(uint32_t seed, uint32_t m, uint32_t n, uint32_t vecLen, bool norm = false);
+	void Setup(uint32_t seed, uint32_t n, uint32_t m, uint32_t vecLen, bool norm = false);
 
 	/**
 	* \brief compresses data from input buffer and writes it to the output buffer
@@ -72,7 +72,16 @@ class Compressor : public Object
 	* \param bufLenOut length of output buffer (must be vecLen*m)
 	*
 	*/
-	void Compress(const T *bufferIn, uint32_t bufLenIn, T *bufferOut, uint32_t bufLenOut);
+	void Compress(const T *bufferIn, uint32_t bufLenIn, T *bufferOut, uint32_t bufLenOut) const;
+
+	/**
+	* \brief sets the seed used for the random matrix and regenerates it
+	*
+	* \param seed seed to use
+	* \param norm normalize random matrix to 1/sqrt(m)?
+	*
+	*/
+	void SetSeed(uint32_t seed, bool norm = false);
 
 	/**
 	* \brief sets the internal random matrix object
@@ -89,7 +98,6 @@ class Compressor : public Object
 	*
 	*/
 	void SetTransMat(Ptr<TransMatrix<T>> transMat_ptr);
-	
 
   private:
 	uint32_t
@@ -129,7 +137,7 @@ class CompressorTemp : public Compressor<T>
 	* \param m  	NOF  measurments vectors when compreesed
 *
 	*/
-	CompressorTemp(uint32_t m, uint32_t n);
+	CompressorTemp(uint32_t n, uint32_t m);
 
 	/**
 	* \brief sets the dimension for X and Y 
@@ -139,9 +147,9 @@ class CompressorTemp : public Compressor<T>
 	* \param norm	normalize random matrix to 1/sqrt(m)?
 	*
 	*/
-	void Setup(uint32_t seed, uint32_t m, uint32_t n, bool norm = false);
+	void Setup(uint32_t seed, uint32_t n, uint32_t m, bool norm = false);
 
-	private:
+  private:
 	const static uint32_t VECLEN = 1;
 };
 
