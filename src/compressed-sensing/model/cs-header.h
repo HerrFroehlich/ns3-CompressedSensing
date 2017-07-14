@@ -20,16 +20,12 @@ using namespace ns3;
 * \brief header for a clustered sensor network performing in-network compressions and recovery via compressed sensing techniques
 *
 * The header consist of 4 fields :
-*    _________________________________________
-*   | ClusterID | NodeID |   SEQ  | DATASIZE  |
-*   |⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻|
-*   |   8bit    |  8bit  | 16bit  |   16bit   |
-*   |⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻⎻|
 *                   48bit=6byte
-* ClusterID: the identification number of the current cluster
-* NodeID: the identification number of the current source node, 0 is received for the cluster head
-* SEQ: current measurment sequence number
-* SIZE: size of sended data
+* 8bit ClusterID: the identification number of the current cluster\n 
+* 8bit NodeID: the identification number of the current source node, 0 is received for the cluster head\n 
+* 16bit SEQ: current measurment sequence number\n 
+* 16bit SIZE: size of sended data\n 
+* Totaling 48bit=6byte
 */
 class CsHeader : public Header
 {
