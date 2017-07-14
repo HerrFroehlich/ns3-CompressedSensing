@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 			AddNoise(xN, nVar);
 		}
 
-		comp->Setup(seed + i, m, n, len);
+		comp->Setup(seed + i, n, m, len);
 		comp->Compress(xN.memptr(), n*len, y.memptr(), m*len); //we need the memptr stuff only here, later we won't work with arma::Mat's anymore!
 		if (write)
 		{
