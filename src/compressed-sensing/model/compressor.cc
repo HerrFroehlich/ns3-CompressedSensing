@@ -142,7 +142,25 @@ template class Compressor<double>;
 template class Compressor<cx_double>;
 
 /*--------  CompressorTemp  --------*/
+template <>
+TypeId CompressorTemp<double>::GetTypeId(void)
+{
+	static TypeId tid = TypeId("ns3::CompressorTemp<double>")
+							.SetParent<Compressor<double>>()
+							.AddConstructor<CompressorTemp<double>>()
+							.SetGroupName("CompressedSensing");
+	return tid;
+}
 
+template <>
+TypeId CompressorTemp<cx_double>::GetTypeId(void)
+{
+	static TypeId tid = TypeId("ns3::Compressor<cx_double>")
+							.SetParent<Compressor<cx_double>>()
+							.AddConstructor<Compressor<cx_double>>()
+							.SetGroupName("CompressedSensing");
+	return tid;
+}
 template <typename T>
 CompressorTemp<T>::CompressorTemp() : Compressor<T>()
 {
@@ -156,7 +174,7 @@ CompressorTemp<T>::CompressorTemp(uint32_t n, uint32_t m) : Compressor<T>(m, n, 
 template <typename T>
 void CompressorTemp<T>::Setup(uint32_t seed, uint32_t n, uint32_t m, bool norm)
 {
-	Compressor<T>::Setup(seed, m, n, VECLEN, norm);
+	Compressor<T>::Setup(seed, n, m, VECLEN, norm);
 }
 
 template class CompressorTemp<double>;
