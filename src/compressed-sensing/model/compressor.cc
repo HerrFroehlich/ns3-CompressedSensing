@@ -21,12 +21,12 @@ TypeId Compressor<double>::GetTypeId(void)
 							.AddConstructor<Compressor<double>>()
 							.SetGroupName("CompressedSensing")
 							.AddAttribute("RanMatrix", "The underlying random matrix form to create the sensing matrix",
-										  TypeId::ATTR_SET,
+										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(CreateObject<IdentRandomMatrix>()),
 										  MakePointerAccessor(&Compressor::SetRanMat),
 										  MakePointerChecker<RandomMatrix>())
 							.AddAttribute("TransMatrix", "The underlying matrix of a real transformation in which the solution is sparse",
-										  TypeId::ATTR_SET,
+										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(),
 										  MakePointerAccessor(&Compressor::SetTransMat),
 										  MakePointerChecker<TransMatrix<double>>());
@@ -41,12 +41,12 @@ TypeId Compressor<cx_double>::GetTypeId(void)
 							.AddConstructor<Compressor<cx_double>>()
 							.SetGroupName("CompressedSensing")
 							.AddAttribute("RanMatrix", "The underlying random matrix form to create the sensing matrix",
-										  TypeId::ATTR_SET,
+										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(CreateObject<IdentRandomMatrix>()),
 										  MakePointerAccessor(&Compressor::SetRanMat),
 										  MakePointerChecker<RandomMatrix>())
 							.AddAttribute("TransMatrix", "The underlying matrix of a real transformation in which the solution is sparse",
-										  TypeId::ATTR_SET,
+										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(),
 										  MakePointerAccessor(&Compressor::SetTransMat),
 										  MakePointerChecker<TransMatrix<cx_double>>());

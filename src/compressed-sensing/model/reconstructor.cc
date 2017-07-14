@@ -20,13 +20,13 @@ TypeId Reconstructor<T>::GetTypeId(void)
 							//.AddConstructor<Reconstructor>()
 							.SetGroupName("CompressedSensing")
 							.AddAttribute("RanMatrix", "The underlying random matrix form to create the sensing matrix",
-										  TypeId::ATTR_SET,
+										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT ,
 										  PointerValue(CreateObject<IdentRandomMatrix>()),
 										  MakePointerAccessor(&Reconstructor::SetRanMat),
 										  //  MakePointerAccessor(&Reconstructor::m_ranMat),
 										  MakePointerChecker<RandomMatrix>())
 							.AddAttribute("TransMatrix", "The underlying matrix of a real transformation in which the solution is sparse",
-										  TypeId::ATTR_SET,
+										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT ,
 										  PointerValue(),
 										  MakePointerAccessor(&Reconstructor::SetTransMat),
 										  MakePointerChecker<TransMatrix<T>>())
