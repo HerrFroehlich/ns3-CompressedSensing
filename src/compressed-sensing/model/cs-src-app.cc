@@ -13,6 +13,7 @@
 #include "ns3/log.h"
 
 NS_LOG_COMPONENT_DEFINE("CsSrcApp");
+NS_OBJECT_ENSURE_REGISTERED(CsSrcApp);
 
 TypeId
 CsSrcApp::GetTypeId(void)
@@ -42,6 +43,10 @@ CsSrcApp::GetTypeId(void)
 										  DoubleValue(1.0),
 										  MakeDoubleAccessor(&CsSrcApp::m_txProb),
 										  MakeDoubleChecker<double>(0.0, 1.0))
+							.AddAttribute("Norm", "Normalize the random matrix to 1/sqrt(m)?",
+										  BooleanValue(false),
+										  MakeBooleanAccessor(&CsSrcApp::m_normalize),
+										  MakeBooleanChecker())
 							.AddAttribute("ComprTemp", "Temporal Compressor",
 										  PointerValue(CreateObject<CompressorTemp<double>>()),
 										  MakePointerAccessor(&CsSrcApp::m_compR),
@@ -53,6 +58,9 @@ CsSrcApp::GetTypeId(void)
 										  MakePointerChecker<RandomVariableStream>())
 							.AddTraceSource("Tx", "A new packet is sent",
 											MakeTraceSourceAccessor(&CsSrcApp::m_txTrace),
+											"ns3::Packet::TracedCallback")
+							.AddTraceSource("Drop", "A packet is dropped",
+											MakeTraceSourceAccessor(&CsSrcApp::m_dropTrace),
 											"ns3::Packet::TracedCallback");
 	return tid;
 }
@@ -60,7 +68,7 @@ CsSrcApp::GetTypeId(void)
 CsSrcApp::CsSrcApp() : m_yR(0), m_nodeId(0), m_clusterId(0),
 					   m_nextSeq(0), m_seed(1),
 					   m_n(0), m_m(0),
-					   m_nDevices(0), m_nTxDevices(0),
+					   //    m_nDevices(0), m_nTxDevices(0),
 					   m_nMeas(0), // m_nPackets(0),
 					   m_sent(0),
 					   m_normalize(false),
@@ -73,22 +81,22 @@ CsSrcApp::CsSrcApp() : m_yR(0), m_nodeId(0), m_clusterId(0),
 	NS_LOG_FUNCTION(this);
 }
 
-CsSrcApp::CsSrcApp(uint32_t seed, uint32_t n, uint32_t m) : m_yR(m), m_nodeId(0), m_clusterId(0),
-															m_nextSeq(0), m_seed(seed),
-															m_n(n), m_m(m),
-															m_nDevices(0), m_nTxDevices(0),
-															m_nMeas(0), // m_nPackets(0),
-															m_sent(0),
-															m_normalize(false),
-															m_running(false),
-															m_isSetup(false),
-															// m_txPackets(0),
-															m_sendEvent(EventId())
+CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yR(m), m_nodeId(0), m_clusterId(0),
+											 m_nextSeq(0), m_seed(1),
+											 m_n(n), m_m(m),
+											 //  m_nDevices(0), m_nTxDevices(0),
+											 m_nMeas(0), // m_nPackets(0),
+											 m_sent(0),
+											 m_normalize(false),
+											 m_running(false),
+											 m_isSetup(false),
+											 // m_txPackets(0),
+											 m_sendEvent(EventId())
 {
-	NS_LOG_FUNCTION(this << seed << n << m);
+	NS_LOG_FUNCTION(this << n << m);
 }
 
-void CsSrcApp::Setup(Ptr<Node> node, CsHeader::T_IdField nodeId, CsHeader::T_IdField clusterId, std::string filename)
+void CsSrcApp::Setup(Ptr<CsNode> node, CsHeader::T_IdField nodeId, CsHeader::T_IdField clusterId, std::string filename)
 {
 	using namespace std;
 	NS_LOG_FUNCTION(this << node << nodeId << clusterId << filename);
@@ -98,6 +106,7 @@ void CsSrcApp::Setup(Ptr<Node> node, CsHeader::T_IdField nodeId, CsHeader::T_IdF
 	m_nodeId = nodeId;
 	m_clusterId = clusterId;
 
+	m_seed = node->GetSeed();
 	/*--------  read data from file  --------*/
 
 	ifstream ifs(filename, ifstream::in | ifstream::binary);
@@ -127,16 +136,16 @@ void CsSrcApp::Setup(Ptr<Node> node, CsHeader::T_IdField nodeId, CsHeader::T_IdF
 	// buffer = 0;
 
 	/*--------  get tx devices from node  --------*/
-	m_nDevices = node->GetNDevices();
-	NS_ASSERT_MSG(m_nDevices > 0, "No net devices on this node!");
-	m_isTxDevice = std::vector<uint32_t>(m_nDevices);
+	// m_nDevices = node->GetNDevices();
+	// NS_ASSERT_MSG(m_nDevices > 0, "No net devices on this node!");
+	// m_isTxDevice = std::vector<uint32_t>(m_nDevices);
 
-	//set net device indexes for transmitting (initial: all)
-	m_nTxDevices = m_nDevices;
-	for (uint32_t i = 0; i < m_nTxDevices; i++)
-	{
-		m_isTxDevice[i] = i;
-	}
+	// //set net device indexes for transmitting (initial: all)
+	// m_nTxDevices = m_nDevices;
+	// for (uint32_t i = 0; i < m_nTxDevices; i++)
+	// {
+	// 	m_isTxDevice[i] = i;
+	// }
 
 	//setup compressor
 	m_compR->Setup(m_seed, m_n, m_m, m_normalize);
@@ -176,12 +185,12 @@ void CsSrcApp::SetTempCompressDim(uint32_t n, uint32_t m)
 	m_compR->Setup(m_seed, m_n, m_m, m_normalize);
 }
 
-void CsSrcApp::SetSeed(uint32_t seed, bool norm)
-{
-	NS_LOG_FUNCTION(this << seed << norm);
+// void CsSrcApp::SetSeed(uint32_t seed, bool norm)
+// {
+// 	NS_LOG_FUNCTION(this << seed << norm);
 
-	m_compR->SetSeed(seed, norm);
-}
+// 	m_compR->SetSeed(seed, norm);
+// }
 
 void CsSrcApp::SetTxProb(double p)
 {
@@ -227,12 +236,13 @@ void CsSrcApp::SendToAll(Ptr<Packet> p)
 	//call trace source
 	NS_LOG_INFO(m_node->GetId() << " is about to send");
 	m_txTrace(p);
-
-	for (uint32_t i = 0; i < m_nTxDevices; i++)
+	NetDeviceContainer devices = m_node->GetTxDevices();
+	for (auto it = devices.Begin(); it != devices.End(); it++)
 	{
-		device = m_node->GetDevice(m_isTxDevice[i]);
+		// device = m_node->GetDevice(m_isTxDevice[i]);
 		//send assuming MySimpleNetDevice thus invalid Address
-		device->Send(p, Address(), 0);
+		// device->Send(p, Address(), 0);
+		(*it)->Send(p, Address(), 0);
 	}
 }
 
@@ -269,6 +279,7 @@ bool CsSrcApp::CompressNext()
 
 void CsSrcApp::CreateCsPackets()
 {
+	NS_LOG_FUNCTION(this);
 	/*--------  Create packets from that data  --------*/
 	// uint32_t nPacketsNow = 1;
 	std::vector<Ptr<Packet>> pktList;
@@ -330,6 +341,7 @@ void CsSrcApp::ScheduleTx(Time dt)
 {
 	NS_LOG_FUNCTION(this << dt);
 	NS_ASSERT_MSG(HasPackets(), "No packets to schedule!");
+	NS_ASSERT_MSG(m_sendEvent.IsExpired(), "Already sending!");
 
 	Ptr<Packet> pkt = m_txPackets.back();
 	m_txPackets.pop_back();
@@ -337,4 +349,6 @@ void CsSrcApp::ScheduleTx(Time dt)
 	//schedule send
 	if (m_ranTx->GetValue() < m_txProb)
 		m_sendEvent = Simulator::Schedule(dt, &CsSrcApp::SendPacket, this, pkt);
+	else if (HasPackets())
+		Simulator::Schedule(dt, &CsSrcApp::ScheduleTx, this, m_interval);
 }

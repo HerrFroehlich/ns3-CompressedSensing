@@ -13,11 +13,19 @@
 #include "cs-header.h"
 #include "compressor.h"
 #include "serial-buffer.h"
+#include "cs-node.h"
 
 using namespace ns3;
 
 /**
 * \ingroup compsens
+* \defgroup csApps Applications
+*
+* Applications for Source, Cluster and Sink nodes
+*/
+
+/**
+* \ingroup csApps
 * \class CsSrcApp
 *
 * \brief A source app to compress data from a file temporally and transmitting it
@@ -43,24 +51,23 @@ class CsSrcApp : public Application
 	/**
 	* \brief create an CsSrcApp
 	*
-	* \param seed seed used for constructing the random matrix
 	* \param n length of original measurement vector
 	* \param m length of compressed vector
 	*/
-	CsSrcApp(uint32_t seed, uint32_t n, uint32_t m);
+	CsSrcApp(uint32_t n, uint32_t m);
 
 	/**
 	* \brief setups the application to send packets with data from a file
 	* All aggregated devices to the node are considered Tx devices.  
 	* This function has to be called BEFORE starting the application. 
 	*
-	* \param node node to aggregate application to
+	* \param node Csnode to aggregate application to
 	* \param nodeId node id as defined in CsHeader
 	* \param clusterId cluster id as defined in CsHeader
 	* \param filename name of file to read from
 	*
 	*/
-	void Setup(Ptr<Node> node,
+	void Setup(Ptr<CsNode> node,
 			   CsHeader::T_IdField nodeId,
 			   CsHeader::T_IdField clusterId,
 			   std::string filename);
@@ -99,7 +106,7 @@ class CsSrcApp : public Application
 	* \param norm normalize random matrix by 1/sqrt(m)?
 	*
 	*/
-	void SetSeed(uint32_t seed, bool norm = false);
+	// void SetSeed(uint32_t seed, bool norm = false);
 
 	/**
 	* \brief sets the transmission probability for sending
@@ -182,20 +189,20 @@ class CsSrcApp : public Application
 	*/
 	void SendPacket(Ptr<Packet> p);
 
-	Ptr<Node> m_node; /**< aggretated node*/
+	Ptr<CsNode> m_node; /**< aggretated node*/
 
 	uint32_t
-		m_seed,		  /**< seed used for generating the random sensing matrix*/
+		 m_seed,		  /**< seed used for generating the random sensing matrix*/
 		m_n,		  /**< length of an original measurement vector*/
 		m_m,		  /**< length of compressed measurment vector*/
-		m_nDevices,   /**< number of net devices*/
-		m_nTxDevices, /**< number of net devices*/
+		// m_nDevices,   /**< number of net devices*/
+		// m_nTxDevices, /**< number of net devices*/
 					  //	m_packetSize, /**< Packet size in byte*/
 		m_nMeas,	  /**< NOF measurements to send*/
 		//m_nPackets,   /**< NOF packets to send*/
 		m_sent; /**< NOF packets already sent*/
 
-	double m_txProb; /**< description*/
+	double m_txProb; /**< propability to send a packet*/
 
 	bool m_normalize, /**< normalize random matrix by 1/sqrt(m)?*/
 		m_running,
@@ -204,12 +211,12 @@ class CsSrcApp : public Application
 	SerialDataBuffer<double> m_fdata; /**< data from file*/
 	Ptr<CompressorTemp<double>> m_compR;  /**< compressor for real*/
 	Ptr<RandomVariableStream> m_ranTx;	/**< random variable stream, to determine when to send*/
-	std::vector<uint32_t> m_isTxDevice;   /**< determine if device is used for sending */
+	// std::vector<uint32_t> m_isTxDevice;   /**< determine if device is used for sending */
 	std::vector<Ptr<Packet>> m_txPackets; /**< packets to send next, LIFO!*/
 
 	Time m_interval; /**< Packet inter-send time*/
 	EventId m_sendEvent;
-	TracedCallback<Ptr<const Packet>> m_txTrace; /**< callback to call when sending*/
+	TracedCallback<Ptr<const Packet>> m_txTrace, m_dropTrace; /**< callback to call when sending/ packet is dropped*/
 };
 
 #endif //CS_SRCAPP_H
