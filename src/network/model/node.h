@@ -101,7 +101,7 @@ public:
    * \returns the index of the NetDevice into the Node's list of
    *          NetDevice.
    */
-  uint32_t AddDevice (Ptr<NetDevice> device);
+  virtual uint32_t AddDevice (Ptr<NetDevice> device);
   /**
    * \brief Retrieve the index-th NetDevice associated to this node.
    *
