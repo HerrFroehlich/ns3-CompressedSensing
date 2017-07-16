@@ -14,7 +14,7 @@
 #include <KL1pInclude.h>
 #include <stdint.h>
 #include <map>
-#include "node-data-buffer.h"
+#include "ns3/node-data-buffer.h"
 #include "random-matrix.h"
 #include "transform-matrix.h"
 #include "cs-header.h"

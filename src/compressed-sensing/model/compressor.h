@@ -11,7 +11,7 @@
 
 #include "ns3/core-module.h"
 #include <KL1pInclude.h>
-#include "node-data-buffer.h"
+#include "ns3/node-data-buffer.h"
 #include "random-matrix.h"
 #include "transform-matrix.h"
 using namespace ns3;

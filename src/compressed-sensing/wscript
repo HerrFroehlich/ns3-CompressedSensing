@@ -47,13 +47,14 @@ def build(bld):
         'model/omp-reconstructor.h',
     	'model/random-matrix.h',
     	'model/transform-matrix.h',
-        'model/node-data-buffer.h',
         'model/compressor.h',
         'model/cs-header.h',
         'model/cs-src-app.h',
-        'model/serial-buffer.h',
         'model/cs-node.h',
-        'helper/cs-node-container.h'
+        'helper/cs-node-container.h',
+        'util/serial-buffer.h',
+        'util/node-data-buffer.h',
+        'util/node-data-buffer-meta.h',
 ]
 
     if bld.env.ENABLE_EXAMPLES:
