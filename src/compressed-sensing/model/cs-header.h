@@ -33,7 +33,6 @@ class CsHeader : public Header
 	typedef uint8_t T_IdField;	/**< ID field type*/
 	typedef uint16_t T_SizeField; /**< size field type*/
 	typedef uint16_t T_SeqField;  /**< sequence field type*/
-
 	/**
 	* \brief create an empty CsHeader
 	*/
@@ -103,13 +102,16 @@ class CsHeader : public Header
 	*/
 	T_SizeField GetDataSize();
 
-//inherited from class Header
+	//inherited from class Header
 	static TypeId GetTypeId();
 	virtual TypeId GetInstanceTypeId(void) const;
 	virtual uint32_t Deserialize(Buffer::Iterator start);
 	virtual uint32_t GetSerializedSize(void) const;
 	virtual void Print(std::ostream &os) const;
 	virtual void Serialize(Buffer::Iterator start) const;
+
+	const static T_IdField CLUSTER_NODEID = 0; /**< the node id of a cluster node*/
+
   private:
 	static const uint32_t m_hSize = 6; /**< Header size in Byte*/
 	T_IdField m_clusterId,			   /**< 8bit cluster ID*/
