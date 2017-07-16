@@ -31,11 +31,11 @@ CsSrcApp::GetTypeId(void)
 							// 			  UintegerValue(8),
 							// 			  MakeUintegerAccessor(&CsSrcApp::m_packetSize),
 							// 			  MakeUintegerChecker<uint32_t>(8))
-							.AddAttribute("m", "Length of original measurement vector",
+							.AddAttribute("n", "Length of original measurement vector",
 										  UintegerValue(128),
 										  MakeUintegerAccessor(&CsSrcApp::m_m),
 										  MakeUintegerChecker<uint32_t>())
-							.AddAttribute("n", "Length of compressed vector",
+							.AddAttribute("m", "Length of compressed vector",
 										  UintegerValue(256),
 										  MakeUintegerAccessor(&CsSrcApp::m_n),
 										  MakeUintegerChecker<uint32_t>())
@@ -96,15 +96,16 @@ CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yR(m), m_nodeId(0), m_clusterId(0
 	NS_LOG_FUNCTION(this << n << m);
 }
 
-void CsSrcApp::Setup(Ptr<CsNode> node, CsHeader::T_IdField nodeId, CsHeader::T_IdField clusterId, std::string filename)
+void CsSrcApp::Setup(Ptr<CsNode> node, std::string filename)
 {
 	using namespace std;
-	NS_LOG_FUNCTION(this << node << nodeId << clusterId << filename);
-	NS_ASSERT(!m_isSetup);
+	NS_LOG_FUNCTION(this << node << filename);
+	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
+	NS_ASSERT_MSG(node->IsSource(), "Must be a source node!");
 
 	m_node = node;
-	m_nodeId = nodeId;
-	m_clusterId = clusterId;
+	m_nodeId = node->GetNodeId();
+	m_clusterId = node->GetClusterId();
 
 	m_seed = node->GetSeed();
 	/*--------  read data from file  --------*/

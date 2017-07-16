@@ -12,7 +12,7 @@
 #include "ns3/applications-module.h"
 #include "cs-header.h"
 #include "compressor.h"
-#include "serial-buffer.h"
+#include "ns3/serial-buffer.h"
 #include "cs-node.h"
 
 using namespace ns3;
@@ -62,14 +62,10 @@ class CsSrcApp : public Application
 	* This function has to be called BEFORE starting the application. 
 	*
 	* \param node Csnode to aggregate application to
-	* \param nodeId node id as defined in CsHeader
-	* \param clusterId cluster id as defined in CsHeader
 	* \param filename name of file to read from
 	*
 	*/
 	void Setup(Ptr<CsNode> node,
-			   CsHeader::T_IdField nodeId,
-			   CsHeader::T_IdField clusterId,
 			   std::string filename);
 
 	/**
