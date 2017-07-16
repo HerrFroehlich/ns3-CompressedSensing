@@ -22,7 +22,8 @@ def build(bld):
         'model/compressor.cc',
         'model/cs-header.cc',
         'model/cs-src-app.cc',
-        'model/cs-node.cc'
+        'model/cs-node.cc',
+        'helper/cs-node-container.cc'
         ]
 
     module_test = bld.create_ns3_module_test_library('compressed-sensing')
@@ -51,7 +52,8 @@ def build(bld):
         'model/cs-header.h',
         'model/cs-src-app.h',
         'model/serial-buffer.h',
-        'model/cs-node.h'
+        'model/cs-node.h',
+        'helper/cs-node-container.h'
 ]
 
     if bld.env.ENABLE_EXAMPLES:
