@@ -38,12 +38,13 @@ CsNode::CsNode() : m_type(CsNode::NodeType::NONE), m_seed(1), m_clusterId(0), m_
 	NS_LOG_FUNCTION(this);
 }
 
-CsNode::CsNode(CsNode::NodeType type) : m_type(type), m_seed(1)
+CsNode::CsNode(CsNode::NodeType type) : m_type(type), m_seed(1), m_clusterId(0), m_nodeId(0)
 {
 	NS_LOG_FUNCTION(this << type);
+
 }
 
-CsNode::CsNode(CsNode::NodeType type, uint32_t systemId) : Node(systemId), m_type(type), m_seed(1)
+CsNode::CsNode(CsNode::NodeType type, uint32_t systemId) : Node(systemId), m_type(type), m_seed(1), m_clusterId(0), m_nodeId(0)
 {
 	NS_LOG_FUNCTION(this << type << systemId);
 }
@@ -134,9 +135,9 @@ CsNode::GetNodeType() const
 
 void CsNode::SetNodeId(CsHeader::T_IdField id)
 {
+	NS_ASSERT_MSG(!IsCluster() || id == CsHeader::CLUSTER_NODEID, "Cluster node must have fixed CLUSTER_NODEID!");
 	m_nodeId = id;
 }
-
 
 void CsNode::SetClusterId(CsHeader::T_IdField id)
 {
@@ -151,4 +152,19 @@ CsHeader::T_IdField CsNode::GetNodeId()
 CsHeader::T_IdField CsNode::GetClusterId()
 {
 	return m_clusterId;
+}
+
+bool CsNode::IsSource()
+{
+	return (m_type == NodeType::SOURCE);
+}
+
+bool CsNode::IsCluster()
+{
+	return (m_type == NodeType::CLUSTER);
+}
+
+bool CsNode::IsSink()
+{
+	return (m_type == NodeType::SINK);
 }

@@ -129,43 +129,67 @@ class CsNode : public Node
 
 	CsNode::NodeType GetNodeType() const;
 
-  /**
-  * \brief sets the nodeId
-  *
-  * \param id ID to use
-  *
+	/**
+	* \brief sets the nodeId
+	*
+	* \param id ID to use
+	*
   */
-  void SetNodeId(CsHeader::T_IdField id);
+	void SetNodeId(CsHeader::T_IdField id);
 
-  /**
-  * \brief sets the clusterId
-  *
-  * \param id ID to use
-  *
-  */
-  void SetClusterId(CsHeader::T_IdField id);
+	/**
+	* \brief sets the clusterId
+	*
+	* \param id ID to use
+	*
+	*/
+	void SetClusterId(CsHeader::T_IdField id);
 
-  /**
-  * \brief gets the current node ID
-  *
-  * \return ID used
-  *
-  */
-  CsHeader::T_IdField GetNodeId();
+	/**
+	* \brief gets the current node ID
+	*
+	* \return ID used
+	*
+	*/
+	CsHeader::T_IdField GetNodeId();
 
-  /**
-  * \brief gets the current cluster ID
-  *
-  * \return ID used
-  *
-  */
-  CsHeader::T_IdField GetClusterId();
+	/**
+	* \brief gets the current cluster ID
+	*
+	* \return ID used
+	*
+	*/
+	CsHeader::T_IdField GetClusterId();
 
-private:
+	/**
+	* \brief checks if node is a source node
+	*
+	* \return true if it is
+	*
+ 	*/
+	bool IsSource();
+
+	/**
+	* \brief checks if node is a source node
+	*
+	* \return true if it is
+	*
+ 	*/
+	bool IsCluster();
+
+	/**
+	* \brief checks if node is a source node
+	*
+	* \return true if it is
+	*
+ 	*/
+	bool IsSink();
+
+  private:
 	NodeType m_type;
-  uint32_t m_seed;
-  CsHeader::T_IdField m_clusterId, m_nodeId;
-  std::vector<uint32_t> m_isTxDevice, m_isRxDevice; /**< tx/rx device indices*/
+	uint32_t m_seed;
+	CsHeader::T_IdField m_clusterId, m_nodeId;
+	std::vector<uint32_t> m_isTxDevice, m_isRxDevice; /**< tx/rx device indices*/
 };
 
 #endif //CS_NODE_H
