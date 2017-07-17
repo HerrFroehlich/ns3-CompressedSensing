@@ -100,16 +100,19 @@ class MatBuffer : public ns3::Object
 	* \param bufSize size of buffer
 	*
 	*/
-	void Write(T *buffer, uint32_t bufSize);
+	void Write(const T *buffer, uint32_t bufSize);
 
 	/**
 	* \brief writes data from a buffer by moving. Data in buffer has to be in a column by column order.
+	*
+	* BE SURE TO ALLOCATE THE BUFFER ON THE HEAP!
+	* The buffer pointer will be set to zero after memory has been moved, to avoid delete conflicts.
 	*
 	* \param buffer pointer to input buffer
 	* \param bufSize size of buffer
 	*
 	*/
-	void WrMove(T *buffer, uint32_t bufSize);
+	void WrMove(T *&buffer, uint32_t bufSize);
 
 	/**
 	* \brief reads the buffer matrix
@@ -189,23 +192,24 @@ void MatBuffer<T>::Write(const Mat<T> &mat)
 }
 
 template <typename T>
-void MatBuffer<T>::Write(T *buffer, buffer_size)
+void MatBuffer<T>::Write(const T *buffer, uint32_t bufSize)
 {
 	NS_ASSERT_MSG(bufSize == nElem(), "NOF elements not matching!");
 	m_dataMat = Mat<T>(buffer, nRows(), nCols());
 }
 
 template <typename T>
-void MatBuffer<T>::WrMove(T *buffer, buffer_size)
+void MatBuffer<T>::WrMove(T *&buffer, uint32_t bufSize)
 {
 	NS_ASSERT_MSG(bufSize == nElem(), "NOF elements not matching!");
 	m_dataMat = Mat<T>(buffer, nRows(), nCols(), false, true);
+	buffer = 0;
 }
 
 template <typename T>
 const Mat<T>& MatBuffer<T>::Read()
 {
-	return const &m_dataMat;
+	return m_dataMat;
 }
 
 template <typename T>
