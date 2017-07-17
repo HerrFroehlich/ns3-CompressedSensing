@@ -140,6 +140,16 @@ class NodeDataBuffer : public ns3::Object
 	void WriteAll(const Mat<T> &mat);
 
 	/**
+	* \brief write buffer to this buffer matrix, filling it
+	* The data in the buffer is assumed to be stored column by colum!
+	*
+	* \param buffer pointer to a buffer
+	* \param bufSize buffer size must be(M*N)
+	*
+	*/
+	void WriteAll(const T *buffer, uint32_t bufSize);
+
+	/**
 	* \brief check if buffer was used before
 	*
 	* \return true if the buffer is empty
@@ -178,6 +188,13 @@ class NodeDataBuffer : public ns3::Object
 	* \return NOF colums
 	*/
 	uint32_t nCols() const;
+
+	/**
+	* \brief gets the NOF elements of internal matrix buffer
+	*
+	* \return NOF elements
+	*/
+	uint32_t nElem() const;
 
   private:
 	uint32_t m_nCol,	 /**< NOF columns*/
@@ -342,6 +359,15 @@ void NodeDataBuffer<T>::WriteAll(const Mat<T> &mat)
 }
 
 template <typename T>
+void NodeDataBuffer<T>::WriteAll(const T *buffer, uint32_t bufSize)
+{
+	NS_ASSERT_MSG(bufSize == m_nCol * m_nRow, "Buffer size not matching!");
+	m_dataMat = Mat<T>(buffer, m_nRow, m_nCol);
+	m_rowWrIdx = m_nRow;
+	m_colWrIdx = m_nCol;
+	m_isFull = true;
+}
+template <typename T>
 bool NodeDataBuffer<T>::IsEmpty() const
 {
 	return !(m_rowWrIdx);
@@ -384,5 +410,11 @@ template <typename T>
 uint32_t NodeDataBuffer<T>::nCols() const
 {
 	return m_nCol;
+}
+
+template <typename T>
+uint32_t NodeDataBuffer<T>::nElem() const
+{
+	return m_dataMat.n_elem;
 }
 #endif //NODE_DATABUFFER_H
