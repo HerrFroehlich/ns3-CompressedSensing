@@ -113,7 +113,6 @@ class SerialDataBuffer : public Object
 	* \param buffer 	a reference to a pointer to a  buffer  of the stored type
 	* \param bufSize	size of that buffer
 	*
-	* \return returnDesc
 	*/
 	void MoveMem(T *&buffer, uint32_t bufSize);
 
@@ -134,7 +133,7 @@ class SerialDataBuffer : public Object
 	/**
 	* \brief writes multiple values at the end of this SerialDataBuffer
 	*
-	* \param SerialDataBuffer	a SerialDataBuffer pointer of the stored type
+	* \param buffer	a SerialDataBuffer pointer of the stored type
 	* \param bufSize	size of that SerialDataBuffer
 	*/
 	void WriteNext(T *buffer, uint32_t bufSize);
