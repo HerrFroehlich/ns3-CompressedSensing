@@ -66,7 +66,7 @@ class CsSrcApp : public Application
 	*
 	*/
 	virtual void Setup(Ptr<CsNode> node,
-			   std::string filename);
+					   std::string filename);
 
 	/**
 	* \brief sets the used temporal compressor
@@ -179,9 +179,21 @@ class CsSrcApp : public Application
 	*/
 	bool IsSending();
 
-	SerialDataBuffer<double> m_yR;		  /**< buffers for  compressed real meas. vector */
+	SerialDataBuffer<double> m_yR; /**< buffers for  compressed real meas. vector */
 	CsHeader::T_IdField m_nodeId, m_clusterId;
 	CsHeader::T_SeqField m_nextSeq; /**< next sequence!*/
+
+	uint32_t
+		m_seed, /**< seed used for generating the random sensing matrix*/
+		m_n,	/**< length of an original measurement vector*/
+		m_m,	/**< length of compressed measurment vector*/
+		// m_nDevices,   /**< number of net devices*/
+		// m_nTxDevices, /**< number of net devices*/
+		//	m_packetSize, /**< Packet size in byte*/
+		// m_nMeas,	  /**< NOF measurements to send*/
+		//m_nPackets,   /**< NOF packets to send*/
+		m_sent; /**< NOF packets already sent*/
+	Ptr<CsNode> m_node; /**< aggretated node*/
   private:
 	/**
 	* \brief sends a packet with compressed source data  via all devices in TX-device list
@@ -192,18 +204,6 @@ class CsSrcApp : public Application
 	*/
 	void SendPacket(Ptr<Packet> p);
 
-	Ptr<CsNode> m_node; /**< aggretated node*/
-
-	uint32_t
-		 m_seed,		  /**< seed used for generating the random sensing matrix*/
-		m_n,		  /**< length of an original measurement vector*/
-		m_m,		  /**< length of compressed measurment vector*/
-		// m_nDevices,   /**< number of net devices*/
-		// m_nTxDevices, /**< number of net devices*/
-					  //	m_packetSize, /**< Packet size in byte*/
-		// m_nMeas,	  /**< NOF measurements to send*/
-		//m_nPackets,   /**< NOF packets to send*/
-		m_sent; /**< NOF packets already sent*/
 
 	double m_txProb; /**< propability to send a packet*/
 
@@ -211,9 +211,9 @@ class CsSrcApp : public Application
 		m_running,
 		m_isSetup;
 
-	SerialDataBuffer<double> m_fdata; /**< data from file*/
-	Ptr<CompressorTemp<double>> m_compR;  /**< compressor for real*/
-	Ptr<RandomVariableStream> m_ranTx;	/**< random variable stream, to determine when to send*/
+	SerialDataBuffer<double> m_fdata;	/**< data from file*/
+	Ptr<CompressorTemp<double>> m_compR; /**< compressor for real*/
+	Ptr<RandomVariableStream> m_ranTx;   /**< random variable stream, to determine when to send*/
 	// std::vector<uint32_t> m_isTxDevice;   /**< determine if device is used for sending */
 	std::vector<Ptr<Packet>> m_txPackets; /**< packets to send next, LIFO!*/
 
