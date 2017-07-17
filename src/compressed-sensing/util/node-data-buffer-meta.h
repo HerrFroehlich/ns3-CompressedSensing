@@ -23,8 +23,7 @@ using namespace arma;
 * Data is assumed to be vectorized and so multiple data vectors are stored in matrix form (MxN).
 * For each matrix row meta data is provided.
 * The buffer matrix can be written sequentially rowwise by arma::Col vectors or by common buffers.
-* Rows can be written in several consequent writing operations(to make data splitting possible),
-* BUT a row must be filled entirely before setting the next.
+* Rows must be written entirely on each write operation.
 * \tparam T		data type
 * \tparam TM	type of meta data
 *
@@ -166,7 +165,7 @@ class NodeDataBufferMeta : public ns3::Object
 	uint32_t nCols() const;
 
 	/**
-	* \brief sort data matrix by given meta daata (ascending)
+	* \brief sort data matrix by given meta data (ascending)
 	*/
 	void SortByMeta();
 
