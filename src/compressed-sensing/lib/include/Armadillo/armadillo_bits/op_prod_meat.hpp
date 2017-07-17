@@ -1,64 +1,23 @@
-// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
-// Copyright 2008-2016 National ICT Australia (NICTA)
+// Copyright (C) 2009-2012 NICTA (www.nicta.com.au)
+// Copyright (C) 2009-2012 Conrad Sanderson
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ------------------------------------------------------------------------
+// This file is part of the Armadillo C++ library.
+// It is provided without any warranty of fitness
+// for any purpose. You can redistribute this file
+// and/or modify it under the terms of the GNU
+// Lesser General Public License (LGPL) as published
+// by the Free Software Foundation, either version 3
+// of the License or (at your option) any later version.
+// (see http://www.opensource.org/licenses for more info)
 
 
 //! \addtogroup op_prod
 //! @{
 
-
-template<typename eT>
-inline
-void
-op_prod::apply_noalias(Mat<eT>& out, const Mat<eT>& X, const uword dim)
-  {
-  arma_extra_debug_sigprint();
-  
-  const uword X_n_rows = X.n_rows;
-  const uword X_n_cols = X.n_cols;
-    
-  if(dim == 0)  // traverse across rows (i.e. find the product in each column)
-    {
-    out.set_size(1, X_n_cols);
-    
-    eT* out_mem = out.memptr();
-    
-    for(uword col=0; col < X_n_cols; ++col)
-      {
-      out_mem[col] = arrayops::product(X.colptr(col), X_n_rows);
-      }
-    }
-  else  // traverse across columns (i.e. find the product in each row)
-    {
-    out.ones(X_n_rows, 1);
-    
-    eT* out_mem = out.memptr();
-    
-    for(uword col=0; col < X_n_cols; ++col)
-      {
-      const eT* X_col_mem = X.colptr(col);
-      
-      for(uword row=0; row < X_n_rows; ++row)
-        {
-        out_mem[row] *= X_col_mem[row];
-        }
-      }
-    }
-  }
-
-
-
+//! \brief
+//! Immediate product of elements of a matrix along a specified dimension (either rows or columns).
+//! The result is stored in a dense matrix that has either one column or one row.
+//! See the prod() function for more details.
 template<typename T1>
 inline
 void
@@ -69,22 +28,49 @@ op_prod::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_prod>& in)
   typedef typename T1::elem_type eT;
   
   const uword dim = in.aux_uword_a;
+  arma_debug_check( (dim > 1), "prod(): incorrect usage. dim must be 0 or 1");
   
-  arma_debug_check( (dim > 1), "prod(): parameter 'dim' must be 0 or 1" );
+  const unwrap_check<T1> tmp(in.m, out);
+  const Mat<eT>& X     = tmp.M;
   
-  const quasi_unwrap<T1> U(in.m);
-  
-  if(U.is_alias(out))
+  const uword X_n_rows = X.n_rows;
+  const uword X_n_cols = X.n_cols;
+    
+  if(dim == 0)  // traverse across rows (i.e. find the product in each column)
     {
-    Mat<eT> tmp;
+    out.set_size(1, X_n_cols);
     
-    op_prod::apply_noalias(tmp, U.M, dim);
+    eT* out_mem = out.memptr();
     
-    out.steal_mem(tmp);
+    for(uword col=0; col<X_n_cols; ++col)
+      {
+      out_mem[col] = arrayops::product(X.colptr(col), X_n_rows);
+      }
     }
-  else
+  else  // traverse across columns (i.e. find the product in each row)
     {
-    op_prod::apply_noalias(out, U.M, dim);
+    out.set_size(X_n_rows, 1);
+    
+    eT* out_mem = out.memptr();
+    
+    for(uword row=0; row<X_n_rows; ++row)
+      {
+      eT val = eT(1);
+      
+      uword i,j;
+      for(i=0, j=1; j < X_n_cols; i+=2, j+=2)
+        {
+        val *= X.at(row,i);
+        val *= X.at(row,j);
+        }
+      
+      if(i < X_n_cols)
+        {
+        val *= X.at(row,i);
+        }
+      
+      out_mem[row] = val;
+      }
     }
   }
 
@@ -149,7 +135,7 @@ op_prod::prod(const Base<typename T1::elem_type,T1>& X)
   
   eT val = eT(1);
   
-  if(Proxy<T1>::use_at == false)
+  if(Proxy<T1>::prefer_at_accessor == false)
     {
     typedef typename Proxy<T1>::ea_type ea_type;
     

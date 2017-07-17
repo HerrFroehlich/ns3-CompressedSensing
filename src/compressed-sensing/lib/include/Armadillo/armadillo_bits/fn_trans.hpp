@@ -1,17 +1,14 @@
-// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
-// Copyright 2008-2016 National ICT Australia (NICTA)
+// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
+// Copyright (C) 2008-2012 Conrad Sanderson
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ------------------------------------------------------------------------
+// This file is part of the Armadillo C++ library.
+// It is provided without any warranty of fitness
+// for any purpose. You can redistribute this file
+// and/or modify it under the terms of the GNU
+// Lesser General Public License (LGPL) as published
+// by the Free Software Foundation, either version 3
+// of the License or (at your option) any later version.
+// (see http://www.opensource.org/licenses for more info)
 
 
 //! \addtogroup fn_trans
@@ -19,13 +16,30 @@
 
 
 template<typename T1>
-arma_warn_unused
 arma_inline
 const Op<T1, op_htrans>
 trans
   (
+  const Base<typename T1::elem_type,T1>& X,
+  const typename enable_if<is_basevec<T1>::value == false>::result* junk = 0
+  )
+  {
+  arma_extra_debug_sigprint();
+  arma_ignore(junk);
+  
+  return Op<T1, op_htrans>(X.get_ref());
+  }
+
+
+
+template<typename T1>
+arma_inline
+arma_warn_unused
+const Op<T1, op_htrans>
+trans
+  (
   const T1& X,
-  const typename enable_if< is_arma_type<T1>::value == true >::result* junk = 0
+  const typename enable_if<is_basevec<T1>::value == true>::result* junk = 0
   )
   {
   arma_extra_debug_sigprint();
@@ -37,13 +51,30 @@ trans
 
 
 template<typename T1>
-arma_warn_unused
 arma_inline
 const Op<T1, op_htrans>
 htrans
   (
+  const Base<typename T1::elem_type,T1>& X,
+  const typename enable_if<is_basevec<T1>::value == false>::result* junk = 0
+  )
+  {
+  arma_extra_debug_sigprint();
+  arma_ignore(junk);
+  
+  return Op<T1, op_htrans>(X.get_ref());
+  }
+
+
+
+template<typename T1>
+arma_inline
+arma_warn_unused
+const Op<T1, op_htrans>
+htrans
+  (
   const T1& X,
-  const typename enable_if< is_arma_type<T1>::value == true >::result* junk = 0
+  const typename enable_if<is_basevec<T1>::value == true>::result* junk = 0
   )
   {
   arma_extra_debug_sigprint();
@@ -54,98 +85,29 @@ htrans
 
 
 
-//
-// handling of sparse matrices
-
-
+//! two consecutive transpose operations cancel each other
 template<typename T1>
-arma_warn_unused
-inline
-typename
-enable_if2
-  <
-  is_arma_sparse_type<T1>::value,
-  const SpOp<T1,spop_strans>
-  >::result
-trans
-  (
-  const T1& x,
-  const typename arma_not_cx<typename T1::elem_type>::result* junk = 0
-  )
+arma_inline
+const T1&
+trans(const Op<T1, op_htrans>& X)
   {
   arma_extra_debug_sigprint();
-  arma_ignore(junk);
+  arma_extra_debug_print("trans(): removing op_htrans");
   
-  return SpOp<T1,spop_strans>(x);
+  return X.m;
   }
 
 
 
 template<typename T1>
-arma_warn_unused
-inline
-typename
-enable_if2
-  <
-  is_arma_sparse_type<T1>::value,
-  const SpOp<T1,spop_htrans>
-  >::result
-trans
-  (
-  const T1& x,
-  const typename arma_cx_only<typename T1::elem_type>::result* junk = 0
-  )
+arma_inline
+const T1&
+htrans(const Op<T1, op_htrans>& X)
   {
   arma_extra_debug_sigprint();
-  arma_ignore(junk);
+  arma_extra_debug_print("htrans(): removing op_htrans");
   
-  return SpOp<T1,spop_htrans>(x);
-  }
-
-
-
-template<typename T1>
-arma_warn_unused
-inline
-typename
-enable_if2
-  <
-  is_arma_sparse_type<T1>::value,
-  const SpOp<T1,spop_strans>
-  >::result
-htrans
-  (
-  const T1& x,
-  const typename arma_not_cx<typename T1::elem_type>::result* junk = 0
-  )
-  {
-  arma_extra_debug_sigprint();
-  arma_ignore(junk);
-  
-  return SpOp<T1,spop_strans>(x);
-  }
-
-
-
-template<typename T1>
-arma_warn_unused
-inline
-typename
-enable_if2
-  <
-  is_arma_sparse_type<T1>::value,
-  const SpOp<T1,spop_htrans>
-  >::result
-htrans
-  (
-  const T1& x,
-  const typename arma_cx_only<typename T1::elem_type>::result* junk = 0
-  )
-  {
-  arma_extra_debug_sigprint();
-  arma_ignore(junk);
-  
-  return SpOp<T1,spop_htrans>(x);
+  return X.m;
   }
 
 

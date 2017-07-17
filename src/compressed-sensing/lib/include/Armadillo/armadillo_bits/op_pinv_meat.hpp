@@ -1,17 +1,16 @@
-// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
-// Copyright 2008-2016 National ICT Australia (NICTA)
+// Copyright (C) 2009-2011 NICTA (www.nicta.com.au)
+// Copyright (C) 2009-2011 Conrad Sanderson
+// Copyright (C) 2009-2010 Dimitrios Bouzas
+// Copyright (C) 2011 Stanislav Funiak
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ------------------------------------------------------------------------
+// This file is part of the Armadillo C++ library.
+// It is provided without any warranty of fitness
+// for any purpose. You can redistribute this file
+// and/or modify it under the terms of the GNU
+// Lesser General Public License (LGPL) as published
+// by the Free Software Foundation, either version 3
+// of the License or (at your option) any later version.
+// (see http://www.opensource.org/licenses for more info)
 
 
 
@@ -20,94 +19,59 @@
 
 
 
-template<typename T1>
+template<typename eT>
 inline
 void
-op_pinv::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_pinv>& in)
+op_pinv::direct_pinv(Mat<eT>& out, const Mat<eT>& A, const eT in_tol)
   {
   arma_extra_debug_sigprint();
   
-  typedef typename T1::pod_type T;
+  typedef typename get_pod_type<eT>::result T;
   
-  const T tol = access::tmp_real(in.aux);
-  
-  const bool use_divide_and_conquer = (in.aux_uword_a == 1);
-  
-  const bool status = op_pinv::apply_direct(out, in.m, tol, use_divide_and_conquer);
-  
-  if(status == false)
-    {
-    arma_stop_runtime_error("pinv(): svd failed");
-    }
-  }
-
-
-
-template<typename T1>
-inline
-bool
-op_pinv::apply_direct(Mat<typename T1::elem_type>& out, const Base<typename T1::elem_type,T1>& expr, typename T1::pod_type tol, const bool use_divide_and_conquer)
-  {
-  arma_extra_debug_sigprint();
-  
-  typedef typename T1::elem_type eT;
-  typedef typename T1::pod_type   T;
+  T tol = access::tmp_real(in_tol);
   
   arma_debug_check((tol < T(0)), "pinv(): tolerance must be >= 0");
   
-  const Proxy<T1> P(expr.get_ref());
-  
-  const uword n_rows = P.get_n_rows();
-  const uword n_cols = P.get_n_cols();
-  
-  if( (n_rows*n_cols) == 0 )
-    {
-    out.set_size(n_cols,n_rows);
-    return true;
-    }
-  
+  const uword n_rows = A.n_rows;
+  const uword n_cols = A.n_cols;
   
   // economical SVD decomposition 
   Mat<eT> U;
   Col< T> s;
   Mat<eT> V;
   
-  bool status = false;
-  
-  if(use_divide_and_conquer)
-    {
-    status = (n_cols > n_rows) ? auxlib::svd_dc_econ(U, s, V, trans(P.Q)) : auxlib::svd_dc_econ(U, s, V, P.Q);
-    }
-  else
-    {
-    status = (n_cols > n_rows) ? auxlib::svd_econ(U, s, V, trans(P.Q), 'b') : auxlib::svd_econ(U, s, V, P.Q, 'b');
-    }
+  const bool status = (n_cols > n_rows) ? auxlib::svd_econ(U,s,V,trans(A),'b') : auxlib::svd_econ(U,s,V,A,'b');
   
   if(status == false)
     {
     out.reset();
-    return false;
+    arma_bad("pinv(): svd failed");
+    return;
     }
   
   const uword s_n_elem = s.n_elem;
   const T*    s_mem    = s.memptr();
   
-  // set tolerance to default if it hasn't been specified
+  // set tolerance to default if it hasn't been specified as an argument 
   if( (tol == T(0)) && (s_n_elem > 0) )
     {
-    tol = (std::max)(n_rows, n_cols) * s_mem[0] * std::numeric_limits<T>::epsilon();
+    tol = (std::max)(n_rows, n_cols) * eop_aux::direct_eps( op_max::direct_max(s_mem, s_n_elem) );
     }
   
+  
+  // count non zero valued elements in s
   
   uword count = 0;
   
   for(uword i = 0; i < s_n_elem; ++i)
     {
-    count += (s_mem[i] >= tol) ? uword(1) : uword(0);
+    if(s_mem[i] > tol)
+      {
+      ++count;
+      }
     }
   
-  
-  if(count > 0)
+  if(count != 0)
     {
     Col<T> s2(count);
     
@@ -119,25 +83,44 @@ op_pinv::apply_direct(Mat<typename T1::elem_type>& out, const Base<typename T1::
       {
       const T val = s_mem[i];
       
-      if(val >= tol)  {  s2_mem[count2] = T(1) / val;  ++count2; }
+      if(val > tol)
+        {
+        s2_mem[count2] = T(1) / val;
+        ++count2;
+        }
       }
     
     
     if(n_rows >= n_cols)
       {
-      out = ( (V.n_cols > count) ? V.cols(0,count-1) : V ) * diagmat(s2) * trans( (U.n_cols > count) ? U.cols(0,count-1) : U );
+      out = ( V.n_cols > count ? V.cols(0,count-1) : V ) * diagmat(s2) * trans( U.n_cols > count ? U.cols(0,count-1) : U );
       }
     else
       {
-      out = ( (U.n_cols > count) ? U.cols(0,count-1) : U ) * diagmat(s2) * trans( (V.n_cols > count) ? V.cols(0,count-1) : V );
+      out = ( U.n_cols > count ? U.cols(0,count-1) : U ) * diagmat(s2) * trans( V.n_cols > count ? V.cols(0,count-1) : V );
       }
     }
   else
     {
     out.zeros(n_cols, n_rows);
     }
+  }
+
+
+
+template<typename T1>
+inline
+void
+op_pinv::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_pinv>& in)
+  {
+  arma_extra_debug_sigprint();
   
-  return true;
+  typedef typename T1::elem_type eT;
+  
+  const unwrap<T1>   tmp(in.m);
+  const Mat<eT>& A = tmp.M;
+  
+  op_pinv::direct_pinv(out, A, in.aux);
   }
 
 

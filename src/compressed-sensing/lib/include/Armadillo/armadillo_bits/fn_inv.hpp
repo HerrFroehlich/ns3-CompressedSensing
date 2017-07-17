@@ -1,17 +1,14 @@
-// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
-// Copyright 2008-2016 National ICT Australia (NICTA)
+// Copyright (C) 2008-2011 NICTA (www.nicta.com.au)
+// Copyright (C) 2008-2011 Conrad Sanderson
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ------------------------------------------------------------------------
+// This file is part of the Armadillo C++ library.
+// It is provided without any warranty of fitness
+// for any purpose. You can redistribute this file
+// and/or modify it under the terms of the GNU
+// Lesser General Public License (LGPL) as published
+// by the Free Software Foundation, either version 3
+// of the License or (at your option) any later version.
+// (see http://www.opensource.org/licenses for more info)
 
 
 //! \addtogroup fn_inv
@@ -19,132 +16,96 @@
 
 
 
+//! delayed matrix inverse (general matrices)
 template<typename T1>
-arma_warn_unused
 arma_inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, const Op<T1, op_inv> >::result
-inv
-  (
-  const Base<typename T1::elem_type,T1>& X
-  )
-  {
-  arma_extra_debug_sigprint();
-  
-  return Op<T1, op_inv>(X.get_ref());
-  }
-
-
-
-//! NOTE: don't use this form: it will be removed
-template<typename T1>
-arma_deprecated
-inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, const Op<T1, op_inv> >::result
+const Op<T1, op_inv>
 inv
   (
   const Base<typename T1::elem_type,T1>& X,
-  const bool   // argument kept only for compatibility with old user code
+  const bool slow = false,
+  const typename arma_blas_type_only<typename T1::elem_type>::result* junk = 0
   )
   {
   arma_extra_debug_sigprint();
+  arma_ignore(junk);
   
-  // arma_debug_warn("inv(X,bool) is deprecated and will be removed; change to inv(X)");
-  
-  return Op<T1, op_inv>(X.get_ref());
+  return Op<T1, op_inv>(X.get_ref(), ((slow == false) ? 0 : 1), 0);
   }
 
 
 
-//! NOTE: don't use this form: it will be removed
+//! remove the inverse operation if applied twice consecutively
 template<typename T1>
-arma_deprecated
-inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, const Op<T1, op_inv> >::result
-inv
-  (
-  const Base<typename T1::elem_type,T1>& X,
-  const char*   // argument kept only for compatibility with old user code
-  )
-  {
-  arma_extra_debug_sigprint();
-  
-  // arma_debug_warn("inv(X,char*) is deprecated and will be removed; change to inv(X)");
-  
-  return Op<T1, op_inv>(X.get_ref());
-  }
-
-
-
-template<typename T1>
-arma_warn_unused
 arma_inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, const Op<T1, op_inv_tr> >::result
-inv
-  (
-  const Op<T1, op_trimat>& X
-  )
+const T1&
+inv(const Op<T1, op_inv>& X, const bool slow = false)
   {
   arma_extra_debug_sigprint();
+  arma_ignore(slow);
   
-  return Op<T1, op_inv_tr>(X.m, X.aux_uword_a, 0);
+  return X.m;
   }
 
 
 
-//! NOTE: don't use this form: it will be removed
+//! delayed matrix inverse (triangular matrices)
 template<typename T1>
-arma_deprecated
-inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, const Op<T1, op_inv_tr> >::result
+arma_inline
+const Op<T1, op_inv_tr>
 inv
   (
   const Op<T1, op_trimat>& X,
-  const bool   // argument kept only for compatibility with old user code
+  const bool slow = false,
+  const typename arma_blas_type_only<typename T1::elem_type>::result* junk = 0
   )
   {
   arma_extra_debug_sigprint();
-  
-  // arma_debug_warn("inv(X,bool) is deprecated and will be removed; change to inv(X)");
+  arma_ignore(slow);
+  arma_ignore(junk);
   
   return Op<T1, op_inv_tr>(X.m, X.aux_uword_a, 0);
   }
 
 
 
-//! NOTE: don't use this form: it will be removed
+//! delayed matrix inverse (symmetric positive definite matrices)
 template<typename T1>
-arma_deprecated
-inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, const Op<T1, op_inv_tr> >::result
+arma_inline
+const Op<T1, op_inv_sympd>
 inv
   (
-  const Op<T1, op_trimat>& X,
-  const char*   // argument kept only for compatibility with old user code
+  const Op<T1, op_sympd>& X,
+  const bool slow = false,
+  const typename arma_blas_type_only<typename T1::elem_type>::result* junk = 0
   )
   {
   arma_extra_debug_sigprint();
+  arma_ignore(slow);
+  arma_ignore(junk);
   
-  // arma_debug_warn("inv(X,char*) is deprecated and will be removed; change to inv(X)");
-  
-  return Op<T1, op_inv_tr>(X.m, X.aux_uword_a, 0);
+  return Op<T1, op_inv_sympd>(X.m, 0, 0);
   }
 
 
 
 template<typename T1>
 inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, bool >::result
+bool
 inv
   (
          Mat<typename T1::elem_type>&    out,
-  const Base<typename T1::elem_type,T1>& X
+  const Base<typename T1::elem_type,T1>& X,
+  const bool slow = false,
+  const typename arma_blas_type_only<typename T1::elem_type>::result* junk = 0
   )
   {
   arma_extra_debug_sigprint();
+  arma_ignore(junk);
   
   try
     {
-    out = inv(X);
+    out = inv(X,slow);
     }
   catch(std::runtime_error&)
     {
@@ -152,171 +113,6 @@ inv
     }
   
   return true;
-  }
-
-
-
-//! NOTE: don't use this form: it will be removed
-template<typename T1>
-arma_deprecated
-inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, bool >::result
-inv
-  (
-         Mat<typename T1::elem_type>&    out,
-  const Base<typename T1::elem_type,T1>& X,
-  const bool   // argument kept only for compatibility with old user code
-  )
-  {
-  arma_extra_debug_sigprint();
-  
-  // arma_debug_warn("inv(Y,X,bool) is deprecated and will be removed; change to inv(Y,X)");
-  
-  return inv(out,X);
-  }
-
-
-
-//! NOTE: don't use this form: it will be removed
-template<typename T1>
-arma_deprecated
-inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, bool >::result
-inv
-  (
-         Mat<typename T1::elem_type>&    out,
-  const Base<typename T1::elem_type,T1>& X,
-  const char*   // argument kept only for compatibility with old user code
-  )
-  {
-  arma_extra_debug_sigprint();
-  
-  // arma_debug_warn("inv(Y,X,char*) is deprecated and will be removed; change to inv(Y,X)");
-  
-  return inv(out,X);
-  }
-
-
-
-template<typename T1>
-arma_warn_unused
-arma_inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, const Op<T1, op_inv_sympd> >::result
-inv_sympd
-  (
-  const Base<typename T1::elem_type, T1>& X
-  )
-  {
-  arma_extra_debug_sigprint();
-  
-  return Op<T1, op_inv_sympd>(X.get_ref());
-  }
-
-
-
-//! NOTE: don't use this form: it will be removed
-template<typename T1>
-arma_deprecated
-inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, const Op<T1, op_inv_sympd> >::result
-inv_sympd
-  (
-  const Base<typename T1::elem_type, T1>& X,
-  const bool   // argument kept only for compatibility with old user code
-  )
-  {
-  arma_extra_debug_sigprint();
-  
-  // arma_debug_warn("inv_sympd(X,bool) is deprecated and will be removed; change to inv_sympd(X)");
-  
-  return Op<T1, op_inv_sympd>(X.get_ref());
-  }
-
-
-
-//! NOTE: don't use this form: it will be removed
-template<typename T1>
-arma_deprecated
-inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, const Op<T1, op_inv_sympd> >::result
-inv_sympd
-  (
-  const Base<typename T1::elem_type, T1>& X,
-  const char*   // argument kept only for compatibility with old user code
-  )
-  {
-  arma_extra_debug_sigprint();
-  
-  // arma_debug_warn("inv_sympd(X,char*) is deprecated and will be removed; change to inv_sympd(X)");
-  
-  return Op<T1, op_inv_sympd>(X.get_ref());
-  }
-
-
-
-template<typename T1>
-inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, bool >::result
-inv_sympd
-  (
-         Mat<typename T1::elem_type>&    out,
-  const Base<typename T1::elem_type,T1>& X
-  )
-  {
-  arma_extra_debug_sigprint();
-  
-  try
-    {
-    out = inv_sympd(X);
-    }
-  catch(std::runtime_error&)
-    {
-    return false;
-    }
-  
-  return true;
-  }
-
-
-
-//! NOTE: don't use this form: it will be removed
-template<typename T1>
-arma_deprecated
-inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, bool >::result
-inv_sympd
-  (
-         Mat<typename T1::elem_type>&    out,
-  const Base<typename T1::elem_type,T1>& X,
-  const bool   // argument kept only for compatibility with old user code
-  )
-  {
-  arma_extra_debug_sigprint();
-  
-  // arma_debug_warn("inv_sympd(Y,X,bool) is deprecated and will be removed; change to inv_sympd(Y,X)");
-  
-  return inv_sympd(out,X);
-  }
-
-
-
-//! NOTE: don't use this form: it will be removed
-template<typename T1>
-arma_deprecated
-inline
-typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, bool >::result
-inv_sympd
-  (
-         Mat<typename T1::elem_type>&    out,
-  const Base<typename T1::elem_type,T1>& X,
-  const char*   // argument kept only for compatibility with old user code
-  )
-  {
-  arma_extra_debug_sigprint();
-  
-  // arma_debug_warn("inv_sympd(Y,X,char*) is deprecated and will be removed; change to inv_sympd(Y,X)");
-  
-  return inv_sympd(out,X);
   }
 
 

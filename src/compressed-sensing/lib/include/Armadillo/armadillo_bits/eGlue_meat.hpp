@@ -1,17 +1,14 @@
-// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
-// Copyright 2008-2016 National ICT Australia (NICTA)
+// Copyright (C) 2010-2012 NICTA (www.nicta.com.au)
+// Copyright (C) 2010-2012 Conrad Sanderson
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ------------------------------------------------------------------------
+// This file is part of the Armadillo C++ library.
+// It is provided without any warranty of fitness
+// for any purpose. You can redistribute this file
+// and/or modify it under the terms of the GNU
+// Lesser General Public License (LGPL) as published
+// by the Free Software Foundation, either version 3
+// of the License or (at your option) any later version.
+// (see http://www.opensource.org/licenses for more info)
 
 
 //! \addtogroup eGlue
@@ -52,7 +49,7 @@ arma_inline
 uword
 eGlue<T1,T2,eglue_type>::get_n_rows() const
   {
-  return is_row ? 1 : P1.get_n_rows();
+  return is_row ? 1 : ( Proxy<T1>::is_fixed ? P1.get_n_rows() : P2.get_n_rows() );
   }
 
 
@@ -62,7 +59,7 @@ arma_inline
 uword
 eGlue<T1,T2,eglue_type>::get_n_cols() const
   {
-  return is_col ? 1 : P1.get_n_cols();
+  return is_col ? 1 : ( Proxy<T1>::is_fixed ? P1.get_n_cols() : P2.get_n_cols() );
   }
 
 
@@ -72,7 +69,7 @@ arma_inline
 uword
 eGlue<T1,T2,eglue_type>::get_n_elem() const
   {
-  return P1.get_n_elem();
+  return Proxy<T1>::is_fixed ? P1.get_n_elem() : P2.get_n_elem();
   }
 
 
@@ -82,17 +79,15 @@ arma_inline
 typename T1::elem_type
 eGlue<T1,T2,eglue_type>::operator[] (const uword ii) const
   {
-  // the optimiser will keep only one return statement
-  
   typedef typename T1::elem_type eT;
   
-       if(is_same_type<eglue_type, eglue_plus >::yes) { return P1[ii] + P2[ii]; }
-  else if(is_same_type<eglue_type, eglue_minus>::yes) { return P1[ii] - P2[ii]; }
-  else if(is_same_type<eglue_type, eglue_div  >::yes) { return P1[ii] / P2[ii]; }
-  else if(is_same_type<eglue_type, eglue_schur>::yes) { return P1[ii] * P2[ii]; }
-  else return eT(0);
+  // the optimiser will keep only one return statement
+  
+       if(is_same_type<eglue_type, eglue_plus >::value == true) { return P1[ii] + P2[ii]; }
+  else if(is_same_type<eglue_type, eglue_minus>::value == true) { return P1[ii] - P2[ii]; }
+  else if(is_same_type<eglue_type, eglue_div  >::value == true) { return P1[ii] / P2[ii]; }
+  else if(is_same_type<eglue_type, eglue_schur>::value == true) { return P1[ii] * P2[ii]; }
   }
-
 
 
 template<typename T1, typename T2, typename eglue_type>
@@ -100,33 +95,14 @@ arma_inline
 typename T1::elem_type
 eGlue<T1,T2,eglue_type>::at(const uword row, const uword col) const
   {
-  // the optimiser will keep only one return statement
-  
   typedef typename T1::elem_type eT;
   
-       if(is_same_type<eglue_type, eglue_plus >::yes) { return P1.at(row,col) + P2.at(row,col); }
-  else if(is_same_type<eglue_type, eglue_minus>::yes) { return P1.at(row,col) - P2.at(row,col); }
-  else if(is_same_type<eglue_type, eglue_div  >::yes) { return P1.at(row,col) / P2.at(row,col); }
-  else if(is_same_type<eglue_type, eglue_schur>::yes) { return P1.at(row,col) * P2.at(row,col); }
-  else return eT(0);
-  }
-
-
-
-template<typename T1, typename T2, typename eglue_type>
-arma_inline
-typename T1::elem_type
-eGlue<T1,T2,eglue_type>::at_alt(const uword ii) const
-  {
   // the optimiser will keep only one return statement
   
-  typedef typename T1::elem_type eT;
-  
-       if(is_same_type<eglue_type, eglue_plus >::yes) { return P1.at_alt(ii) + P2.at_alt(ii); }
-  else if(is_same_type<eglue_type, eglue_minus>::yes) { return P1.at_alt(ii) - P2.at_alt(ii); }
-  else if(is_same_type<eglue_type, eglue_div  >::yes) { return P1.at_alt(ii) / P2.at_alt(ii); }
-  else if(is_same_type<eglue_type, eglue_schur>::yes) { return P1.at_alt(ii) * P2.at_alt(ii); }
-  else return eT(0);
+       if(is_same_type<eglue_type, eglue_plus >::value == true) { return P1.at(row,col) + P2.at(row,col); }
+  else if(is_same_type<eglue_type, eglue_minus>::value == true) { return P1.at(row,col) - P2.at(row,col); }
+  else if(is_same_type<eglue_type, eglue_div  >::value == true) { return P1.at(row,col) / P2.at(row,col); }
+  else if(is_same_type<eglue_type, eglue_schur>::value == true) { return P1.at(row,col) * P2.at(row,col); }
   }
 
 

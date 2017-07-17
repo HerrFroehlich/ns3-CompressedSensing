@@ -1,17 +1,14 @@
-// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
-// Copyright 2008-2016 National ICT Australia (NICTA)
+// Copyright (C) 2011-2012 NICTA (www.nicta.com.au)
+// Copyright (C) 2011-2012 Conrad Sanderson
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ------------------------------------------------------------------------
+// This file is part of the Armadillo C++ library.
+// It is provided without any warranty of fitness
+// for any purpose. You can redistribute this file
+// and/or modify it under the terms of the GNU
+// Lesser General Public License (LGPL) as published
+// by the Free Software Foundation, either version 3
+// of the License or (at your option) any later version.
+// (see http://www.opensource.org/licenses for more info)
 
 
 //! \addtogroup Gen
@@ -42,17 +39,33 @@ Gen<T1, gen_type>::~Gen()
 template<typename T1, typename gen_type>
 arma_inline
 typename T1::elem_type
+Gen<T1, gen_type>::generate()
+  {
+  typedef typename T1::elem_type eT;
+  
+       if(is_same_type<gen_type, gen_ones_full>::value == true) { return eT(1);                   }
+  else if(is_same_type<gen_type, gen_zeros    >::value == true) { return eT(0);                   }
+  else if(is_same_type<gen_type, gen_randu    >::value == true) { return eT(eop_aux_randu<eT>()); }
+  else if(is_same_type<gen_type, gen_randn    >::value == true) { return eT(eop_aux_randn<eT>()); }
+  else                                                          { return eT();                    }
+  }
+
+
+
+template<typename T1, typename gen_type>
+arma_inline
+typename T1::elem_type
 Gen<T1, gen_type>::operator[](const uword ii) const
   {
   typedef typename T1::elem_type eT;
   
-  if(is_same_type<gen_type, gen_eye>::yes)
+  if(is_same_type<gen_type, gen_ones_diag>::value == true)
     {
     return ((ii % n_rows) == (ii / n_rows)) ? eT(1) : eT(0);
     }
   else
     {
-    return (*this).generate();
+    return Gen<T1, gen_type>::generate();
     }
   }
 
@@ -65,24 +78,14 @@ Gen<T1, gen_type>::at(const uword row, const uword col) const
   {
   typedef typename T1::elem_type eT;
   
-  if(is_same_type<gen_type, gen_eye>::yes)
+  if(is_same_type<gen_type, gen_ones_diag>::value == true)
     {
     return (row == col) ? eT(1) : eT(0);
     }
   else
     {
-    return (*this).generate();
+    return Gen<T1, gen_type>::generate();
     }
-  }
-
-
-
-template<typename T1, typename gen_type>
-arma_inline
-typename T1::elem_type
-Gen<T1, gen_type>::at_alt(const uword ii) const
-  {
-  return operator[](ii);
   }
 
 
@@ -97,11 +100,11 @@ Gen<T1, gen_type>::apply(Mat<typename T1::elem_type>& out) const
   // NOTE: we're assuming that the matrix has already been set to the correct size;
   // this is done by either the Mat contructor or operator=()
   
-       if(is_same_type<gen_type, gen_eye  >::yes) { out.eye();   }
-  else if(is_same_type<gen_type, gen_ones >::yes) { out.ones();  }
-  else if(is_same_type<gen_type, gen_zeros>::yes) { out.zeros(); }
-  else if(is_same_type<gen_type, gen_randu>::yes) { out.randu(); }
-  else if(is_same_type<gen_type, gen_randn>::yes) { out.randn(); }
+       if(is_same_type<gen_type, gen_ones_diag>::value == true) { out.eye();   }
+  else if(is_same_type<gen_type, gen_ones_full>::value == true) { out.ones();  }
+  else if(is_same_type<gen_type, gen_zeros    >::value == true) { out.zeros(); }
+  else if(is_same_type<gen_type, gen_randu    >::value == true) { out.randu(); }
+  else if(is_same_type<gen_type, gen_randn    >::value == true) { out.randn(); }
   }
 
 
@@ -118,7 +121,7 @@ Gen<T1, gen_type>::apply_inplace_plus(Mat<typename T1::elem_type>& out) const
   typedef typename T1::elem_type eT;
   
   
-  if(is_same_type<gen_type, gen_eye>::yes)
+  if(is_same_type<gen_type, gen_ones_diag>::value == true)
     {
     const uword N = (std::min)(n_rows, n_cols);
     
@@ -135,8 +138,8 @@ Gen<T1, gen_type>::apply_inplace_plus(Mat<typename T1::elem_type>& out) const
     uword iq,jq;
     for(iq=0, jq=1; jq < n_elem; iq+=2, jq+=2)
       {
-      const eT tmp_i = (*this).generate();
-      const eT tmp_j = (*this).generate();
+      const eT tmp_i = Gen<T1, gen_type>::generate();
+      const eT tmp_j = Gen<T1, gen_type>::generate();
       
       out_mem[iq] += tmp_i;
       out_mem[jq] += tmp_j;
@@ -144,9 +147,10 @@ Gen<T1, gen_type>::apply_inplace_plus(Mat<typename T1::elem_type>& out) const
     
     if(iq < n_elem)
       {
-      out_mem[iq] += (*this).generate();
+      out_mem[iq] += Gen<T1, gen_type>::generate();
       }
     }
+  
   }
 
 
@@ -164,7 +168,7 @@ Gen<T1, gen_type>::apply_inplace_minus(Mat<typename T1::elem_type>& out) const
   typedef typename T1::elem_type eT;
   
   
-  if(is_same_type<gen_type, gen_eye>::yes)
+  if(is_same_type<gen_type, gen_ones_diag>::value == true)
     {
     const uword N = (std::min)(n_rows, n_cols);
     
@@ -181,8 +185,8 @@ Gen<T1, gen_type>::apply_inplace_minus(Mat<typename T1::elem_type>& out) const
     uword iq,jq;
     for(iq=0, jq=1; jq < n_elem; iq+=2, jq+=2)
       {
-      const eT tmp_i = (*this).generate();
-      const eT tmp_j = (*this).generate();
+      const eT tmp_i = Gen<T1, gen_type>::generate();
+      const eT tmp_j = Gen<T1, gen_type>::generate();
       
       out_mem[iq] -= tmp_i;
       out_mem[jq] -= tmp_j;
@@ -190,9 +194,10 @@ Gen<T1, gen_type>::apply_inplace_minus(Mat<typename T1::elem_type>& out) const
     
     if(iq < n_elem)
       {
-      out_mem[iq] -= (*this).generate();
+      out_mem[iq] -= Gen<T1, gen_type>::generate();
       }
     }
+  
   }
 
 
@@ -210,7 +215,7 @@ Gen<T1, gen_type>::apply_inplace_schur(Mat<typename T1::elem_type>& out) const
   typedef typename T1::elem_type eT;
   
   
-  if(is_same_type<gen_type, gen_eye>::yes)
+  if(is_same_type<gen_type, gen_ones_diag>::value == true)
     {
     const uword N = (std::min)(n_rows, n_cols);
     
@@ -228,8 +233,8 @@ Gen<T1, gen_type>::apply_inplace_schur(Mat<typename T1::elem_type>& out) const
     uword iq,jq;
     for(iq=0, jq=1; jq < n_elem; iq+=2, jq+=2)
       {
-      const eT tmp_i = (*this).generate();
-      const eT tmp_j = (*this).generate();
+      const eT tmp_i = Gen<T1, gen_type>::generate();
+      const eT tmp_j = Gen<T1, gen_type>::generate();
       
       out_mem[iq] *= tmp_i;
       out_mem[jq] *= tmp_j;
@@ -237,9 +242,10 @@ Gen<T1, gen_type>::apply_inplace_schur(Mat<typename T1::elem_type>& out) const
     
     if(iq < n_elem)
       {
-      out_mem[iq] *= (*this).generate();
+      out_mem[iq] *= Gen<T1, gen_type>::generate();
       }
     }
+  
   }
 
 
@@ -257,7 +263,7 @@ Gen<T1, gen_type>::apply_inplace_div(Mat<typename T1::elem_type>& out) const
   typedef typename T1::elem_type eT;
   
   
-  if(is_same_type<gen_type, gen_eye>::yes)
+  if(is_same_type<gen_type, gen_ones_diag>::value == true)
     {
     const uword N = (std::min)(n_rows, n_cols);
     
@@ -277,8 +283,8 @@ Gen<T1, gen_type>::apply_inplace_div(Mat<typename T1::elem_type>& out) const
     uword iq,jq;
     for(iq=0, jq=1; jq < n_elem; iq+=2, jq+=2)
       {
-      const eT tmp_i = (*this).generate();
-      const eT tmp_j = (*this).generate();
+      const eT tmp_i = Gen<T1, gen_type>::generate();
+      const eT tmp_j = Gen<T1, gen_type>::generate();
       
       out_mem[iq] /= tmp_i;
       out_mem[jq] /= tmp_j;
@@ -286,30 +292,14 @@ Gen<T1, gen_type>::apply_inplace_div(Mat<typename T1::elem_type>& out) const
     
     if(iq < n_elem)
       {
-      out_mem[iq] /= (*this).generate();
+      out_mem[iq] /= Gen<T1, gen_type>::generate();
       }
     }
+  
   }
 
-
-
-template<typename T1, typename gen_type>
-inline
-void
-Gen<T1, gen_type>::apply(subview<typename T1::elem_type>& out) const
-  {
-  arma_extra_debug_sigprint();
-  
-  // NOTE: we're assuming that the submatrix has the same dimensions as the Gen object
-  // this is checked by subview::operator=()
-  
-       if(is_same_type<gen_type, gen_eye  >::yes) { out.eye();   }
-  else if(is_same_type<gen_type, gen_ones >::yes) { out.ones();  }
-  else if(is_same_type<gen_type, gen_zeros>::yes) { out.zeros(); }
-  else if(is_same_type<gen_type, gen_randu>::yes) { out.randu(); }
-  else if(is_same_type<gen_type, gen_randn>::yes) { out.randn(); }
-  }
 
 
 
 //! @}
+

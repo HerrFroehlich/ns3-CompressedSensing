@@ -1,25 +1,19 @@
-// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
-// Copyright 2008-2016 National ICT Australia (NICTA)
+// Copyright (C) 2008-2011 NICTA (www.nicta.com.au)
+// Copyright (C) 2008-2011 Conrad Sanderson
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ------------------------------------------------------------------------
+// This file is part of the Armadillo C++ library.
+// It is provided without any warranty of fitness
+// for any purpose. You can redistribute this file
+// and/or modify it under the terms of the GNU
+// Lesser General Public License (LGPL) as published
+// by the Free Software Foundation, either version 3
+// of the License or (at your option) any later version.
+// (see http://www.opensource.org/licenses for more info)
 
 
 //! \addtogroup mtOpCube
 //! @{
 
-
-
-struct mtOpCube_dual_aux_indicator {};
 
 
 template<typename out_eT, typename T1, typename op_type>
@@ -39,10 +33,8 @@ class mtOpCube : public BaseCube<out_eT, mtOpCube<out_eT, T1, op_type> >
   
   inline          mtOpCube(const char junk, const T1& in_m, const out_eT in_aux);
   
-  inline          mtOpCube(const mtOpCube_dual_aux_indicator&, const T1& in_m, const in_eT in_aux_a, const out_eT in_aux_b);
-  
   inline         ~mtOpCube();
-  
+    
   
   arma_aligned const T1&    m;            //!< storage of reference to the operand (eg. a matrix)
   arma_aligned       in_eT  aux;          //!< storage of auxiliary data, using the element type as used by T1

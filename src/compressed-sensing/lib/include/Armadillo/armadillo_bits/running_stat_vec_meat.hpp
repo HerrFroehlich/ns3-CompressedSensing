@@ -1,17 +1,14 @@
-// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
-// Copyright 2008-2016 National ICT Australia (NICTA)
+// Copyright (C) 2009-2011 NICTA (www.nicta.com.au)
+// Copyright (C) 2009-2011 Conrad Sanderson
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ------------------------------------------------------------------------
+// This file is part of the Armadillo C++ library.
+// It is provided without any warranty of fitness
+// for any purpose. You can redistribute this file
+// and/or modify it under the terms of the GNU
+// Lesser General Public License (LGPL) as published
+// by the Free Software Foundation, either version 3
+// of the License or (at your option) any later version.
+// (see http://www.opensource.org/licenses for more info)
 
 
 //! \addtogroup running_stat_vec
@@ -19,18 +16,16 @@
 
 
 
-template<typename obj_type>
-inline
-running_stat_vec<obj_type>::~running_stat_vec()
+template<typename eT>
+running_stat_vec<eT>::~running_stat_vec()
   {
   arma_extra_debug_sigprint_this(this);
   }
 
 
 
-template<typename obj_type>
-inline
-running_stat_vec<obj_type>::running_stat_vec(const bool in_calc_cov)
+template<typename eT>
+running_stat_vec<eT>::running_stat_vec(const bool in_calc_cov)
   : calc_cov(in_calc_cov)
   {
   arma_extra_debug_sigprint_this(this);
@@ -38,9 +33,8 @@ running_stat_vec<obj_type>::running_stat_vec(const bool in_calc_cov)
 
 
 
-template<typename obj_type>
-inline
-running_stat_vec<obj_type>::running_stat_vec(const running_stat_vec<obj_type>& in_rsv)
+template<typename eT>
+running_stat_vec<eT>::running_stat_vec(const running_stat_vec<eT>& in_rsv)
   : calc_cov    (in_rsv.calc_cov)
   , counter     (in_rsv.counter)
   , r_mean      (in_rsv.r_mean)
@@ -56,10 +50,9 @@ running_stat_vec<obj_type>::running_stat_vec(const running_stat_vec<obj_type>& i
 
 
 
-template<typename obj_type>
-inline
-running_stat_vec<obj_type>&
-running_stat_vec<obj_type>::operator=(const running_stat_vec<obj_type>& in_rsv)
+template<typename eT>
+const running_stat_vec<eT>&
+running_stat_vec<eT>::operator=(const running_stat_vec<eT>& in_rsv)
   {
   arma_extra_debug_sigprint();
   
@@ -80,17 +73,19 @@ running_stat_vec<obj_type>::operator=(const running_stat_vec<obj_type>& in_rsv)
 
 
 //! update statistics to reflect new sample
-template<typename obj_type>
+template<typename eT>
 template<typename T1>
 arma_hot
 inline
 void
-running_stat_vec<obj_type>::operator() (const Base<typename running_stat_vec<obj_type>::T, T1>& X)
+running_stat_vec<eT>::operator() (const Base<typename get_pod_type<eT>::result, T1>& X)
   {
   arma_extra_debug_sigprint();
   
-  const quasi_unwrap<T1> tmp(X.get_ref());
-  const Mat<T>& sample = tmp.M;
+  //typedef typename get_pod_type<eT>::result T;
+  
+  const unwrap<T1>        tmp(X.get_ref());
+  const Mat<eT>& sample = tmp.M;
   
   if( sample.is_empty() )
     {
@@ -99,7 +94,7 @@ running_stat_vec<obj_type>::operator() (const Base<typename running_stat_vec<obj
   
   if( sample.is_finite() == false )
     {
-    arma_debug_warn("running_stat_vec: sample ignored as it has non-finite elements");
+    arma_warn(true, "running_stat_vec: sample ignored as it has non-finite elements");
     return;
     }
   
@@ -108,18 +103,20 @@ running_stat_vec<obj_type>::operator() (const Base<typename running_stat_vec<obj
 
 
 
-template<typename obj_type>
+//! update statistics to reflect new sample (version for complex numbers)
+template<typename eT>
 template<typename T1>
 arma_hot
 inline
 void
-running_stat_vec<obj_type>::operator() (const Base< std::complex<typename running_stat_vec<obj_type>::T>, T1>& X)
+running_stat_vec<eT>::operator() (const Base<std::complex<typename get_pod_type<eT>::result>, T1>& X)
   {
   arma_extra_debug_sigprint();
   
-  const quasi_unwrap<T1> tmp(X.get_ref());
+  //typedef typename std::complex<typename get_pod_type<eT>::result> eT;
   
-  const Mat< std::complex<T> >& sample = tmp.M;
+  const unwrap<T1>        tmp(X.get_ref());
+  const Mat<eT>& sample = tmp.M;
   
   if( sample.is_empty() )
     {
@@ -128,7 +125,7 @@ running_stat_vec<obj_type>::operator() (const Base< std::complex<typename runnin
   
   if( sample.is_finite() == false )
     {
-    arma_debug_warn("running_stat_vec: sample ignored as it has non-finite elements");
+    arma_warn(true, "running_stat_vec: sample ignored as it has non-finite elements");
     return;
     }
   
@@ -138,10 +135,10 @@ running_stat_vec<obj_type>::operator() (const Base< std::complex<typename runnin
 
 
 //! set all statistics to zero
-template<typename obj_type>
+template<typename eT>
 inline
 void
-running_stat_vec<obj_type>::reset()
+running_stat_vec<eT>::reset()
   {
   arma_extra_debug_sigprint();
   
@@ -167,10 +164,10 @@ running_stat_vec<obj_type>::reset()
 
 
 //! mean or average value
-template<typename obj_type>
+template<typename eT>
 inline
-const typename running_stat_vec<obj_type>::return_type1&
-running_stat_vec<obj_type>::mean() const
+const Mat<eT>&
+running_stat_vec<eT>::mean() const
   {
   arma_extra_debug_sigprint();
   
@@ -180,10 +177,10 @@ running_stat_vec<obj_type>::mean() const
 
 
 //! variance
-template<typename obj_type>
+template<typename eT>
 inline
-const typename running_stat_vec<obj_type>::return_type2&
-running_stat_vec<obj_type>::var(const uword norm_type)
+const Mat<typename get_pod_type<eT>::result>&
+running_stat_vec<eT>::var(const uword norm_type)
   {
   arma_extra_debug_sigprint();
   
@@ -216,10 +213,10 @@ running_stat_vec<obj_type>::var(const uword norm_type)
 
 
 //! standard deviation
-template<typename obj_type>
+template<typename eT>
 inline
-typename running_stat_vec<obj_type>::return_type2
-running_stat_vec<obj_type>::stddev(const uword norm_type) const
+Mat<typename get_pod_type<eT>::result>
+running_stat_vec<eT>::stddev(const uword norm_type) const
   {
   arma_extra_debug_sigprint();
   
@@ -240,18 +237,17 @@ running_stat_vec<obj_type>::stddev(const uword norm_type) const
     }
   else
     {
-    typedef typename running_stat_vec<obj_type>::return_type2 out_type;
-    return out_type();
+    return Mat<T>();
     }
   }
 
 
 
 //! covariance
-template<typename obj_type>
+template<typename eT>
 inline
-const Mat< typename running_stat_vec<obj_type>::eT >&
-running_stat_vec<obj_type>::cov(const uword norm_type)
+const Mat<eT>&
+running_stat_vec<eT>::cov(const uword norm_type)
   {
   arma_extra_debug_sigprint();
   
@@ -276,9 +272,7 @@ running_stat_vec<obj_type>::cov(const uword norm_type)
       }
     else
       {
-      const uword out_size = (std::max)(r_mean.n_rows, r_mean.n_cols);
-      
-      r_cov_dummy.zeros(out_size, out_size);
+      r_cov_dummy.zeros(r_mean.n_rows, r_mean.n_cols);
       
       return r_cov_dummy;
       }
@@ -295,10 +289,10 @@ running_stat_vec<obj_type>::cov(const uword norm_type)
 
 
 //! vector with minimum values
-template<typename obj_type>
+template<typename eT>
 inline
-const typename running_stat_vec<obj_type>::return_type1&
-running_stat_vec<obj_type>::min() const
+const Mat<eT>&
+running_stat_vec<eT>::min() const
   {
   arma_extra_debug_sigprint();
   
@@ -308,10 +302,10 @@ running_stat_vec<obj_type>::min() const
 
 
 //! vector with maximum values
-template<typename obj_type>
+template<typename eT>
 inline
-const typename running_stat_vec<obj_type>::return_type1&
-running_stat_vec<obj_type>::max() const
+const Mat<eT>&
+running_stat_vec<eT>::max() const
   {
   arma_extra_debug_sigprint();
   
@@ -320,23 +314,11 @@ running_stat_vec<obj_type>::max() const
 
 
 
-template<typename obj_type>
-inline
-typename running_stat_vec<obj_type>::return_type1
-running_stat_vec<obj_type>::range() const
-  {
-  arma_extra_debug_sigprint();
-  
-  return (max_val - min_val);
-  }
-
-
-
 //! number of samples so far
-template<typename obj_type>
+template<typename eT>
 inline
-typename running_stat_vec<obj_type>::T
-running_stat_vec<obj_type>::count() const
+typename get_pod_type<eT>::result
+running_stat_vec<eT>::count() const
   {
   arma_extra_debug_sigprint();
   
@@ -349,22 +331,15 @@ running_stat_vec<obj_type>::count() const
 
 
 
-//! update statistics to reflect new sample (version for non-complex numbers)
-template<typename obj_type>
+//! update statistics to reflect new sample
+template<typename eT>
 inline
 void
-running_stat_vec_aux::update_stats
-  (
-  running_stat_vec<obj_type>& x,
-  const                  Mat<typename running_stat_vec<obj_type>::eT>& sample,
-  const typename arma_not_cx<typename running_stat_vec<obj_type>::eT>::result* junk
-  )
+running_stat_vec_aux::update_stats(running_stat_vec<eT>& x, const Mat<eT>& sample)
   {
   arma_extra_debug_sigprint();
-  arma_ignore(junk);
   
-  typedef typename running_stat_vec<obj_type>::eT eT;
-  typedef typename running_stat_vec<obj_type>::T   T;
+  typedef typename running_stat_vec<eT>::T T;
   
   const T N = x.counter.value();
   
@@ -373,11 +348,11 @@ running_stat_vec_aux::update_stats
     arma_debug_assert_same_size(x.r_mean, sample, "running_stat_vec(): dimensionality mismatch");
     
     const uword n_elem      = sample.n_elem;
-    const eT*   sample_mem  = sample.memptr();
-          eT*   r_mean_mem  = x.r_mean.memptr();
-           T*   r_var_mem   = x.r_var.memptr();
-          eT*   min_val_mem = x.min_val.memptr();
-          eT*   max_val_mem = x.max_val.memptr();
+    const eT* sample_mem  = sample.memptr();
+          eT* r_mean_mem  = x.r_mean.memptr();
+           T* r_var_mem   = x.r_var.memptr();
+          eT* min_val_mem = x.min_val.memptr();
+          eT* max_val_mem = x.max_val.memptr();
     
     const T  N_plus_1   = x.counter.value_plus_1();
     const T  N_minus_1  = x.counter.value_minus_1();
@@ -443,17 +418,17 @@ running_stat_vec_aux::update_stats
     
     
     const uword n_elem      = sample.n_elem;
-    const eT*   sample_mem  = sample.memptr();
-          eT*   r_mean_mem  = x.r_mean.memptr();
-          eT*   min_val_mem = x.min_val.memptr();
-          eT*   max_val_mem = x.max_val.memptr();
+    const eT* sample_mem  = sample.memptr();
+          eT* r_mean_mem  = x.r_mean.memptr();
+          eT* min_val_mem = x.min_val.memptr();
+          eT* max_val_mem = x.max_val.memptr();
           
     
     for(uword i=0; i<n_elem; ++i)
       {
       const eT val = sample_mem[i];
       
-       r_mean_mem[i] = val;
+      r_mean_mem[i]  = val;
       min_val_mem[i] = val;
       max_val_mem[i] = val;
       }
@@ -464,64 +439,30 @@ running_stat_vec_aux::update_stats
 
 
 
-//! update statistics to reflect new sample (version for non-complex numbers, complex sample)
-template<typename obj_type>
+//! update statistics to reflect new sample (version for complex numbers)
+template<typename T>
 inline
 void
-running_stat_vec_aux::update_stats
-  (
-  running_stat_vec<obj_type>& x,
-  const          Mat<std::complex< typename running_stat_vec<obj_type>::T > >& sample,
-  const typename       arma_not_cx<typename running_stat_vec<obj_type>::eT>::result* junk
-  )
+running_stat_vec_aux::update_stats(running_stat_vec< std::complex<T> >& x, const Mat<T>& sample)
   {
   arma_extra_debug_sigprint();
-  arma_ignore(junk);
   
-  typedef typename running_stat_vec<obj_type>::eT eT;
+  const Mat< std::complex<T> > tmp = conv_to< Mat< std::complex<T> > >::from(sample);
   
-  running_stat_vec_aux::update_stats(x, conv_to< Mat<eT> >::from(sample));
+  running_stat_vec_aux::update_stats(x, tmp);
   }
 
 
 
-//! update statistics to reflect new sample (version for complex numbers, non-complex sample)
-template<typename obj_type>
+//! alter statistics to reflect new sample (version for complex numbers)
+template<typename T>
 inline
 void
-running_stat_vec_aux::update_stats
-  (
-  running_stat_vec<obj_type>& x,
-  const                   Mat<typename running_stat_vec<obj_type>::T >& sample,
-  const typename arma_cx_only<typename running_stat_vec<obj_type>::eT>::result* junk
-  )
+running_stat_vec_aux::update_stats(running_stat_vec< std::complex<T> >& x, const Mat< std::complex<T> >& sample)
   {
   arma_extra_debug_sigprint();
-  arma_ignore(junk);
   
-  typedef typename running_stat_vec<obj_type>::eT eT;
-  
-  running_stat_vec_aux::update_stats(x, conv_to< Mat<eT> >::from(sample));
-  }
-
-
-
-//! alter statistics to reflect new sample (version for complex numbers, complex sample)
-template<typename obj_type>
-inline
-void
-running_stat_vec_aux::update_stats
-  (
-  running_stat_vec<obj_type>& x,
-  const                   Mat<typename running_stat_vec<obj_type>::eT>& sample,
-  const typename arma_cx_only<typename running_stat_vec<obj_type>::eT>::result* junk
-  )
-  {
-  arma_extra_debug_sigprint();
-  arma_ignore(junk);
-  
-  typedef typename running_stat_vec<obj_type>::eT eT;
-  typedef typename running_stat_vec<obj_type>::T   T;
+  typedef typename std::complex<T> eT;
   
   const T N = x.counter.value();
   
@@ -530,13 +471,13 @@ running_stat_vec_aux::update_stats
     arma_debug_assert_same_size(x.r_mean, sample, "running_stat_vec(): dimensionality mismatch");
     
     const uword n_elem           = sample.n_elem;
-    const eT*   sample_mem       = sample.memptr();
-          eT*   r_mean_mem       = x.r_mean.memptr();
-           T*   r_var_mem        = x.r_var.memptr();
-          eT*   min_val_mem      = x.min_val.memptr();
-          eT*   max_val_mem      = x.max_val.memptr();
-           T*   min_val_norm_mem = x.min_val_norm.memptr();
-           T*   max_val_norm_mem = x.max_val_norm.memptr();
+    const eT* sample_mem       = sample.memptr();
+          eT* r_mean_mem       = x.r_mean.memptr();
+           T* r_var_mem        = x.r_var.memptr();
+          eT* min_val_mem      = x.min_val.memptr();
+          eT* max_val_mem      = x.max_val.memptr();
+           T* min_val_norm_mem = x.min_val_norm.memptr();
+           T* max_val_norm_mem = x.max_val_norm.memptr();
     
     const T  N_plus_1   = x.counter.value_plus_1();
     const T  N_minus_1  = x.counter.value_minus_1();
@@ -585,6 +526,7 @@ running_stat_vec_aux::update_stats
       
       r_mean_mem[i] = r_mean_val + (val - r_mean_val)/N_plus_1;
       }
+    
     }
   else
     {
@@ -607,19 +549,19 @@ running_stat_vec_aux::update_stats
     
     
     const uword n_elem           = sample.n_elem;
-    const eT*   sample_mem       = sample.memptr();
-          eT*   r_mean_mem       = x.r_mean.memptr();
-          eT*   min_val_mem      = x.min_val.memptr();
-          eT*   max_val_mem      = x.max_val.memptr();
-           T*   min_val_norm_mem = x.min_val_norm.memptr();
-           T*   max_val_norm_mem = x.max_val_norm.memptr();
+    const eT* sample_mem       = sample.memptr();
+          eT* r_mean_mem       = x.r_mean.memptr();
+          eT* min_val_mem      = x.min_val.memptr();
+          eT* max_val_mem      = x.max_val.memptr();
+           T* min_val_norm_mem = x.min_val_norm.memptr();
+           T* max_val_norm_mem = x.max_val_norm.memptr();
     
     for(uword i=0; i<n_elem; ++i)
       {
       const eT& val      = sample_mem[i];
       const  T  val_norm = std::norm(val);
       
-       r_mean_mem[i] = val;
+      r_mean_mem[i]  = val;
       min_val_mem[i] = val;
       max_val_mem[i] = val;
       

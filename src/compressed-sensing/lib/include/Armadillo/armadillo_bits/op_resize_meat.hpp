@@ -1,17 +1,14 @@
-// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
-// Copyright 2008-2016 National ICT Australia (NICTA)
+// Copyright (C) 2011 NICTA (www.nicta.com.au)
+// Copyright (C) 2011 Conrad Sanderson
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ------------------------------------------------------------------------
+// This file is part of the Armadillo C++ library.
+// It is provided without any warranty of fitness
+// for any purpose. You can redistribute this file
+// and/or modify it under the terms of the GNU
+// Lesser General Public License (LGPL) as published
+// by the Free Software Foundation, either version 3
+// of the License or (at your option) any later version.
+// (see http://www.opensource.org/licenses for more info)
 
 
 
@@ -38,23 +35,10 @@ op_resize::apply(Mat<typename T1::elem_type>& actual_out, const Op<T1,op_resize>
   const uword A_n_rows = A.n_rows;
   const uword A_n_cols = A.n_cols;
   
+  Mat<eT> B;
+  
   const bool alias = (&actual_out == &A);
   
-  if(alias)
-    {
-    if( (A_n_rows == out_n_rows) && (A_n_cols == out_n_cols) )
-      {
-      return;
-      }
-    
-    if(actual_out.is_empty())
-      {
-      actual_out.zeros(out_n_rows, out_n_cols);
-      return;
-      }
-    }
-  
-  Mat<eT>  B;
   Mat<eT>& out = alias ? B : actual_out;
   
   out.set_size(out_n_rows, out_n_cols);
@@ -76,6 +60,7 @@ op_resize::apply(Mat<typename T1::elem_type>& actual_out, const Op<T1,op_resize>
     {
     actual_out.steal_mem(B);
     }
+  
   }
 
 
@@ -100,23 +85,10 @@ op_resize::apply(Cube<typename T1::elem_type>& actual_out, const OpCube<T1,op_re
   const uword A_n_cols   = A.n_cols;
   const uword A_n_slices = A.n_slices;
   
+  Cube<eT> B;
+  
   const bool alias = (&actual_out == &A);
   
-  if(alias)
-    {
-    if( (A_n_rows == out_n_rows) && (A_n_cols == out_n_cols) && (A_n_slices == out_n_slices) )
-      {
-      return;
-      }
-    
-    if(actual_out.is_empty())
-      {
-      actual_out.zeros(out_n_rows, out_n_cols, out_n_slices);
-      return;
-      }
-    }
-  
-  Cube<eT>  B;
   Cube<eT>& out = alias ? B : actual_out;
   
   out.set_size(out_n_rows, out_n_cols, out_n_slices);
@@ -139,6 +111,7 @@ op_resize::apply(Cube<typename T1::elem_type>& actual_out, const OpCube<T1,op_re
     {
     actual_out.steal_mem(B);
     }
+  
   }
 
 

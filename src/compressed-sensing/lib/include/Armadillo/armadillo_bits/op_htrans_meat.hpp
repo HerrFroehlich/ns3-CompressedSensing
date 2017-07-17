@@ -1,17 +1,14 @@
-// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
-// Copyright 2008-2016 National ICT Australia (NICTA)
+// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
+// Copyright (C) 2008-2012 Conrad Sanderson
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ------------------------------------------------------------------------
+// This file is part of the Armadillo C++ library.
+// It is provided without any warranty of fitness
+// for any purpose. You can redistribute this file
+// and/or modify it under the terms of the GNU
+// Lesser General Public License (LGPL) as published
+// by the Free Software Foundation, either version 3
+// of the License or (at your option) any later version.
+// (see http://www.opensource.org/licenses for more info)
 
 
 //! \addtogroup op_htrans
@@ -23,12 +20,12 @@ template<typename eT>
 arma_hot
 arma_inline
 void
-op_htrans::apply_mat_noalias(Mat<eT>& out, const Mat<eT>& A, const typename arma_not_cx<eT>::result* junk)
+op_htrans::apply_noalias(Mat<eT>& out, const Mat<eT>& A, const typename arma_not_cx<eT>::result* junk)
   {
   arma_extra_debug_sigprint();
   arma_ignore(junk);
   
-  op_strans::apply_mat_noalias(out, A);
+  op_strans::apply_noalias(out, A);
   }
 
 
@@ -37,7 +34,7 @@ template<typename eT>
 arma_hot
 inline
 void
-op_htrans::apply_mat_noalias(Mat<eT>& out, const Mat<eT>& A, const typename arma_cx_only<eT>::result* junk)
+op_htrans::apply_noalias(Mat<eT>& out, const Mat<eT>& A, const typename arma_cx_only<eT>::result* junk)
   {
   arma_extra_debug_sigprint();
   arma_ignore(junk);
@@ -61,18 +58,14 @@ op_htrans::apply_mat_noalias(Mat<eT>& out, const Mat<eT>& A, const typename arma
     }
   else
     {
-    eT* outptr = out.memptr();
-    
-    for(uword k=0; k < A_n_rows; ++k)
+    for(uword in_row = 0; in_row < A_n_rows; ++in_row)
       {
-      const eT* Aptr = &(A.at(k,0));
+      const uword out_col = in_row;
       
-      for(uword j=0; j < A_n_cols; ++j)
+      for(uword in_col = 0; in_col < A_n_cols; ++in_col)
         {
-        (*outptr) = std::conj(*Aptr);
-        
-        Aptr += A_n_rows;
-        outptr++;
+        const uword out_row = in_col;
+        out.at(out_row, out_col) = std::conj( A.at(in_row, in_col) );
         }
       }
     }
@@ -84,12 +77,12 @@ template<typename eT>
 arma_hot
 arma_inline
 void
-op_htrans::apply_mat_inplace(Mat<eT>& out, const typename arma_not_cx<eT>::result* junk)
+op_htrans::apply(Mat<eT>& out, const Mat<eT>& A, const typename arma_not_cx<eT>::result* junk)
   {
   arma_extra_debug_sigprint();
   arma_ignore(junk);
   
-  op_strans::apply_mat_inplace(out);
+  op_strans::apply(out, A);
   }
 
 
@@ -98,77 +91,49 @@ template<typename eT>
 arma_hot
 inline
 void
-op_htrans::apply_mat_inplace(Mat<eT>& out, const typename arma_cx_only<eT>::result* junk)
-  {
-  arma_extra_debug_sigprint();
-  arma_ignore(junk);
-  
-  const uword n_rows = out.n_rows;
-  const uword n_cols = out.n_cols;
-    
-  if(n_rows == n_cols)
-    {
-    arma_extra_debug_print("doing in-place hermitian transpose of a square matrix");
-    
-    for(uword col=0; col < n_cols; ++col)
-      {
-      eT* coldata = out.colptr(col);
-      
-      out.at(col,col) = std::conj( out.at(col,col) );
-      
-      for(uword row=(col+1); row < n_rows; ++row)
-        {
-        const eT val1 = std::conj(coldata[row]);
-        const eT val2 = std::conj(out.at(col,row));
-        
-        out.at(col,row) = val1;
-        coldata[row]    = val2;
-        }
-      }
-    }
-  else
-    {
-    Mat<eT> tmp;
-    
-    op_htrans::apply_mat_noalias(tmp, out);
-    
-    out.steal_mem(tmp);
-    }
-  }
-
-
-
-template<typename eT>
-arma_hot
-arma_inline
-void
-op_htrans::apply_mat(Mat<eT>& out, const Mat<eT>& A, const typename arma_not_cx<eT>::result* junk)
-  {
-  arma_extra_debug_sigprint();
-  arma_ignore(junk);
-  
-  op_strans::apply_mat(out, A);
-  }
-
-
-
-template<typename eT>
-arma_hot
-inline
-void
-op_htrans::apply_mat(Mat<eT>& out, const Mat<eT>& A, const typename arma_cx_only<eT>::result* junk)
+op_htrans::apply(Mat<eT>& out, const Mat<eT>& A, const typename arma_cx_only<eT>::result* junk)
   {
   arma_extra_debug_sigprint();
   arma_ignore(junk);
   
   if(&out != &A)
     {
-    op_htrans::apply_mat_noalias(out, A);
+    op_htrans::apply_noalias(out, A);
     }
   else
     {
-    op_htrans::apply_mat_inplace(out);
+    const uword n_rows = out.n_rows;
+    const uword n_cols = out.n_cols;
+      
+    if(n_rows == n_cols)
+      {
+      arma_extra_debug_print("doing in-place hermitian transpose of a square matrix");
+      
+      for(uword col=0; col < n_cols; ++col)
+        {
+        eT* coldata = out.colptr(col);
+        
+        out.at(col,col) = std::conj( out.at(col,col) );
+        
+        for(uword row=(col+1); row < n_rows; ++row)
+          {
+          const eT val1 = std::conj(coldata[row]);
+          const eT val2 = std::conj(out.at(col,row));
+          
+          out.at(col,row) = val1;
+          coldata[row]    = val2;
+          }
+        }
+      }
+    else
+      {
+      Mat<eT> tmp;
+      op_htrans::apply_noalias(tmp, A);
+      
+      out.steal_mem(tmp);
+      }
     }
+  
   }
 
 
@@ -190,7 +155,7 @@ op_htrans::apply_proxy(Mat<typename T1::elem_type>& out, const T1& X)
     {
     const unwrap<typename Proxy<T1>::stored_type> tmp(P.Q);
     
-    op_htrans::apply_mat(out, tmp.M);
+    op_htrans::apply(out, tmp.M);
     }
   else
     {
@@ -199,7 +164,7 @@ op_htrans::apply_proxy(Mat<typename T1::elem_type>& out, const T1& X)
     
     const bool is_alias = P.is_alias(out);
     
-    if( (resolves_to_vector<T1>::value == true) && (Proxy<T1>::use_at == false) )
+    if( (resolves_to_vector<T1>::value == true) && (Proxy<T1>::prefer_at_accessor == false) )
       {
       if(is_alias == false)
         {
@@ -240,32 +205,20 @@ op_htrans::apply_proxy(Mat<typename T1::elem_type>& out, const T1& X)
         {
         out.set_size(n_cols, n_rows);
         
-        eT* outptr = out.memptr();
-        
-        for(uword k=0; k < n_rows; ++k)
+        for(uword k=0; k < n_cols; ++k)
+        for(uword i=0; i < n_rows; ++i)
           {
-          for(uword j=0; j < n_cols; ++j)
-            {
-            (*outptr) = std::conj(P.at(k,j));
-            
-            outptr++;
-            }
+          out.at(k,i) = std::conj(P.at(i,k));
           }
         }
       else // aliasing
         {
         Mat<eT> out2(n_cols, n_rows);
         
-        eT* out2ptr = out2.memptr();
-        
-        for(uword k=0; k < n_rows; ++k)
+        for(uword k=0; k < n_cols; ++k)
+        for(uword i=0; i < n_rows; ++i)
           {
-          for(uword j=0; j < n_cols; ++j)
-            {
-            (*out2ptr) = std::conj(P.at(k,j));
-            
-            out2ptr++;
-            }
+          out2.at(k,i) = std::conj(P.at(i,k));
           }
         
         out.steal_mem(out2);
@@ -356,18 +309,14 @@ op_htrans2::apply_noalias(Mat<eT>& out, const Mat<eT>& A, const eT val)
     }
   else
     {
-    eT* outptr = out.memptr();
-    
-    for(uword k=0; k < A_n_rows; ++k)
+    for(uword in_row = 0; in_row < A_n_rows; ++in_row)
       {
-      const eT* Aptr = &(A.at(k,0));
+      const uword out_col = in_row;
       
-      for(uword j=0; j < A_n_cols; ++j)
+      for(uword in_col = 0; in_col < A_n_cols; ++in_col)
         {
-        (*outptr) = val * std::conj(*Aptr);
-        
-        Aptr += A_n_rows;
-        outptr++;
+        const uword out_row = in_col;
+        out.at(out_row, out_col) = val * std::conj( A.at(in_row, in_col) );
         }
       }
     }
@@ -440,10 +389,13 @@ op_htrans2::apply_proxy(Mat<typename T1::elem_type>& out, const T1& X, const typ
   
   const Proxy<T1> P(X);
   
-  // allow detection of in-place transpose
-  if( (is_Mat<typename Proxy<T1>::stored_type>::value == true) && (Proxy<T1>::fake_mat == false) )
+  if(
+    (is_Mat<typename Proxy<T1>::stored_type>::value || is_Mat_fixed<typename Proxy<T1>::stored_type>::value)
+    &&
+    (Proxy<T1>::fake_mat == false)  // can't rely on simple alias checking for matrices constructed out of auxiliary memory
+    )
     {
-    const unwrap<typename Proxy<T1>::stored_type> tmp(P.Q);
+    const unwrap<typename Proxy<T1>::stored_type> tmp(P.Q);  // need this unwrap to keep stupid compilers happy
     
     op_htrans2::apply(out, tmp.M, val);
     }
@@ -454,7 +406,7 @@ op_htrans2::apply_proxy(Mat<typename T1::elem_type>& out, const T1& X, const typ
     
     const bool is_alias = P.is_alias(out);
     
-    if( (resolves_to_vector<T1>::value == true) && (Proxy<T1>::use_at == false) )
+    if( (resolves_to_vector<T1>::value == true) && (Proxy<T1>::prefer_at_accessor == false) )
       {
       if(is_alias == false)
         {
@@ -495,32 +447,20 @@ op_htrans2::apply_proxy(Mat<typename T1::elem_type>& out, const T1& X, const typ
         {
         out.set_size(n_cols, n_rows);
         
-        eT* outptr = out.memptr();
-        
-        for(uword k=0; k < n_rows; ++k)
+        for(uword k=0; k < n_cols; ++k)
+        for(uword i=0; i < n_rows; ++i)
           {
-          for(uword j=0; j < n_cols; ++j)
-            {
-            (*outptr) = val * std::conj(P.at(k,j));
-            
-            outptr++;
-            }
+          out.at(k,i) = val * std::conj(P.at(i,k));
           }
         }
       else // aliasing
         {
         Mat<eT> out2(n_cols, n_rows);
         
-        eT* out2ptr = out2.memptr();
-        
-        for(uword k=0; k < n_rows; ++k)
+        for(uword k=0; k < n_cols; ++k)
+        for(uword i=0; i < n_rows; ++i)
           {
-          for(uword j=0; j < n_cols; ++j)
-            {
-            (*out2ptr) = val * std::conj(P.at(k,j));
-            
-            out2ptr++;
-            }
+          out2.at(k,i) = val * std::conj(P.at(i,k));
           }
         
         out.steal_mem(out2);

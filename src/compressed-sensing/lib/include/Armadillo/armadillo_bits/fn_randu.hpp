@@ -1,45 +1,39 @@
-// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
-// Copyright 2008-2016 National ICT Australia (NICTA)
+// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
+// Copyright (C) 2008-2012 Conrad Sanderson
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ------------------------------------------------------------------------
+// This file is part of the Armadillo C++ library.
+// It is provided without any warranty of fitness
+// for any purpose. You can redistribute this file
+// and/or modify it under the terms of the GNU
+// Lesser General Public License (LGPL) as published
+// by the Free Software Foundation, either version 3
+// of the License or (at your option) any later version.
+// (see http://www.opensource.org/licenses for more info)
 
 
 //! \addtogroup fn_randu
 //! @{
 
 
-arma_warn_unused
 inline
 double
 randu()
   {
-  return arma_rng::randu<double>();
+  return double(eop_aux_randu<double>());
   }
 
 
 template<typename eT>
-arma_warn_unused
 inline
 typename arma_scalar_only<eT>::result
 randu()
   {
-  return eT(arma_rng::randu<eT>());
+  return eT(eop_aux_randu<eT>());
   }
 
 
 
 //! Generate a vector with all elements set to random values in the [0,1] interval (uniform distribution)
-arma_warn_unused
 arma_inline
 const Gen<vec, gen_randu>
 randu(const uword n_elem)
@@ -52,7 +46,6 @@ randu(const uword n_elem)
 
 
 template<typename obj_type>
-arma_warn_unused
 arma_inline
 const Gen<obj_type, gen_randu>
 randu(const uword n_elem, const arma_empty_class junk1 = arma_empty_class(), const typename arma_Mat_Col_Row_only<obj_type>::result* junk2 = 0)
@@ -74,7 +67,6 @@ randu(const uword n_elem, const arma_empty_class junk1 = arma_empty_class(), con
 
 
 //! Generate a dense matrix with all elements set to random values in the [0,1] interval (uniform distribution)
-arma_warn_unused
 arma_inline
 const Gen<mat, gen_randu>
 randu(const uword n_rows, const uword n_cols)
@@ -86,20 +78,7 @@ randu(const uword n_rows, const uword n_cols)
 
 
 
-arma_warn_unused
-arma_inline
-const Gen<mat, gen_randu>
-randu(const SizeMat& s)
-  {
-  arma_extra_debug_sigprint();
-  
-  return Gen<mat, gen_randu>(s.n_rows, s.n_cols);
-  }
-
-
-
 template<typename obj_type>
-arma_warn_unused
 arma_inline
 const Gen<obj_type, gen_randu>
 randu(const uword n_rows, const uword n_cols, const typename arma_Mat_Col_Row_only<obj_type>::result* junk = 0)
@@ -122,21 +101,6 @@ randu(const uword n_rows, const uword n_cols, const typename arma_Mat_Col_Row_on
 
 
 
-template<typename obj_type>
-arma_warn_unused
-arma_inline
-const Gen<obj_type, gen_randu>
-randu(const SizeMat& s, const typename arma_Mat_Col_Row_only<obj_type>::result* junk = 0)
-  {
-  arma_extra_debug_sigprint();
-  arma_ignore(junk);
-  
-  return randu<obj_type>(s.n_rows, s.n_cols);
-  }
-
-
-
-arma_warn_unused
 arma_inline
 const GenCube<cube::elem_type, gen_randu>
 randu(const uword n_rows, const uword n_cols, const uword n_slices)
@@ -148,20 +112,7 @@ randu(const uword n_rows, const uword n_cols, const uword n_slices)
 
 
 
-arma_warn_unused
-arma_inline
-const GenCube<cube::elem_type, gen_randu>
-randu(const SizeCube& s)
-  {
-  arma_extra_debug_sigprint();
-  
-  return GenCube<cube::elem_type, gen_randu>(s.n_rows, s.n_cols, s.n_slices);
-  }
-
-
-
 template<typename cube_type>
-arma_warn_unused
 arma_inline
 const GenCube<typename cube_type::elem_type, gen_randu>
 randu(const uword n_rows, const uword n_cols, const uword n_slices, const typename arma_Cube_only<cube_type>::result* junk = 0)
@@ -170,20 +121,6 @@ randu(const uword n_rows, const uword n_cols, const uword n_slices, const typena
   arma_ignore(junk);
   
   return GenCube<typename cube_type::elem_type, gen_randu>(n_rows, n_cols, n_slices);
-  }
-
-
-
-template<typename cube_type>
-arma_warn_unused
-arma_inline
-const GenCube<typename cube_type::elem_type, gen_randu>
-randu(const SizeCube& s, const typename arma_Cube_only<cube_type>::result* junk = 0)
-  {
-  arma_extra_debug_sigprint();
-  arma_ignore(junk);
-  
-  return GenCube<typename cube_type::elem_type, gen_randu>(s.n_rows, s.n_cols, s.n_slices);
   }
 
 

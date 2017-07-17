@@ -1,17 +1,14 @@
-// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
-// Copyright 2008-2016 National ICT Australia (NICTA)
+// Copyright (C) 2009-2011 NICTA (www.nicta.com.au)
+// Copyright (C) 2009-2011 Conrad Sanderson
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ------------------------------------------------------------------------
+// This file is part of the Armadillo C++ library.
+// It is provided without any warranty of fitness
+// for any purpose. You can redistribute this file
+// and/or modify it under the terms of the GNU
+// Lesser General Public License (LGPL) as published
+// by the Free Software Foundation, either version 3
+// of the License or (at your option) any later version.
+// (see http://www.opensource.org/licenses for more info)
 
 
 //! \addtogroup running_stat
@@ -31,7 +28,7 @@ arma_counter<eT>::~arma_counter()
 template<typename eT>
 inline
 arma_counter<eT>::arma_counter()
-  : d_count(   eT(0))
+  : d_count( eT(0))
   , i_count(uword(0))
   {
   arma_extra_debug_sigprint_this(this);
@@ -51,7 +48,7 @@ arma_counter<eT>::operator++()
   else
     {
     d_count += eT(ARMA_MAX_UWORD);
-    i_count  = 1;
+    i_count  = 0;
     }
   
   return *this;
@@ -74,7 +71,7 @@ inline
 void
 arma_counter<eT>::reset()
   {
-  d_count =    eT(0);
+  d_count =  eT(0);
   i_count = uword(0);
   }
 
@@ -129,7 +126,6 @@ arma_counter<eT>::value_minus_1() const
 
 
 template<typename eT>
-inline
 running_stat<eT>::~running_stat()
   {
   arma_extra_debug_sigprint_this(this);
@@ -138,7 +134,6 @@ running_stat<eT>::~running_stat()
 
 
 template<typename eT>
-inline
 running_stat<eT>::running_stat()
   : r_mean      (                          eT(0))
   , r_var       (typename running_stat<eT>::T(0))
@@ -162,7 +157,7 @@ running_stat<eT>::operator() (const typename running_stat<eT>::T sample)
   
   if( arma_isfinite(sample) == false )
     {
-    arma_debug_warn("running_stat: sample ignored as it is non-finite" );
+    arma_warn(true, "running_stat: sample ignored as it is non-finite" );
     return;
     }
   
@@ -179,9 +174,11 @@ running_stat<eT>::operator() (const std::complex< typename running_stat<eT>::T >
   {
   arma_extra_debug_sigprint();
   
+  arma_type_check(( is_same_type<eT, std::complex< typename running_stat<eT>::T > >::value == false ));
+  
   if( arma_isfinite(sample) == false )
     {
-    arma_debug_warn("running_stat: sample ignored as it is non-finite" );
+    arma_warn(true, "running_stat: sample ignored as it is non-finite" );
     return;
     }
   
@@ -296,18 +293,6 @@ running_stat<eT>::max() const
 
 
 
-template<typename eT>
-inline
-eT
-running_stat<eT>::range() const
-  {
-  arma_extra_debug_sigprint();
-  
-  return (max_val - min_val);
-  }
-
-
-
 //! number of samples so far
 template<typename eT>
 inline
@@ -321,14 +306,13 @@ running_stat<eT>::count() const
 
 
 
-//! update statistics to reflect new sample (version for non-complex numbers, non-complex sample)
+//! update statistics to reflect new sample
 template<typename eT>
 inline
 void
-running_stat_aux::update_stats(running_stat<eT>& x, const eT sample, const typename arma_not_cx<eT>::result* junk)
+running_stat_aux::update_stats(running_stat<eT>& x, const eT sample)
   {
   arma_extra_debug_sigprint();
-  arma_ignore(junk);
   
   typedef typename running_stat<eT>::T T;
   
@@ -374,46 +358,28 @@ running_stat_aux::update_stats(running_stat<eT>& x, const eT sample, const typen
 
 
 
-//! update statistics to reflect new sample (version for non-complex numbers, complex sample)
-template<typename eT>
+//! update statistics to reflect new sample (version for complex numbers)
+template<typename T>
 inline
 void
-running_stat_aux::update_stats(running_stat<eT>& x, const std::complex<eT>& sample, const typename arma_not_cx<eT>::result* junk)
+running_stat_aux::update_stats(running_stat< std::complex<T> >& x, const T sample)
   {
   arma_extra_debug_sigprint();
-  arma_ignore(junk);
-  
-  running_stat_aux::update_stats(x, std::real(sample));
-  }
 
-
-
-//! update statistics to reflect new sample (version for complex numbers, non-complex sample)
-template<typename eT>
-inline
-void
-running_stat_aux::update_stats(running_stat<eT>& x, const typename eT::value_type sample, const typename arma_cx_only<eT>::result* junk)
-  {
-  arma_extra_debug_sigprint();
-  arma_ignore(junk);
-  
-  typedef typename eT::value_type T;
-  
   running_stat_aux::update_stats(x, std::complex<T>(sample));
   }
 
 
 
-//! alter statistics to reflect new sample (version for complex numbers, complex sample)
-template<typename eT>
+//! alter statistics to reflect new sample (version for complex numbers)
+template<typename T>
 inline
 void
-running_stat_aux::update_stats(running_stat<eT>& x, const eT& sample, const typename arma_cx_only<eT>::result* junk)
+running_stat_aux::update_stats(running_stat< std::complex<T> >& x, const std::complex<T>& sample)
   {
   arma_extra_debug_sigprint();
-  arma_ignore(junk);
   
-  typedef typename eT::value_type T;
+  typedef typename std::complex<T> eT;
   
   const T sample_norm = std::norm(sample);
   const T N           = x.counter.value();

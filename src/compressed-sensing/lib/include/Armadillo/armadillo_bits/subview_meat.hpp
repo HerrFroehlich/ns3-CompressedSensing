@@ -1,17 +1,15 @@
-// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
-// Copyright 2008-2016 National ICT Australia (NICTA)
+// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
+// Copyright (C) 2008-2012 Conrad Sanderson
+// Copyright (C)      2011 James Sanders
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ------------------------------------------------------------------------
+// This file is part of the Armadillo C++ library.
+// It is provided without any warranty of fitness
+// for any purpose. You can redistribute this file
+// and/or modify it under the terms of the GNU
+// Lesser General Public License (LGPL) as published
+// by the Free Software Foundation, either version 3
+// of the License or (at your option) any later version.
+// (see http://www.opensource.org/licenses for more info)
 
 
 //! \addtogroup subview
@@ -44,336 +42,40 @@ subview<eT>::subview(const Mat<eT>& in_m, const uword in_row1, const uword in_co
 template<typename eT>
 inline
 void
-subview<eT>::operator= (const eT val)
-  {
-  arma_extra_debug_sigprint();
-  
-  if(n_elem != 1)
-    {
-    arma_debug_assert_same_size(n_rows, n_cols, 1, 1, "copy into submatrix");
-    }
-  
-  Mat<eT>& X = const_cast< Mat<eT>& >(m);
-  
-  X.at(aux_row1, aux_col1) = val;
-  }
-
-
-
-template<typename eT>
-template<typename op_type>
-inline
-void
-subview<eT>::inplace_op(const eT val)
-  {
-  arma_extra_debug_sigprint();
-  
-  subview<eT>& s = *this;
-  
-  const uword s_n_rows = s.n_rows;
-  const uword s_n_cols = s.n_cols;
-  
-  if(s_n_rows == 1)
-    {
-    Mat<eT>& A = const_cast< Mat<eT>& >(s.m);
-    
-    const uword A_n_rows = A.n_rows;
-    
-    eT* Aptr = &(A.at(s.aux_row1,s.aux_col1));
-    
-    uword jj;
-    for(jj=1; jj < s_n_cols; jj+=2)
-      {
-      if(is_same_type<op_type, op_internal_plus >::yes)  { (*Aptr) += val; Aptr += A_n_rows;  (*Aptr) += val; Aptr += A_n_rows; }
-      if(is_same_type<op_type, op_internal_minus>::yes)  { (*Aptr) -= val; Aptr += A_n_rows;  (*Aptr) -= val; Aptr += A_n_rows; }
-      if(is_same_type<op_type, op_internal_schur>::yes)  { (*Aptr) *= val; Aptr += A_n_rows;  (*Aptr) *= val; Aptr += A_n_rows; }
-      if(is_same_type<op_type, op_internal_div  >::yes)  { (*Aptr) /= val; Aptr += A_n_rows;  (*Aptr) /= val; Aptr += A_n_rows; }
-      }
-    
-    if((jj-1) < s_n_cols)
-      {
-      if(is_same_type<op_type, op_internal_plus >::yes)  { (*Aptr) += val; }
-      if(is_same_type<op_type, op_internal_minus>::yes)  { (*Aptr) -= val; }
-      if(is_same_type<op_type, op_internal_schur>::yes)  { (*Aptr) *= val; }
-      if(is_same_type<op_type, op_internal_div  >::yes)  { (*Aptr) /= val; }
-      }
-    }
-  else
-    {
-    for(uword ucol=0; ucol < s_n_cols; ++ucol)
-      {
-      if(is_same_type<op_type, op_internal_plus >::yes)  { arrayops::inplace_plus ( colptr(ucol), val, s_n_rows ); }
-      if(is_same_type<op_type, op_internal_minus>::yes)  { arrayops::inplace_minus( colptr(ucol), val, s_n_rows ); }
-      if(is_same_type<op_type, op_internal_schur>::yes)  { arrayops::inplace_mul  ( colptr(ucol), val, s_n_rows ); }
-      if(is_same_type<op_type, op_internal_div  >::yes)  { arrayops::inplace_div  ( colptr(ucol), val, s_n_rows ); }
-      }
-    }
-  }
-
-
-
-template<typename eT>
-template<typename op_type, typename T1>
-inline
-void
-subview<eT>::inplace_op(const Base<eT,T1>& in, const char* identifier)
-  {
-  arma_extra_debug_sigprint();
-  
-  const Proxy<T1> P(in.get_ref());
-  
-  subview<eT>& s = *this;
-  
-  const uword s_n_rows = s.n_rows;
-  const uword s_n_cols = s.n_cols;
-  
-  arma_debug_assert_same_size(s, P, identifier);
-  
-  const bool use_mp   = arma_config::cxx11 && arma_config::openmp && Proxy<T1>::use_mp && mp_gate<eT>::eval(s.n_elem);
-  const bool is_alias = P.is_alias(s.m);
-  
-  if(is_alias)  { arma_extra_debug_print("aliasing detected"); }
-  
-  if( (is_Mat<typename Proxy<T1>::stored_type>::value) || (use_mp) || (is_alias) )
-    {
-    const unwrap_check<typename Proxy<T1>::stored_type> tmp(P.Q, is_alias);
-    const Mat<eT>& B = tmp.M;
-    
-    if(s_n_rows == 1)
-      {
-      Mat<eT>& A = const_cast< Mat<eT>& >(m);
-      
-      const uword A_n_rows = A.n_rows;
-      
-            eT* Aptr = &(A.at(aux_row1,aux_col1));
-      const eT* Bptr = B.memptr();
-      
-      uword jj;
-      for(jj=1; jj < s_n_cols; jj+=2)
-        {
-        const eT tmp1 = (*Bptr);  Bptr++;
-        const eT tmp2 = (*Bptr);  Bptr++;
-        
-        if(is_same_type<op_type, op_internal_equ  >::yes)  { (*Aptr) =  tmp1; Aptr += A_n_rows;  (*Aptr) =  tmp2; Aptr += A_n_rows; }
-        if(is_same_type<op_type, op_internal_plus >::yes)  { (*Aptr) += tmp1; Aptr += A_n_rows;  (*Aptr) += tmp2; Aptr += A_n_rows; }
-        if(is_same_type<op_type, op_internal_minus>::yes)  { (*Aptr) -= tmp1; Aptr += A_n_rows;  (*Aptr) -= tmp2; Aptr += A_n_rows; }
-        if(is_same_type<op_type, op_internal_schur>::yes)  { (*Aptr) *= tmp1; Aptr += A_n_rows;  (*Aptr) *= tmp2; Aptr += A_n_rows; }
-        if(is_same_type<op_type, op_internal_div  >::yes)  { (*Aptr) /= tmp1; Aptr += A_n_rows;  (*Aptr) /= tmp2; Aptr += A_n_rows; }
-        }
-      
-      if((jj-1) < s_n_cols)
-        {
-        if(is_same_type<op_type, op_internal_equ  >::yes)  { (*Aptr) =  (*Bptr); }
-        if(is_same_type<op_type, op_internal_plus >::yes)  { (*Aptr) += (*Bptr); }
-        if(is_same_type<op_type, op_internal_minus>::yes)  { (*Aptr) -= (*Bptr); }
-        if(is_same_type<op_type, op_internal_schur>::yes)  { (*Aptr) *= (*Bptr); }
-        if(is_same_type<op_type, op_internal_div  >::yes)  { (*Aptr) /= (*Bptr); }
-        }
-      }
-    else  // not a row vector
-      {
-      for(uword ucol=0; ucol < s_n_cols; ++ucol)
-        {
-        if(is_same_type<op_type, op_internal_equ  >::yes)  { arrayops::copy         ( s.colptr(ucol), B.colptr(ucol), s_n_rows ); }
-        if(is_same_type<op_type, op_internal_plus >::yes)  { arrayops::inplace_plus ( s.colptr(ucol), B.colptr(ucol), s_n_rows ); }
-        if(is_same_type<op_type, op_internal_minus>::yes)  { arrayops::inplace_minus( s.colptr(ucol), B.colptr(ucol), s_n_rows ); }
-        if(is_same_type<op_type, op_internal_schur>::yes)  { arrayops::inplace_mul  ( s.colptr(ucol), B.colptr(ucol), s_n_rows ); }
-        if(is_same_type<op_type, op_internal_div  >::yes)  { arrayops::inplace_div  ( s.colptr(ucol), B.colptr(ucol), s_n_rows ); }
-        }
-      }
-    }
-  else  // use the Proxy
-    {
-    if(s_n_rows == 1)
-      {
-      Mat<eT>& A = const_cast< Mat<eT>& >(m);
-      
-      const uword A_n_rows = A.n_rows;
-      
-      eT* Aptr = &(A.at(aux_row1,aux_col1));
-      
-      uword jj;
-      for(jj=1; jj < s_n_cols; jj+=2)
-        {
-        const uword ii = (jj-1);
-        
-        const eT tmp1 = (Proxy<T1>::use_at) ? P.at(0,ii) : P[ii];
-        const eT tmp2 = (Proxy<T1>::use_at) ? P.at(0,jj) : P[jj];
-        
-        if(is_same_type<op_type, op_internal_equ  >::yes)  { (*Aptr) =  tmp1; Aptr += A_n_rows;  (*Aptr) =  tmp2; Aptr += A_n_rows; }
-        if(is_same_type<op_type, op_internal_plus >::yes)  { (*Aptr) += tmp1; Aptr += A_n_rows;  (*Aptr) += tmp2; Aptr += A_n_rows; }
-        if(is_same_type<op_type, op_internal_minus>::yes)  { (*Aptr) -= tmp1; Aptr += A_n_rows;  (*Aptr) -= tmp2; Aptr += A_n_rows; }
-        if(is_same_type<op_type, op_internal_schur>::yes)  { (*Aptr) *= tmp1; Aptr += A_n_rows;  (*Aptr) *= tmp2; Aptr += A_n_rows; }
-        if(is_same_type<op_type, op_internal_div  >::yes)  { (*Aptr) /= tmp1; Aptr += A_n_rows;  (*Aptr) /= tmp2; Aptr += A_n_rows; }
-        }
-      
-      const uword ii = (jj-1);
-      if(ii < s_n_cols)
-        {
-        if(is_same_type<op_type, op_internal_equ  >::yes)  { (*Aptr) =  (Proxy<T1>::use_at) ? P.at(0,ii) : P[ii]; }
-        if(is_same_type<op_type, op_internal_plus >::yes)  { (*Aptr) += (Proxy<T1>::use_at) ? P.at(0,ii) : P[ii]; }
-        if(is_same_type<op_type, op_internal_minus>::yes)  { (*Aptr) -= (Proxy<T1>::use_at) ? P.at(0,ii) : P[ii]; }
-        if(is_same_type<op_type, op_internal_schur>::yes)  { (*Aptr) *= (Proxy<T1>::use_at) ? P.at(0,ii) : P[ii]; }
-        if(is_same_type<op_type, op_internal_div  >::yes)  { (*Aptr) /= (Proxy<T1>::use_at) ? P.at(0,ii) : P[ii]; }
-        }
-      }
-    else  // not a row vector
-      {
-      if(Proxy<T1>::use_at)
-        {
-        for(uword ucol=0; ucol < s_n_cols; ++ucol)
-          {
-          eT* s_col_data = s.colptr(ucol);
-          
-          uword jj;
-          for(jj=1; jj < s_n_rows; jj+=2)
-            {
-            const uword ii = (jj-1);
-            
-            const eT tmp1 = P.at(ii,ucol);
-            const eT tmp2 = P.at(jj,ucol);
-            
-            if(is_same_type<op_type, op_internal_equ  >::yes)  { (*s_col_data) =  tmp1; s_col_data++;  (*s_col_data) =  tmp2; s_col_data++; }
-            if(is_same_type<op_type, op_internal_plus >::yes)  { (*s_col_data) += tmp1; s_col_data++;  (*s_col_data) += tmp2; s_col_data++; }
-            if(is_same_type<op_type, op_internal_minus>::yes)  { (*s_col_data) -= tmp1; s_col_data++;  (*s_col_data) -= tmp2; s_col_data++; }
-            if(is_same_type<op_type, op_internal_schur>::yes)  { (*s_col_data) *= tmp1; s_col_data++;  (*s_col_data) *= tmp2; s_col_data++; }
-            if(is_same_type<op_type, op_internal_div  >::yes)  { (*s_col_data) /= tmp1; s_col_data++;  (*s_col_data) /= tmp2; s_col_data++; }
-            }
-          
-          const uword ii = (jj-1);
-          if(ii < s_n_rows)
-            {
-            if(is_same_type<op_type, op_internal_equ  >::yes)  { (*s_col_data) =  P.at(ii,ucol); }
-            if(is_same_type<op_type, op_internal_plus >::yes)  { (*s_col_data) += P.at(ii,ucol); }
-            if(is_same_type<op_type, op_internal_minus>::yes)  { (*s_col_data) -= P.at(ii,ucol); }
-            if(is_same_type<op_type, op_internal_schur>::yes)  { (*s_col_data) *= P.at(ii,ucol); }
-            if(is_same_type<op_type, op_internal_div  >::yes)  { (*s_col_data) /= P.at(ii,ucol); }
-            }
-          }
-        }
-      else
-        {
-        typename Proxy<T1>::ea_type Pea = P.get_ea();
-        
-        uword count = 0;
-        
-        for(uword ucol=0; ucol < s_n_cols; ++ucol)
-          {
-          eT* s_col_data = s.colptr(ucol);
-          
-          uword jj;
-          for(jj=1; jj < s_n_rows; jj+=2)
-            {
-            const eT tmp1 = Pea[count];  count++;
-            const eT tmp2 = Pea[count];  count++;
-            
-            if(is_same_type<op_type, op_internal_equ  >::yes)  { (*s_col_data) =  tmp1; s_col_data++;  (*s_col_data) =  tmp2; s_col_data++; }
-            if(is_same_type<op_type, op_internal_plus >::yes)  { (*s_col_data) += tmp1; s_col_data++;  (*s_col_data) += tmp2; s_col_data++; }
-            if(is_same_type<op_type, op_internal_minus>::yes)  { (*s_col_data) -= tmp1; s_col_data++;  (*s_col_data) -= tmp2; s_col_data++; }
-            if(is_same_type<op_type, op_internal_schur>::yes)  { (*s_col_data) *= tmp1; s_col_data++;  (*s_col_data) *= tmp2; s_col_data++; }
-            if(is_same_type<op_type, op_internal_div  >::yes)  { (*s_col_data) /= tmp1; s_col_data++;  (*s_col_data) /= tmp2; s_col_data++; }
-            }
-          
-          if((jj-1) < s_n_rows)
-            {
-            if(is_same_type<op_type, op_internal_equ  >::yes)  { (*s_col_data) =  Pea[count];  count++; }
-            if(is_same_type<op_type, op_internal_plus >::yes)  { (*s_col_data) += Pea[count];  count++; }
-            if(is_same_type<op_type, op_internal_minus>::yes)  { (*s_col_data) -= Pea[count];  count++; }
-            if(is_same_type<op_type, op_internal_schur>::yes)  { (*s_col_data) *= Pea[count];  count++; }
-            if(is_same_type<op_type, op_internal_div  >::yes)  { (*s_col_data) /= Pea[count];  count++; }
-            }
-          }
-        }
-      }
-    }
-  }
-
-
-
-template<typename eT>
-template<typename op_type>
-inline
-void
-subview<eT>::inplace_op(const subview<eT>& x, const char* identifier)
-  {
-  arma_extra_debug_sigprint();
-  
-  if(check_overlap(x))
-    {
-    const Mat<eT> tmp(x);
-    
-    if(is_same_type<op_type, op_internal_equ  >::yes)  { (*this).operator= (tmp); }
-    if(is_same_type<op_type, op_internal_plus >::yes)  { (*this).operator+=(tmp); }
-    if(is_same_type<op_type, op_internal_minus>::yes)  { (*this).operator-=(tmp); }
-    if(is_same_type<op_type, op_internal_schur>::yes)  { (*this).operator%=(tmp); }
-    if(is_same_type<op_type, op_internal_div  >::yes)  { (*this).operator/=(tmp); }
-    
-    return;
-    }
-  
-  subview<eT>& s = *this;
-  
-  arma_debug_assert_same_size(s, x, identifier);
-  
-  const uword s_n_cols = s.n_cols;
-  const uword s_n_rows = s.n_rows;
-  
-  if(s_n_rows == 1)
-    {
-          Mat<eT>& A = const_cast< Mat<eT>& >(s.m);
-    const Mat<eT>& B = x.m;
-    
-    const uword A_n_rows = A.n_rows;
-    const uword B_n_rows = B.n_rows;
-    
-          eT* Aptr = &(A.at(s.aux_row1,s.aux_col1));
-    const eT* Bptr = &(B.at(x.aux_row1,x.aux_col1));
-    
-    uword jj;
-    for(jj=1; jj < s_n_cols; jj+=2)
-      {
-      const eT tmp1 = (*Bptr);  Bptr += B_n_rows;
-      const eT tmp2 = (*Bptr);  Bptr += B_n_rows;
-      
-      if(is_same_type<op_type, op_internal_equ  >::yes)  { (*Aptr) =  tmp1; Aptr += A_n_rows;  (*Aptr) =  tmp2; Aptr += A_n_rows; }
-      if(is_same_type<op_type, op_internal_plus >::yes)  { (*Aptr) += tmp1; Aptr += A_n_rows;  (*Aptr) += tmp2; Aptr += A_n_rows; }
-      if(is_same_type<op_type, op_internal_minus>::yes)  { (*Aptr) -= tmp1; Aptr += A_n_rows;  (*Aptr) -= tmp2; Aptr += A_n_rows; }
-      if(is_same_type<op_type, op_internal_schur>::yes)  { (*Aptr) *= tmp1; Aptr += A_n_rows;  (*Aptr) *= tmp2; Aptr += A_n_rows; }
-      if(is_same_type<op_type, op_internal_div  >::yes)  { (*Aptr) /= tmp1; Aptr += A_n_rows;  (*Aptr) /= tmp2; Aptr += A_n_rows; }
-      }
-    
-    if((jj-1) < s_n_cols)
-      {
-      if(is_same_type<op_type, op_internal_equ  >::yes)  { (*Aptr) =  (*Bptr); }
-      if(is_same_type<op_type, op_internal_plus >::yes)  { (*Aptr) += (*Bptr); }
-      if(is_same_type<op_type, op_internal_minus>::yes)  { (*Aptr) -= (*Bptr); }
-      if(is_same_type<op_type, op_internal_schur>::yes)  { (*Aptr) *= (*Bptr); }
-      if(is_same_type<op_type, op_internal_div  >::yes)  { (*Aptr) /= (*Bptr); }
-      }
-    }
-  else
-    {
-    for(uword ucol=0; ucol < s_n_cols; ++ucol)
-      {
-      if(is_same_type<op_type, op_internal_equ  >::yes)  { arrayops::copy         ( s.colptr(ucol), x.colptr(ucol), s_n_rows ); }
-      if(is_same_type<op_type, op_internal_plus >::yes)  { arrayops::inplace_plus ( s.colptr(ucol), x.colptr(ucol), s_n_rows ); }
-      if(is_same_type<op_type, op_internal_minus>::yes)  { arrayops::inplace_minus( s.colptr(ucol), x.colptr(ucol), s_n_rows ); }
-      if(is_same_type<op_type, op_internal_schur>::yes)  { arrayops::inplace_mul  ( s.colptr(ucol), x.colptr(ucol), s_n_rows ); }
-      if(is_same_type<op_type, op_internal_div  >::yes)  { arrayops::inplace_div  ( s.colptr(ucol), x.colptr(ucol), s_n_rows ); }
-      }
-    }
-  }
-
-
-
-template<typename eT>
-inline
-void
 subview<eT>::operator+= (const eT val)
   {
   arma_extra_debug_sigprint();
   
-  inplace_op<op_internal_plus>(val);
+  const uword local_n_cols = n_cols;
+  const uword local_n_rows = n_rows;
+  
+  if(local_n_rows == 1)
+    {
+    Mat<eT>& X = const_cast< Mat<eT>& >(m);
+    
+    const uword urow          = aux_row1;
+    const uword start_col     = aux_col1;
+    const uword end_col_plus1 = start_col + local_n_cols;
+    
+    uword ii,jj;
+    for(ii=start_col, jj=start_col+1; jj < end_col_plus1; ii+=2, jj+=2)
+      {
+      X.at(urow, ii) += val;
+      X.at(urow, jj) += val;
+      }
+    
+    if(ii < end_col_plus1)
+      {
+      X.at(urow, ii) += val;
+      }
+    }
+  else
+    {
+    for(uword ucol=0; ucol < local_n_cols; ++ucol)
+      {
+      arrayops::inplace_plus( colptr(ucol), val, local_n_rows );
+      }
+    }
   }
 
 
@@ -385,7 +87,36 @@ subview<eT>::operator-= (const eT val)
   {
   arma_extra_debug_sigprint();
   
-  inplace_op<op_internal_minus>(val);
+  const uword local_n_cols = n_cols;
+  const uword local_n_rows = n_rows;
+  
+  if(local_n_rows == 1)
+    {
+    Mat<eT>& X = const_cast< Mat<eT>& >(m);
+    
+    const uword urow          = aux_row1;
+    const uword start_col     = aux_col1;
+    const uword end_col_plus1 = start_col + local_n_cols;
+    
+    uword ii,jj;
+    for(ii=start_col, jj=start_col+1; jj < end_col_plus1; ii+=2, jj+=2)
+      {
+      X.at(urow, ii) -= val;
+      X.at(urow, jj) -= val;
+      }
+    
+    if(ii < end_col_plus1)
+      {
+      X.at(urow, ii) -= val;
+      }
+    }
+  else
+    {
+    for(uword ucol=0; ucol < local_n_cols; ++ucol)
+      {
+      arrayops::inplace_minus( colptr(ucol), val, local_n_rows );
+      }
+    }
   }
 
 
@@ -397,7 +128,36 @@ subview<eT>::operator*= (const eT val)
   {
   arma_extra_debug_sigprint();
   
-  inplace_op<op_internal_schur>(val);
+  const uword local_n_cols = n_cols;
+  const uword local_n_rows = n_rows;
+  
+  if(local_n_rows == 1)
+    {
+    Mat<eT>& X = const_cast< Mat<eT>& >(m);
+    
+    const uword urow          = aux_row1;
+    const uword start_col     = aux_col1;
+    const uword end_col_plus1 = start_col + local_n_cols;
+    
+    uword ii,jj;
+    for(ii=start_col, jj=start_col+1; jj < end_col_plus1; ii+=2, jj+=2)
+      {
+      X.at(urow, ii) *= val;
+      X.at(urow, jj) *= val;
+      }
+    
+    if(ii < end_col_plus1)
+      {
+      X.at(urow, ii) *= val;
+      }
+    }
+  else
+    {
+    for(uword ucol=0; ucol < local_n_cols; ++ucol)
+      {
+      arrayops::inplace_mul( colptr(ucol), val, local_n_rows );
+      }
+    }
   }
 
 
@@ -409,67 +169,36 @@ subview<eT>::operator/= (const eT val)
   {
   arma_extra_debug_sigprint();
   
-  inplace_op<op_internal_div>(val);
-  }
-
-
-
-template<typename eT>
-inline
-void
-subview<eT>::operator= (const subview<eT>& x)
-  {
-  arma_extra_debug_sigprint();
+  const uword local_n_cols = n_cols;
+  const uword local_n_rows = n_rows;
   
-  inplace_op<op_internal_equ>(x, "copy into submatrix");
-  }
-
-
-
-template<typename eT>
-inline
-void
-subview<eT>::operator+= (const subview<eT>& x)
-  {
-  arma_extra_debug_sigprint();
-  
-  inplace_op<op_internal_plus>(x, "addition");
-  }
-
-
-
-template<typename eT>
-inline
-void
-subview<eT>::operator-= (const subview<eT>& x)
-  {
-  arma_extra_debug_sigprint();
-  
-  inplace_op<op_internal_minus>(x, "subtraction");
-  }
-
-
-
-template<typename eT>
-inline
-void
-subview<eT>::operator%= (const subview& x)
-  {
-  arma_extra_debug_sigprint();
-  
-  inplace_op<op_internal_schur>(x, "element-wise multiplication");
-  }
-
-
-
-template<typename eT>
-inline
-void
-subview<eT>::operator/= (const subview& x)
-  {
-  arma_extra_debug_sigprint();
-  
-  inplace_op<op_internal_div>(x, "element-wise division");
+  if(local_n_rows == 1)
+    {
+    Mat<eT>& X = const_cast< Mat<eT>& >(m);
+    
+    const uword urow          = aux_row1;
+    const uword start_col     = aux_col1;
+    const uword end_col_plus1 = start_col + local_n_cols;
+    
+    uword ii,jj;
+    for(ii=start_col, jj=start_col+1; jj < end_col_plus1; ii+=2, jj+=2)
+      {
+      X.at(urow, ii) /= val;
+      X.at(urow, jj) /= val;
+      }
+    
+    if(ii < end_col_plus1)
+      {
+      X.at(urow, ii) /= val;
+      }
+    }
+  else
+    {
+    for(uword ucol=0; ucol < local_n_cols; ++ucol)
+      {
+      arrayops::inplace_div( colptr(ucol), val, local_n_rows );
+      }
+    }
   }
 
 
@@ -482,7 +211,100 @@ subview<eT>::operator= (const Base<eT,T1>& in)
   {
   arma_extra_debug_sigprint();
   
-  inplace_op<op_internal_equ>(in, "copy into submatrix");
+  const Proxy<T1> P(in.get_ref());
+  
+  subview<eT>& s = *this;
+  
+  const uword s_n_rows = s.n_rows;
+  const uword s_n_cols = s.n_cols;
+    
+  arma_debug_assert_same_size(s, P, "copy into submatrix");
+  
+  const bool is_alias = P.is_alias(s.m);
+  
+  arma_extra_debug_warn(is_alias, "aliasing detected");
+  
+  if( (is_Mat<typename Proxy<T1>::stored_type>::value == true) || (is_alias == true) )
+    {
+    const unwrap_check<typename Proxy<T1>::stored_type> tmp(P.Q, is_alias);
+    const Mat<eT>& x = tmp.M;
+    
+    if(s_n_rows == 1)
+      {
+      const eT* x_mem = x.memptr();
+      
+      Mat<eT>& A = const_cast< Mat<eT>& >(m);
+      
+      const uword urow      = aux_row1;
+      const uword start_col = aux_col1;
+      
+      uword ii,jj;
+      for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
+        {
+        A.at(urow, start_col+ii) = x_mem[ii];
+        A.at(urow, start_col+jj) = x_mem[jj];
+        }
+      
+      if(ii < s_n_cols)
+        {
+        A.at(urow, start_col+ii) = x_mem[ii];
+        }
+      }
+    else
+      {
+      for(uword ucol=0; ucol < s_n_cols; ++ucol)
+        {
+        arrayops::copy( s.colptr(ucol), x.colptr(ucol), s_n_rows );
+        }
+      }
+    }
+  else
+    {
+    if(s_n_rows == 1)
+      {
+      Mat<eT>& A = const_cast< Mat<eT>& >(m);
+      
+      const uword urow      = aux_row1;
+      const uword start_col = aux_col1;
+      
+      uword ii,jj;
+      for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
+        {
+        const eT tmp1 = (Proxy<T1>::prefer_at_accessor) ? P.at(0,ii) : P[ii];
+        const eT tmp2 = (Proxy<T1>::prefer_at_accessor) ? P.at(0,jj) : P[jj];
+        
+        A.at(urow, start_col+ii) = tmp1;
+        A.at(urow, start_col+jj) = tmp2;
+        }
+      
+      if(ii < s_n_cols)
+        {
+        A.at(urow, start_col+ii) = (Proxy<T1>::prefer_at_accessor) ? P.at(0,ii) : P[ii];
+        }
+      }
+    else
+      {
+      for(uword ucol=0; ucol < s_n_cols; ++ucol)
+        {
+        eT* s_col_data = s.colptr(ucol);
+        
+        uword ii,jj;
+        for(ii=0, jj=1; jj < s_n_rows; ii+=2, jj+=2)
+          {
+          const eT tmp1 = P.at(ii,ucol);
+          const eT tmp2 = P.at(jj,ucol);
+          
+          s_col_data[ii] = tmp1;
+          s_col_data[jj] = tmp2;
+          }
+        
+        if(ii < s_n_rows)
+          {
+          s_col_data[ii] = P.at(ii,ucol);
+          }
+        }
+      }
+    }
   }
 
 
@@ -495,7 +317,100 @@ subview<eT>::operator+= (const Base<eT,T1>& in)
   {
   arma_extra_debug_sigprint();
   
-  inplace_op<op_internal_plus>(in, "addition");
+  const Proxy<T1> P(in.get_ref());
+  
+  subview<eT>& s = *this;
+  
+  const uword s_n_rows = s.n_rows;
+  const uword s_n_cols = s.n_cols;
+  
+  arma_debug_assert_same_size(s, P, "addition");
+  
+  const bool is_alias = P.is_alias(s.m);
+  
+  arma_extra_debug_warn(is_alias, "aliasing detected");
+  
+  if( (is_Mat<typename Proxy<T1>::stored_type>::value == true) || (is_alias == true) )
+    {
+    const unwrap_check<typename Proxy<T1>::stored_type> tmp(P.Q, is_alias);
+    const Mat<eT>& x = tmp.M;
+    
+    if(s_n_rows == 1)
+      {
+      const eT* x_mem = x.memptr();
+      
+      Mat<eT>& A = const_cast< Mat<eT>& >(m);
+      
+      const uword urow      = aux_row1;
+      const uword start_col = aux_col1;
+      
+      uword ii,jj;
+      for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
+        {
+        A.at(urow, start_col+ii) += x_mem[ii];
+        A.at(urow, start_col+jj) += x_mem[jj];
+        }
+      
+      if(ii < s_n_cols)
+        {
+        A.at(urow, start_col+ii) += x_mem[ii];
+        }
+      }
+    else
+      {
+      for(uword ucol=0; ucol < s_n_cols; ++ucol)
+        {
+        arrayops::inplace_plus( s.colptr(ucol), x.colptr(ucol), s_n_rows );
+        }
+      }
+    }
+  else
+    {
+    if(s_n_rows == 1)
+      {
+      Mat<eT>& A = const_cast< Mat<eT>& >(m);
+      
+      const uword urow      = aux_row1;
+      const uword start_col = aux_col1;
+      
+      uword ii,jj;
+      for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
+        {
+        const eT tmp1 = (Proxy<T1>::prefer_at_accessor) ? P.at(0,ii) : P[ii];
+        const eT tmp2 = (Proxy<T1>::prefer_at_accessor) ? P.at(0,jj) : P[jj];
+        
+        A.at(urow, start_col+ii) += tmp1;
+        A.at(urow, start_col+jj) += tmp2;
+        }
+      
+      if(ii < s_n_cols)
+        {
+        A.at(urow, start_col+ii) += (Proxy<T1>::prefer_at_accessor) ? P.at(0,ii) : P[ii];
+        }
+      }
+    else
+      {
+      for(uword ucol=0; ucol < s_n_cols; ++ucol)
+        {
+        eT* s_col_data = s.colptr(ucol);
+        
+        uword ii,jj;
+        for(ii=0, jj=1; jj < s_n_rows; ii+=2, jj+=2)
+          {
+          const eT val1 = P.at(ii,ucol);
+          const eT val2 = P.at(jj,ucol);
+          
+          s_col_data[ii] += val1;
+          s_col_data[jj] += val2;
+          }
+        
+        if(ii < s_n_rows)
+          {
+          s_col_data[ii] += P.at(ii,ucol);
+          }
+        }
+      }
+    }
   }
 
 
@@ -508,7 +423,100 @@ subview<eT>::operator-= (const Base<eT,T1>& in)
   {
   arma_extra_debug_sigprint();
   
-  inplace_op<op_internal_minus>(in, "subtraction");
+  const Proxy<T1> P(in.get_ref());
+  
+  subview<eT>& s = *this;
+  
+  const uword s_n_rows = s.n_rows;
+  const uword s_n_cols = s.n_cols;
+  
+  arma_debug_assert_same_size(s, P, "subtraction");
+  
+  const bool is_alias = P.is_alias(s.m);
+  
+  arma_extra_debug_warn(is_alias, "aliasing detected");
+  
+  if( (is_Mat<typename Proxy<T1>::stored_type>::value == true) || (is_alias == true) )
+    {
+    const unwrap_check<typename Proxy<T1>::stored_type> tmp(P.Q, is_alias);
+    const Mat<eT>& x = tmp.M;
+    
+    if(s_n_rows == 1)
+      {
+      const eT* x_mem = x.memptr();
+      
+      Mat<eT>& A = const_cast< Mat<eT>& >(m);
+      
+      const uword urow      = aux_row1;
+      const uword start_col = aux_col1;
+      
+      uword ii,jj;
+      for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
+        {
+        A.at(urow, start_col+ii) -= x_mem[ii];
+        A.at(urow, start_col+jj) -= x_mem[jj];
+        }
+      
+      if(ii < s_n_cols)
+        {
+        A.at(urow, start_col+ii) -= x_mem[ii];
+        }
+      }
+    else
+      {
+      for(uword ucol=0; ucol < s_n_cols; ++ucol)
+        {
+        arrayops::inplace_minus( s.colptr(ucol), x.colptr(ucol), s_n_rows );
+        }
+      }
+    }
+  else
+    {
+    if(s_n_rows == 1)
+      {
+      Mat<eT>& A = const_cast< Mat<eT>& >(m);
+      
+      const uword urow      = aux_row1;
+      const uword start_col = aux_col1;
+      
+      uword ii,jj;
+      for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
+        {
+        const eT tmp1 = (Proxy<T1>::prefer_at_accessor) ? P.at(0,ii) : P[ii];
+        const eT tmp2 = (Proxy<T1>::prefer_at_accessor) ? P.at(0,jj) : P[jj];
+        
+        A.at(urow, start_col+ii) -= tmp1;
+        A.at(urow, start_col+jj) -= tmp2;
+        }
+      
+      if(ii < s_n_cols)
+        {
+        A.at(urow, start_col+ii) -= (Proxy<T1>::prefer_at_accessor) ? P.at(0,ii) : P[ii];
+        }
+      }
+    else
+      {
+      for(uword ucol=0; ucol < s_n_cols; ++ucol)
+        {
+        eT* s_col_data = s.colptr(ucol);
+        
+        uword ii,jj;
+        for(ii=0, jj=1; jj < s_n_rows; ii+=2, jj+=2)
+          {
+          const eT val1 = P.at(ii,ucol);
+          const eT val2 = P.at(jj,ucol);
+          
+          s_col_data[ii] -= val1;
+          s_col_data[jj] -= val2;
+          }
+        
+        if(ii < s_n_rows)
+          {
+          s_col_data[ii] -= P.at(ii,ucol);
+          }
+        }
+      }
+    }
   }
 
 
@@ -521,7 +529,100 @@ subview<eT>::operator%= (const Base<eT,T1>& in)
   {
   arma_extra_debug_sigprint();
   
-  inplace_op<op_internal_schur>(in, "element-wise multiplication");
+  const Proxy<T1> P(in.get_ref());
+  
+  subview<eT>& s = *this;
+  
+  const uword s_n_rows = s.n_rows;
+  const uword s_n_cols = s.n_cols;
+  
+  arma_debug_assert_same_size(s, P, "element-wise multiplication");
+  
+  const bool is_alias = P.is_alias(s.m);
+  
+  arma_extra_debug_warn(is_alias, "aliasing detected");
+  
+  if( (is_Mat<typename Proxy<T1>::stored_type>::value == true) || (is_alias == true) )
+    {
+    const unwrap_check<typename Proxy<T1>::stored_type> tmp(P.Q, is_alias);
+    const Mat<eT>& x = tmp.M;
+    
+    if(s_n_rows == 1)
+      {
+      const eT* x_mem = x.memptr();
+      
+      Mat<eT>& A = const_cast< Mat<eT>& >(m);
+      
+      const uword urow      = aux_row1;
+      const uword start_col = aux_col1;
+      
+      uword ii,jj;
+      for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
+        {
+        A.at(urow, start_col+ii) *= x_mem[ii];
+        A.at(urow, start_col+jj) *= x_mem[jj];
+        }
+      
+      if(ii < s_n_cols)
+        {
+        A.at(urow, start_col+ii) *= x_mem[ii];
+        }
+      }
+    else
+      {
+      for(uword ucol=0; ucol < s_n_cols; ++ucol)
+        {
+        arrayops::inplace_mul( s.colptr(ucol), x.colptr(ucol), s_n_rows );
+        }
+      }
+    }
+  else
+    {
+    if(s_n_rows == 1)
+      {
+      Mat<eT>& A = const_cast< Mat<eT>& >(m);
+      
+      const uword urow      = aux_row1;
+      const uword start_col = aux_col1;
+      
+      uword ii,jj;
+      for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
+        {
+        const eT tmp1 = (Proxy<T1>::prefer_at_accessor) ? P.at(0,ii) : P[ii];
+        const eT tmp2 = (Proxy<T1>::prefer_at_accessor) ? P.at(0,jj) : P[jj];
+        
+        A.at(urow, start_col+ii) *= tmp1;
+        A.at(urow, start_col+jj) *= tmp2;
+        }
+      
+      if(ii < s_n_cols)
+        {
+        A.at(urow, start_col+ii) *= (Proxy<T1>::prefer_at_accessor) ? P.at(0,ii) : P[ii];
+        }
+      }
+    else
+      {
+      for(uword ucol=0; ucol < s_n_cols; ++ucol)
+        {
+        eT* s_col_data = s.colptr(ucol);
+        
+        uword ii,jj;
+        for(ii=0, jj=1; jj < s_n_rows; ii+=2, jj+=2)
+          {
+          const eT val1 = P.at(ii,ucol);
+          const eT val2 = P.at(jj,ucol);
+          
+          s_col_data[ii] *= val1;
+          s_col_data[jj] *= val2;
+          }
+        
+        if(ii < s_n_rows)
+          {
+          s_col_data[ii] *= P.at(ii,ucol);
+          }
+        }
+      }
+    }
   }
 
 
@@ -534,381 +635,420 @@ subview<eT>::operator/= (const Base<eT,T1>& in)
   {
   arma_extra_debug_sigprint();
   
-  inplace_op<op_internal_div>(in, "element-wise division");
-  }
-
-
-
-template<typename eT>
-template<typename T1>
-inline
-void
-subview<eT>::operator=(const SpBase<eT, T1>& x)
-  {
-  arma_extra_debug_sigprint();
-  
-  const SpProxy<T1> p(x.get_ref());
-  
-  arma_debug_assert_same_size(n_rows, n_cols, p.get_n_rows(), p.get_n_cols(), "copy into submatrix");
-  
-  // Clear the subview.
-  zeros();
-  
-  // Iterate through the sparse subview and set the nonzero values appropriately.
-  typename SpProxy<T1>::const_iterator_type cit     = p.begin();
-  typename SpProxy<T1>::const_iterator_type cit_end = p.end();
-  
-  while(cit != cit_end)
-    {
-    at(cit.row(), cit.col()) = *cit;
-    ++cit;
-    }
-  }
-
-
-
-template<typename eT>
-template<typename T1>
-inline
-void
-subview<eT>::operator+=(const SpBase<eT, T1>& x)
-  {
-  arma_extra_debug_sigprint();
-  
-  const SpProxy<T1> p(x.get_ref());
-  
-  arma_debug_assert_same_size(n_rows, n_cols, p.get_n_rows(), p.get_n_cols(), "addition");
-  
-  // Iterate through the sparse subview and add its values.
-  typename SpProxy<T1>::const_iterator_type cit     = p.begin();
-  typename SpProxy<T1>::const_iterator_type cit_end = p.end();
-  
-  while(cit != cit_end)
-    {
-    at(cit.row(), cit.col()) += *cit;
-    ++cit;
-    }
-  }
-
-
-
-template<typename eT>
-template<typename T1>
-inline
-void
-subview<eT>::operator-=(const SpBase<eT, T1>& x)
-  {
-  arma_extra_debug_sigprint();
-  
-  const SpProxy<T1> p(x.get_ref());
-  
-  arma_debug_assert_same_size(n_rows, n_cols, p.get_n_rows(), p.get_n_cols(), "subtraction");
-  
-  // Iterate through the sparse subview and subtract its values.
-  typename SpProxy<T1>::const_iterator_type cit     = p.begin();
-  typename SpProxy<T1>::const_iterator_type cit_end = p.end();
-  
-  while(cit != cit_end)
-    {
-    at(cit.row(), cit.col()) -= *cit;
-    ++cit;
-    }
-  }
-
-
-
-template<typename eT>
-template<typename T1>
-inline
-void
-subview<eT>::operator%=(const SpBase<eT, T1>& x)
-  {
-  arma_extra_debug_sigprint();
-  
-  const uword s_n_rows = (*this).n_rows;
-  const uword s_n_cols = (*this).n_cols;
-  
-  const SpProxy<T1> p(x.get_ref());
-  
-  arma_debug_assert_same_size(s_n_rows, s_n_cols, p.get_n_rows(), p.get_n_cols(), "element-wise multiplication");
-  
-  if(n_elem == 0)  { return; }
-  
-  if(p.get_n_nonzero() == 0)  { (*this).zeros(); return; }
-  
-  // Iterate over nonzero values.
-  // Any zero values in the sparse expression will result in a zero in our subview.
-  typename SpProxy<T1>::const_iterator_type cit     = p.begin();
-  typename SpProxy<T1>::const_iterator_type cit_end = p.end();
-  
-  uword r = 0;
-  uword c = 0;
-  
-  while(cit != cit_end)
-    {
-    const uword cit_row = cit.row();
-    const uword cit_col = cit.col();
-    
-    while( ((r == cit_row) && (c == cit_col)) == false )
-      {
-      at(r,c) = eT(0);
-      
-      r++;  if(r >= s_n_rows)  { r = 0; c++; }
-      }
-    
-    at(r, c) *= (*cit); 
-    
-    ++cit;
-    r++;  if(r >= s_n_rows)  { r = 0; c++; }
-    }
-  }
-
-
-
-template<typename eT>
-template<typename T1>
-inline
-void
-subview<eT>::operator/=(const SpBase<eT, T1>& x)
-  {
-  arma_extra_debug_sigprint();
-  
-  const SpProxy<T1> p(x.get_ref());
-  
-  arma_debug_assert_same_size(n_rows, n_cols, p.get_n_rows(), p.get_n_cols(), "element-wise division");
-  
-  // This is probably going to fill your subview with a bunch of NaNs,
-  // so I'm not going to bother to implement it fast.
-  // You can have slow NaNs.  They're fine too.
-  for (uword c = 0; c < n_cols; ++c)
-  for (uword r = 0; r < n_rows; ++r)
-    {
-    at(r, c) /= p.at(r, c);
-    }
-  }
-
-
-
-template<typename eT>
-template<typename T1, typename gen_type>
-inline
-typename enable_if2< is_same_type<typename T1::elem_type, eT>::value, void>::result
-subview<eT>::operator= (const Gen<T1,gen_type>& in)
-  {
-  arma_extra_debug_sigprint();
-  
-  arma_debug_assert_same_size(n_rows, n_cols, in.n_rows, in.n_cols, "copy into submatrix");
-  
-  in.apply(*this);
-  }
-
-
-
-//! apply a functor to each element
-template<typename eT>
-template<typename functor>
-inline
-void
-subview<eT>::for_each(functor F)
-  {
-  arma_extra_debug_sigprint();
-  
-  Mat<eT>& X = const_cast< Mat<eT>& >(m);
-  
-  if(n_rows == 1)
-    {
-    const uword urow          = aux_row1;
-    const uword start_col     = aux_col1;
-    const uword end_col_plus1 = start_col + n_cols;
-    
-    for(uword ucol = start_col; ucol < end_col_plus1; ++ucol)
-      {
-      F( X.at(urow, ucol) );
-      }
-    }
-  else
-    {
-    const uword start_col = aux_col1;
-    const uword start_row = aux_row1;
-    
-    const uword end_col_plus1 = start_col + n_cols;
-    const uword end_row_plus1 = start_row + n_rows;
-    
-    for(uword ucol = start_col; ucol < end_col_plus1; ++ucol)
-    for(uword urow = start_row; urow < end_row_plus1; ++urow)
-      {
-      F( X.at(urow, ucol) );
-      }
-    }
-  }
-
-
-
-template<typename eT>
-template<typename functor>
-inline
-void
-subview<eT>::for_each(functor F) const
-  {
-  arma_extra_debug_sigprint();
-  
-  const Mat<eT>& X = m;
-  
-  if(n_rows == 1)
-    {
-    const uword urow          = aux_row1;
-    const uword start_col     = aux_col1;
-    const uword end_col_plus1 = start_col + n_cols;
-    
-    for(uword ucol = start_col; ucol < end_col_plus1; ++ucol)
-      {
-      F( X.at(urow, ucol) );
-      }
-    }
-  else
-    {
-    const uword start_col = aux_col1;
-    const uword start_row = aux_row1;
-    
-    const uword end_col_plus1 = start_col + n_cols;
-    const uword end_row_plus1 = start_row + n_rows;
-    
-    for(uword ucol = start_col; ucol < end_col_plus1; ++ucol)
-    for(uword urow = start_row; urow < end_row_plus1; ++urow)
-      {
-      F( X.at(urow, ucol) );
-      }
-    }
-  }
-
-
-
-//! transform each element in the subview using a functor
-template<typename eT>
-template<typename functor>
-inline
-void
-subview<eT>::transform(functor F)
-  {
-  arma_extra_debug_sigprint();
-  
-  Mat<eT>& X = const_cast< Mat<eT>& >(m);
-  
-  if(n_rows == 1)
-    {
-    const uword urow          = aux_row1;
-    const uword start_col     = aux_col1;
-    const uword end_col_plus1 = start_col + n_cols;
-    
-    for(uword ucol = start_col; ucol < end_col_plus1; ++ucol)
-      {
-      X.at(urow, ucol) = eT( F( X.at(urow, ucol) ) );
-      }
-    }
-  else
-    {
-    const uword start_col = aux_col1;
-    const uword start_row = aux_row1;
-    
-    const uword end_col_plus1 = start_col + n_cols;
-    const uword end_row_plus1 = start_row + n_rows;
-    
-    for(uword ucol = start_col; ucol < end_col_plus1; ++ucol)
-    for(uword urow = start_row; urow < end_row_plus1; ++urow)
-      {
-      X.at(urow, ucol) = eT( F( X.at(urow, ucol) ) );
-      }
-    }
-  }
-
-
-
-//! imbue (fill) the subview with values provided by a functor
-template<typename eT>
-template<typename functor>
-inline
-void
-subview<eT>::imbue(functor F)
-  {
-  arma_extra_debug_sigprint();
-  
-  Mat<eT>& X = const_cast< Mat<eT>& >(m);
-  
-  if(n_rows == 1)
-    {
-    const uword urow          = aux_row1;
-    const uword start_col     = aux_col1;
-    const uword end_col_plus1 = start_col + n_cols;
-    
-    for(uword ucol = start_col; ucol < end_col_plus1; ++ucol)
-      {
-      X.at(urow, ucol) = eT( F() );
-      }
-    }
-  else
-    {
-    const uword start_col = aux_col1;
-    const uword start_row = aux_row1;
-    
-    const uword end_col_plus1 = start_col + n_cols;
-    const uword end_row_plus1 = start_row + n_rows;
-    
-    for(uword ucol = start_col; ucol < end_col_plus1; ++ucol)
-    for(uword urow = start_row; urow < end_row_plus1; ++urow)
-      {
-      X.at(urow, ucol) = eT( F() );
-      }
-    }
-  }
-
-
-
-template<typename eT>
-inline
-void
-subview<eT>::replace(const eT old_val, const eT new_val)
-  {
-  arma_extra_debug_sigprint();
+  const Proxy<T1> P(in.get_ref());
   
   subview<eT>& s = *this;
   
-  const uword s_n_cols = s.n_cols;
   const uword s_n_rows = s.n_rows;
+  const uword s_n_cols = s.n_cols;
   
-  if(s_n_rows == 1)
+  arma_debug_assert_same_size(s, P, "element-wise division");
+  
+  const bool is_alias = P.is_alias(s.m);
+  
+  arma_extra_debug_warn(is_alias, "aliasing detected");
+  
+  if( (is_Mat<typename Proxy<T1>::stored_type>::value == true) || (is_alias == true) )
     {
-    Mat<eT>& A = const_cast< Mat<eT>& >(s.m);
+    const unwrap_check<typename Proxy<T1>::stored_type> tmp(P.Q, is_alias);
+    const Mat<eT>& x = tmp.M;
     
-    const uword A_n_rows = A.n_rows;
-    
-    eT* Aptr = &(A.at(s.aux_row1,s.aux_col1));
-    
-    if(arma_isnan(old_val))
+    if(s_n_rows == 1)
       {
-      for(uword ucol=0; ucol < s_n_cols; ++ucol)
+      const eT* x_mem = x.memptr();
+      
+      Mat<eT>& A = const_cast< Mat<eT>& >(m);
+      
+      const uword urow      = aux_row1;
+      const uword start_col = aux_col1;
+      
+      uword ii,jj;
+      for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
         {
-        (*Aptr) = (arma_isnan(*Aptr)) ? new_val : (*Aptr);
-        
-        Aptr += A_n_rows;
+        A.at(urow, start_col+ii) /= x_mem[ii];
+        A.at(urow, start_col+jj) /= x_mem[jj];
+        }
+      
+      if(ii < s_n_cols)
+        {
+        A.at(urow, start_col+ii) /= x_mem[ii];
         }
       }
     else
       {
       for(uword ucol=0; ucol < s_n_cols; ++ucol)
         {
-        (*Aptr) = ((*Aptr) == old_val) ? new_val : (*Aptr);
-        
-        Aptr += A_n_rows;
+        arrayops::inplace_div( s.colptr(ucol), x.colptr(ucol), s_n_rows );
         }
+      }
+    }
+  else
+    {
+    if(s_n_rows == 1)
+      {
+      Mat<eT>& A = const_cast< Mat<eT>& >(m);
+      
+      const uword urow      = aux_row1;
+      const uword start_col = aux_col1;
+      
+      uword ii,jj;
+      for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
+        {
+        const eT tmp1 = (Proxy<T1>::prefer_at_accessor) ? P.at(0,ii) : P[ii];
+        const eT tmp2 = (Proxy<T1>::prefer_at_accessor) ? P.at(0,jj) : P[jj];
+        
+        A.at(urow, start_col+ii) /= tmp1;
+        A.at(urow, start_col+jj) /= tmp2;
+        }
+      
+      if(ii < s_n_cols)
+        {
+        A.at(urow, start_col+ii) /= (Proxy<T1>::prefer_at_accessor) ? P.at(0,ii) : P[ii];
+        }
+      }
+    else
+      {
+      for(uword ucol=0; ucol < s_n_cols; ++ucol)
+        {
+        eT* s_col_data = s.colptr(ucol);
+        
+        uword ii,jj;
+        for(ii=0, jj=1; jj < s_n_rows; ii+=2, jj+=2)
+          {
+          const eT val1 = P.at(ii,ucol);
+          const eT val2 = P.at(jj,ucol);
+          
+          s_col_data[ii] /= val1;
+          s_col_data[jj] /= val2;
+          }
+        
+        if(ii < s_n_rows)
+          {
+          s_col_data[ii] /= P.at(ii,ucol);
+          }
+        }
+      }
+    }
+  }
+
+
+
+//! x.submat(...) = y.submat(...)
+template<typename eT>
+inline
+void
+subview<eT>::operator= (const subview<eT>& x_in)
+  {
+  arma_extra_debug_sigprint();
+  
+  const bool overlap = check_overlap(x_in);
+  
+        Mat<eT>*     tmp_mat     = overlap ? new Mat<eT>(x_in.m) : 0;
+  const subview<eT>* tmp_subview = overlap ? new subview<eT>(*tmp_mat, x_in.aux_row1, x_in.aux_col1, x_in.n_rows, x_in.n_cols) : 0;
+  const subview<eT>&           x = overlap ? (*tmp_subview) : x_in;
+  
+  subview<eT>& s = *this;
+  
+  arma_debug_assert_same_size(s, x, "copy into submatrix");
+  
+  const uword s_n_cols = s.n_cols;
+  const uword s_n_rows = s.n_rows;
+  
+  if(s_n_rows == 1)
+    {
+          Mat<eT>& A = const_cast< Mat<eT>& >(s.m);
+    const Mat<eT>& B = x.m;
+    
+    const uword row_A = s.aux_row1;
+    const uword row_B = x.aux_row1;
+    
+    const uword start_col_A = s.aux_col1;
+    const uword start_col_B = x.aux_col1;
+    
+    uword ii,jj;
+    for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
+      {
+      const eT tmp1 = B.at(row_B, start_col_B + ii);
+      const eT tmp2 = B.at(row_B, start_col_B + jj);
+      
+      A.at(row_A, start_col_A + ii) = tmp1;
+      A.at(row_A, start_col_A + jj) = tmp2;
+      }
+    
+    if(ii < s_n_cols)
+      {
+      A.at(row_A, start_col_A + ii) = B.at(row_B, start_col_B + ii);
       }
     }
   else
     {
     for(uword ucol=0; ucol < s_n_cols; ++ucol)
       {
-      arrayops::replace(s.colptr(ucol), s_n_rows, old_val, new_val);
+      arrayops::copy( s.colptr(ucol), x.colptr(ucol), s_n_rows );
       }
     }
+  
+  if(overlap)
+    {
+    delete tmp_subview;
+    delete tmp_mat;
+    }
+  }
+
+
+
+template<typename eT>
+inline
+void
+subview<eT>::operator+= (const subview<eT>& x_in)
+  {
+  arma_extra_debug_sigprint();
+  
+  const bool overlap = check_overlap(x_in);
+  
+        Mat<eT>*     tmp_mat     = overlap ? new Mat<eT>(x_in.m) : 0;
+  const subview<eT>* tmp_subview = overlap ? new subview(*tmp_mat, x_in.aux_row1, x_in.aux_col1, x_in.n_rows, x_in.n_cols) : 0;
+  const subview<eT>&           x = overlap ? (*tmp_subview) : x_in;
+  
+  subview<eT>& s = *this;
+  
+  arma_debug_assert_same_size(s, x, "addition");
+  
+  const uword s_n_rows = s.n_rows;
+  const uword s_n_cols = s.n_cols;
+  
+  if(s_n_rows == 1)
+    {
+          Mat<eT>& A = const_cast< Mat<eT>& >(s.m);
+    const Mat<eT>& B = x.m;
+    
+    const uword row_A = s.aux_row1;
+    const uword row_B = x.aux_row1;
+    
+    const uword start_col_A = s.aux_col1;
+    const uword start_col_B = x.aux_col1;
+    
+    uword ii,jj;
+    
+    for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
+      {
+      const eT tmp1 = B.at(row_B, start_col_B + ii);
+      const eT tmp2 = B.at(row_B, start_col_B + jj);
+      
+      A.at(row_A, start_col_A + ii) += tmp1;
+      A.at(row_A, start_col_A + jj) += tmp2;
+      }
+    
+    if(ii < s_n_cols)
+      {
+      A.at(row_A, start_col_A + ii) += B.at(row_B, start_col_B + ii);
+      }
+    }
+  else
+    {
+    for(uword ucol=0; ucol < s_n_cols; ++ucol)
+      {
+      arrayops::inplace_plus( s.colptr(ucol), x.colptr(ucol), s_n_rows );
+      }
+    }
+  
+  if(overlap)
+    {
+    delete tmp_subview;
+    delete tmp_mat;
+    }
+  }
+
+
+
+template<typename eT>
+inline
+void
+subview<eT>::operator-= (const subview<eT>& x_in)
+  {
+  arma_extra_debug_sigprint();
+  
+  const bool overlap = check_overlap(x_in);
+  
+        Mat<eT>*     tmp_mat     = overlap ? new Mat<eT>(x_in.m) : 0;
+  const subview<eT>* tmp_subview = overlap ? new subview(*tmp_mat, x_in.aux_row1, x_in.aux_col1, x_in.n_rows, x_in.n_cols) : 0;
+  const subview<eT>&           x = overlap ? (*tmp_subview) : x_in;
+  
+  subview<eT>& s = *this;
+  
+  arma_debug_assert_same_size(s, x, "subtraction");
+  
+  const uword s_n_rows = s.n_rows;
+  const uword s_n_cols = s.n_cols;
+  
+  if(s_n_rows == 1)
+    {
+          Mat<eT>& A = const_cast< Mat<eT>& >(s.m);
+    const Mat<eT>& B = x.m;
+    
+    const uword row_A = s.aux_row1;
+    const uword row_B = x.aux_row1;
+    
+    const uword start_col_A = s.aux_col1;
+    const uword start_col_B = x.aux_col1;
+    
+    uword ii,jj;
+    for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
+      {
+      const eT tmp1 = B.at(row_B, start_col_B + ii);
+      const eT tmp2 = B.at(row_B, start_col_B + jj);
+      
+      A.at(row_A, start_col_A + ii) -= tmp1;
+      A.at(row_A, start_col_A + jj) -= tmp2;
+      }
+    
+    if(ii < s_n_cols)
+      {
+      A.at(row_A, start_col_A + ii) -= B.at(row_B, start_col_B + ii);
+      }
+    }
+  else
+    {
+    for(uword ucol=0; ucol < s_n_cols; ++ucol)
+      {
+      arrayops::inplace_minus( s.colptr(ucol), x.colptr(ucol), s_n_rows );
+      }
+    }
+    
+  if(overlap)
+    {
+    delete tmp_subview;
+    delete tmp_mat;
+    }
+  
+  }
+
+
+
+template<typename eT>
+inline
+void
+subview<eT>::operator%= (const subview& x_in)
+  {
+  arma_extra_debug_sigprint();
+  
+  const bool overlap = check_overlap(x_in);
+  
+        Mat<eT>*     tmp_mat     = overlap ? new Mat<eT>(x_in.m) : 0;
+  const subview<eT>* tmp_subview = overlap ? new subview(*tmp_mat, x_in.aux_row1, x_in.aux_col1, x_in.n_rows, x_in.n_cols) : 0;
+  const subview<eT>&           x = overlap ? (*tmp_subview) : x_in;
+  
+  subview<eT>& s = *this;
+  
+  arma_debug_assert_same_size(s, x, "element-wise multiplication");
+  
+  const uword s_n_rows = s.n_rows;
+  const uword s_n_cols = s.n_cols;
+  
+  if(s_n_rows == 1)
+    {
+          Mat<eT>& A = const_cast< Mat<eT>& >(s.m);
+    const Mat<eT>& B = x.m;
+    
+    const uword row_A = s.aux_row1;
+    const uword row_B = x.aux_row1;
+    
+    const uword start_col_A = s.aux_col1;
+    const uword start_col_B = x.aux_col1;
+    
+    uword ii,jj;
+    for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
+      {
+      const eT tmp1 = B.at(row_B, start_col_B + ii);
+      const eT tmp2 = B.at(row_B, start_col_B + jj);
+      
+      A.at(row_A, start_col_A + ii) *= tmp1;
+      A.at(row_A, start_col_A + jj) *= tmp2;
+      }
+    
+    if(ii < s_n_cols)
+      {
+      A.at(row_A, start_col_A + ii) *= B.at(row_B, start_col_B + ii);
+      }
+    }
+  else
+    {
+    for(uword ucol=0; ucol < s_n_cols; ++ucol)
+      {
+      arrayops::inplace_mul( s.colptr(ucol), x.colptr(ucol), s_n_rows );
+      }
+    }
+  
+  if(overlap)
+    {
+    delete tmp_subview;
+    delete tmp_mat;
+    }
+  
+  }
+
+
+
+template<typename eT>
+inline
+void
+subview<eT>::operator/= (const subview& x_in)
+  {
+  arma_extra_debug_sigprint();
+  
+  const bool overlap = check_overlap(x_in);
+  
+        Mat<eT>*     tmp_mat     = overlap ? new Mat<eT>(x_in.m) : 0;
+  const subview<eT>* tmp_subview = overlap ? new subview(*tmp_mat, x_in.aux_row1, x_in.aux_col1, x_in.n_rows, x_in.n_cols) : 0;
+  const subview<eT>&           x = overlap ? (*tmp_subview) : x_in;
+  
+  subview<eT>& s = *this;
+  
+  arma_debug_assert_same_size(s, x, "element-wise division");
+  
+  const uword s_n_rows = s.n_rows;
+  const uword s_n_cols = s.n_cols;
+  
+  if(s_n_rows == 1)
+    {
+          Mat<eT>& A = const_cast< Mat<eT>& >(s.m);
+    const Mat<eT>& B = x.m;
+    
+    const uword row_A = s.aux_row1;
+    const uword row_B = x.aux_row1;
+    
+    const uword start_col_A = s.aux_col1;
+    const uword start_col_B = x.aux_col1;
+    
+    uword ii,jj;
+    for(ii=0, jj=1; jj < s_n_cols; ii+=2, jj+=2)
+      {
+      const eT tmp1 = B.at(row_B, start_col_B + ii);
+      const eT tmp2 = B.at(row_B, start_col_B + jj);
+      
+      A.at(row_A, start_col_A + ii) /= tmp1;
+      A.at(row_A, start_col_A + jj) /= tmp2;
+      }
+    
+    if(ii < s_n_cols)
+      {
+      A.at(row_A, start_col_A + ii) /= B.at(row_B, start_col_B + ii);
+      }
+    }
+  else
+    {
+    for(uword ucol=0; ucol < s_n_cols; ++ucol)
+      {
+      arrayops::inplace_div( s.colptr(ucol), x.colptr(ucol), s_n_rows );
+      }
+    }
+    
+  if(overlap)
+    {
+    delete tmp_subview;
+    delete tmp_mat;
+    }
+  
   }
 
 
@@ -920,36 +1060,34 @@ subview<eT>::fill(const eT val)
   {
   arma_extra_debug_sigprint();
   
-  subview<eT>& s = *this;
+  const uword local_n_cols = n_cols;
+  const uword local_n_rows = n_rows;
   
-  const uword s_n_cols = s.n_cols;
-  const uword s_n_rows = s.n_rows;
-  
-  if(s_n_rows == 1)
+  if(local_n_rows == 1)
     {
-    Mat<eT>& A = const_cast< Mat<eT>& >(s.m);
+    Mat<eT>& X = const_cast< Mat<eT>& >(m);
     
-    const uword A_n_rows = A.n_rows;
+    const uword urow          = aux_row1;
+    const uword start_col     = aux_col1;
+    const uword end_col_plus1 = start_col + local_n_cols;
     
-    eT* Aptr = &(A.at(s.aux_row1,s.aux_col1));
-    
-    uword jj;
-    for(jj=1; jj < s_n_cols; jj+=2)
+    uword ii,jj;
+    for(ii=start_col, jj=start_col+1; jj < end_col_plus1; ii+=2, jj+=2)
       {
-      (*Aptr) = val;  Aptr += A_n_rows;
-      (*Aptr) = val;  Aptr += A_n_rows;
+      X.at(urow, ii) = val;
+      X.at(urow, jj) = val;
       }
     
-    if((jj-1) < s_n_cols)
+    if(ii < end_col_plus1)
       {
-      (*Aptr) = val;
+      X.at(urow, ii) = val;
       }
     }
   else
     {
-    for(uword ucol=0; ucol < s_n_cols; ++ucol)
+    for(uword ucol=0; ucol < local_n_cols; ++ucol)
       {
-      arrayops::inplace_set( s.colptr(ucol), val, s_n_rows );
+      arrayops::inplace_set( colptr(ucol), val, local_n_rows );
       }
     }
   }
@@ -987,7 +1125,7 @@ subview<eT>::eye()
   {
   arma_extra_debug_sigprint();
   
-  (*this).zeros();
+  fill(eT(0));
   
   const uword N = (std::min)(n_rows, n_cols);
   
@@ -995,72 +1133,6 @@ subview<eT>::eye()
     {
     at(ii,ii) = eT(1);
     }
-  }
-
-
-
-template<typename eT>
-inline
-void
-subview<eT>::randu()
-  {
-  arma_extra_debug_sigprint();
-  
-  const uword local_n_rows = n_rows;
-  const uword local_n_cols = n_cols;
-  
-  if(local_n_rows == 1)
-    {
-    for(uword ii=0; ii < local_n_cols; ++ii)
-      {
-      at(0,ii) = eT(arma_rng::randu<eT>());
-      }
-    }
-  else
-    {
-    for(uword ii=0; ii < local_n_cols; ++ii)
-      {
-      arma_rng::randu<eT>::fill( colptr(ii), local_n_rows );
-      }
-    }
-  }
-
-
-
-template<typename eT>
-inline
-void
-subview<eT>::randn()
-  {
-  arma_extra_debug_sigprint();
-  
-  const uword local_n_rows = n_rows;
-  const uword local_n_cols = n_cols;
-  
-  if(local_n_rows == 1)
-    {
-    for(uword ii=0; ii < local_n_cols; ++ii)
-      {
-      at(0,ii) = eT(arma_rng::randn<eT>());
-      }
-    }
-  else
-    {
-    for(uword ii=0; ii < local_n_cols; ++ii)
-      {
-      arma_rng::randn<eT>::fill( colptr(ii), local_n_rows );
-      }
-    }
-  }
-
-
-
-template<typename eT>
-inline
-eT
-subview<eT>::at_alt(const uword ii) const
-  {
-  return operator[](ii);
   }
 
 
@@ -1246,74 +1318,10 @@ subview<eT>::check_overlap(const subview<eT>& x) const
 
 template<typename eT>
 inline
-arma_warn_unused
 bool
 subview<eT>::is_vec() const
   {
   return ( (n_rows == 1) || (n_cols == 1) );
-  }
-
-
-
-template<typename eT>
-inline
-arma_warn_unused
-bool
-subview<eT>::is_finite() const
-  {
-  arma_extra_debug_sigprint();
-  
-  const uword local_n_rows = n_rows;
-  const uword local_n_cols = n_cols;
-  
-  for(uword ii=0; ii<local_n_cols; ++ii)
-    {
-    if(arrayops::is_finite(colptr(ii), local_n_rows) == false)  { return false; }
-    }
-  
-  return true;
-  }
-
-
-
-template<typename eT>
-inline
-arma_warn_unused
-bool
-subview<eT>::has_inf() const
-  {
-  arma_extra_debug_sigprint();
-  
-  const uword local_n_rows = n_rows;
-  const uword local_n_cols = n_cols;
-  
-  for(uword ii=0; ii<local_n_cols; ++ii)
-    {
-    if(arrayops::has_inf(colptr(ii), local_n_rows))  { return true; }
-    }
-  
-  return false;
-  }
-
-
-
-template<typename eT>
-inline
-arma_warn_unused
-bool
-subview<eT>::has_nan() const
-  {
-  arma_extra_debug_sigprint();
-  
-  const uword local_n_rows = n_rows;
-  const uword local_n_cols = n_cols;
-  
-  for(uword ii=0; ii<local_n_cols; ++ii)
-    {
-    if(arrayops::has_nan(colptr(ii), local_n_rows))  { return true; }
-    }
-  
-  return false;
   }
 
 
@@ -1332,7 +1340,7 @@ subview<eT>::extract(Mat<eT>& out, const subview<eT>& in)
   const uword n_rows = in.n_rows;  // number of rows in the subview
   const uword n_cols = in.n_cols;  // number of columns in the subview
   
-  arma_extra_debug_print(arma_str::format("out.n_rows = %d   out.n_cols = %d    in.m.n_rows = %d  in.m.n_cols = %d") % out.n_rows % out.n_cols % in.m.n_rows % in.m.n_cols );
+  arma_extra_debug_print(arma_boost::format("out.n_rows = %d   out.n_cols = %d    in.m.n_rows = %d  in.m.n_cols = %d") % out.n_rows % out.n_cols % in.m.n_rows % in.m.n_cols );
   
   
   if(in.is_vec() == true)
@@ -1348,26 +1356,27 @@ subview<eT>::extract(Mat<eT>& out, const subview<eT>& in)
       {
       arma_extra_debug_print("subview::extract(): copying row (going across columns)");
       
+      const Mat<eT>& X = in.m;
+      
       eT* out_mem = out.memptr();
       
-      const uword X_n_rows = in.m.n_rows;
+      const uword row       = in.aux_row1;
+      const uword start_col = in.aux_col1;
       
-      const eT* Xptr = &(in.m.at(in.aux_row1,in.aux_col1));
+      uword i,j;
       
-      uword j;
-      
-      for(j=1; j < n_cols; j+=2)
+      for(i=0, j=1; j < n_cols; i+=2, j+=2)
         {
-        const eT tmp1 = (*Xptr);  Xptr += X_n_rows;
-        const eT tmp2 = (*Xptr);  Xptr += X_n_rows;
+        const eT tmp1 = X.at(row, start_col+i);
+        const eT tmp2 = X.at(row, start_col+j);
         
-        (*out_mem) = tmp1;  out_mem++;
-        (*out_mem) = tmp2;  out_mem++;
+        out_mem[i] = tmp1;
+        out_mem[j] = tmp2;
         }
       
-      if((j-1) < n_cols)
+      if(i < n_cols)
         {
-        (*out_mem) = (*Xptr);
+        out_mem[i] = X.at(row, start_col+i);
         }
       }
     }
@@ -2050,188 +2059,6 @@ subview<eT>::operator()(const span& row_span, const span& col_span) const
 
 
 
-template<typename eT>
-inline
-subview_each1< subview<eT>, 0 >
-subview<eT>::each_col()
-  {
-  arma_extra_debug_sigprint();
-  
-  return subview_each1< subview<eT>, 0 >(*this);
-  }
-
-
-
-template<typename eT>
-inline
-subview_each1< subview<eT>, 1 >
-subview<eT>::each_row()
-  {
-  arma_extra_debug_sigprint();
-  
-  return subview_each1< subview<eT>, 1 >(*this);
-  }
-
-
-
-template<typename eT>
-template<typename T1>
-inline
-subview_each2< subview<eT>, 0, T1 >
-subview<eT>::each_col(const Base<uword,T1>& indices)
-  {
-  arma_extra_debug_sigprint();
-  
-  return subview_each2< subview<eT>, 0, T1 >(*this, indices);
-  }
-
-
-
-template<typename eT>
-template<typename T1>
-inline
-subview_each2< subview<eT>, 1, T1 >
-subview<eT>::each_row(const Base<uword,T1>& indices)
-  {
-  arma_extra_debug_sigprint();
-  
-  return subview_each2< subview<eT>, 1, T1 >(*this, indices);
-  }
-
-
-
-#if defined(ARMA_USE_CXX11)
-  
-  //! apply a lambda function to each column, where each column is interpreted as a column vector
-  template<typename eT>
-  inline
-  void
-  subview<eT>::each_col(const std::function< void(Col<eT>&) >& F)
-    {
-    arma_extra_debug_sigprint();
-    
-    for(uword ii=0; ii < n_cols; ++ii)
-      {
-      Col<eT> tmp(colptr(ii), n_rows, false, true);
-      F(tmp);
-      }
-    }
-  
-  
-  
-  template<typename eT>
-  inline
-  void
-  subview<eT>::each_col(const std::function< void(const Col<eT>&) >& F) const
-    {
-    arma_extra_debug_sigprint();
-    
-    for(uword ii=0; ii < n_cols; ++ii)
-      {
-      const Col<eT> tmp(colptr(ii), n_rows, false, true);
-      F(tmp);
-      }
-    }
-  
-  
-  
-  //! apply a lambda function to each row, where each row is interpreted as a row vector
-  template<typename eT>
-  inline
-  void
-  subview<eT>::each_row(const std::function< void(Row<eT>&) >& F)
-    {
-    arma_extra_debug_sigprint();
-    
-    podarray<eT> array1(n_cols);
-    podarray<eT> array2(n_cols);
-    
-    Row<eT> tmp1( array1.memptr(), n_cols, false, true );
-    Row<eT> tmp2( array2.memptr(), n_cols, false, true );
-    
-    eT* tmp1_mem = tmp1.memptr();
-    eT* tmp2_mem = tmp2.memptr();
-    
-    uword ii, jj;
-    
-    for(ii=0, jj=1; jj < n_rows; ii+=2, jj+=2)
-      {
-      for(uword col_id = 0; col_id < n_cols; ++col_id)
-        {
-        const eT* col_mem = colptr(col_id);
-        
-        tmp1_mem[col_id] = col_mem[ii];
-        tmp2_mem[col_id] = col_mem[jj];
-        }
-      
-      F(tmp1);
-      F(tmp2);
-      
-      for(uword col_id = 0; col_id < n_cols; ++col_id)
-        {
-        eT* col_mem = colptr(col_id);
-        
-        col_mem[ii] = tmp1_mem[col_id];
-        col_mem[jj] = tmp2_mem[col_id];
-        }
-      }
-    
-    if(ii < n_rows)
-      {
-      tmp1 = (*this).row(ii);
-      
-      F(tmp1);
-      
-      (*this).row(ii) = tmp1;
-      }
-    }
-  
-  
-  
-  template<typename eT>
-  inline
-  void
-  subview<eT>::each_row(const std::function< void(const Row<eT>&) >& F) const
-    {
-    arma_extra_debug_sigprint();
-    
-    podarray<eT> array1(n_cols);
-    podarray<eT> array2(n_cols);
-    
-    Row<eT> tmp1( array1.memptr(), n_cols, false, true );
-    Row<eT> tmp2( array2.memptr(), n_cols, false, true );
-    
-    eT* tmp1_mem = tmp1.memptr();
-    eT* tmp2_mem = tmp2.memptr();
-    
-    uword ii, jj;
-    
-    for(ii=0, jj=1; jj < n_rows; ii+=2, jj+=2)
-      {
-      for(uword col_id = 0; col_id < n_cols; ++col_id)
-        {
-        const eT* col_mem = colptr(col_id);
-        
-        tmp1_mem[col_id] = col_mem[ii];
-        tmp2_mem[col_id] = col_mem[jj];
-        }
-      
-      F(tmp1);
-      F(tmp2);
-      }
-    
-    if(ii < n_rows)
-      {
-      tmp1 = (*this).row(ii);
-      
-      F(tmp1);
-      }
-    }
-  
-#endif
-
-
-
 //! creation of diagview (diagonal)
 template<typename eT>
 inline
@@ -2267,8 +2094,8 @@ subview<eT>::diag(const sword in_id) const
   {
   arma_extra_debug_sigprint();
   
-  const uword row_offset = uword( (in_id < 0) ? -in_id : 0 );
-  const uword col_offset = uword( (in_id > 0) ?  in_id : 0 );
+  const uword row_offset = (in_id < 0) ? -in_id : 0;
+  const uword col_offset = (in_id > 0) ?  in_id : 0;
   
   arma_debug_check
     (
@@ -2439,6 +2266,10 @@ subview_col<eT>::operator=(const subview<eT>& X)
   arma_extra_debug_sigprint();
   
   subview<eT>::operator=(X);
+  
+  access::rw(colmem) = subview<eT>::colptr(0);
+  
+  arma_debug_check( (subview<eT>::n_cols > 1), "subview_col(): incompatible dimensions" );
   }
 
 
@@ -2451,23 +2282,10 @@ subview_col<eT>::operator=(const subview_col<eT>& X)
   arma_extra_debug_sigprint();
   
   subview<eT>::operator=(X); // interprets 'subview_col' as 'subview'
-  }
-
-
-
-template<typename eT>
-inline
-void
-subview_col<eT>::operator=(const eT val)
-  {
-  arma_extra_debug_sigprint();
   
-  if(subview<eT>::n_elem != 1)
-    {
-    arma_debug_assert_same_size(subview<eT>::n_rows, subview<eT>::n_cols, 1, 1, "copy into submatrix");
-    }
+  access::rw(colmem) = subview<eT>::colptr(0);
   
-  access::rw( colmem[0] ) = val;
+  arma_debug_check( (subview<eT>::n_cols > 1), "subview_col(): incompatible dimensions" );
   }
 
 
@@ -2481,21 +2299,10 @@ subview_col<eT>::operator=(const Base<eT,T1>& X)
   arma_extra_debug_sigprint();
   
   subview<eT>::operator=(X);
-  }
-
-
-
-template<typename eT>
-template<typename T1, typename gen_type>
-inline
-typename enable_if2< is_same_type<typename T1::elem_type, eT>::value, void>::result
-subview_col<eT>::operator= (const Gen<T1,gen_type>& in)
-  {
-  arma_extra_debug_sigprint();
   
-  arma_debug_assert_same_size(subview<eT>::n_rows, uword(1), in.n_rows, (in.is_col ? uword(1) : in.n_cols), "copy into submatrix");
-  
-  in.apply(*this);
+  access::rw(colmem) = subview<eT>::colptr(0);
+
+  arma_debug_check( (subview<eT>::n_cols > 1), "subview_col(): incompatible dimensions" );
   }
 
 
@@ -2532,55 +2339,6 @@ subview_col<eT>::st() const
 
 template<typename eT>
 inline
-void
-subview_col<eT>::fill(const eT val)
-  {
-  arma_extra_debug_sigprint();
-  
-  arrayops::inplace_set( access::rwp(colmem), val, subview<eT>::n_rows );
-  }
-
-
-
-template<typename eT>
-inline
-void
-subview_col<eT>::zeros()
-  {
-  arma_extra_debug_sigprint();
-  
-  arrayops::fill_zeros( access::rwp(colmem), subview<eT>::n_rows );
-  }
-
-
-
-template<typename eT>
-inline
-void
-subview_col<eT>::ones()
-  {
-  arma_extra_debug_sigprint();
-  
-  arrayops::inplace_set( access::rwp(colmem), eT(1), subview<eT>::n_rows );
-  }
-
-
-
-template<typename eT>
-arma_inline
-eT
-subview_col<eT>::at_alt(const uword ii) const
-  {
-  const eT* colmem_aligned = colmem;
-  memory::mark_as_aligned(colmem_aligned);
-  
-  return colmem_aligned[ii];
-  }
-
-
-
-template<typename eT>
-arma_inline
 eT&
 subview_col<eT>::operator[](const uword ii)
   {
@@ -2590,7 +2348,7 @@ subview_col<eT>::operator[](const uword ii)
 
 
 template<typename eT>
-arma_inline
+inline
 eT
 subview_col<eT>::operator[](const uword ii) const
   {
@@ -2757,236 +2515,6 @@ subview_col<eT>::subvec(const uword in_row1, const uword in_row2) const
 
 
 
-template<typename eT>
-inline
-subview_col<eT>
-subview_col<eT>::subvec(const uword start_row, const SizeMat& s)
-  {
-  arma_extra_debug_sigprint();
-  
-  arma_debug_check( (s.n_cols != 1), "subview_col::subvec(): given size does not specify a column vector" );
-  
-  arma_debug_check( ( (start_row >= subview<eT>::n_rows) || ((start_row + s.n_rows) > subview<eT>::n_rows) ), "subview_col::subvec(): size out of bounds" );
-  
-  const uword base_row1 = this->aux_row1 + start_row;
-  
-  return subview_col<eT>(this->m, this->aux_col1, base_row1, s.n_rows);
-  }
-
-
-
-template<typename eT>
-inline
-const subview_col<eT>
-subview_col<eT>::subvec(const uword start_row, const SizeMat& s) const
-  {
-  arma_extra_debug_sigprint();
-  
-  arma_debug_check( (s.n_cols != 1), "subview_col::subvec(): given size does not specify a column vector" );
-  
-  arma_debug_check( ( (start_row >= subview<eT>::n_rows) || ((start_row + s.n_rows) > subview<eT>::n_rows) ), "subview_col::subvec(): size out of bounds" );
-  
-  const uword base_row1 = this->aux_row1 + start_row;
-  
-  return subview_col<eT>(this->m, this->aux_col1, base_row1, s.n_rows);
-  }
-
-
-
-template<typename eT>
-inline
-subview_col<eT>
-subview_col<eT>::head(const uword N)
-  {
-  arma_extra_debug_sigprint();
-  
-  arma_debug_check( (N > subview<eT>::n_rows), "subview_col::head(): size out of bounds");
-  
-  return subview_col<eT>(this->m, this->aux_col1, this->aux_row1, N);
-  }
-
-
-
-template<typename eT>
-inline
-const subview_col<eT>
-subview_col<eT>::head(const uword N) const
-  {
-  arma_extra_debug_sigprint();
-  
-  arma_debug_check( (N > subview<eT>::n_rows), "subview_col::head(): size out of bounds");
-  
-  return subview_col<eT>(this->m, this->aux_col1, this->aux_row1, N);
-  }
-
-
-
-template<typename eT>
-inline
-subview_col<eT>
-subview_col<eT>::tail(const uword N)
-  {
-  arma_extra_debug_sigprint();
-  
-  arma_debug_check( (N > subview<eT>::n_rows), "subview_col::tail(): size out of bounds");
-  
-  const uword start_row = subview<eT>::aux_row1 + subview<eT>::n_rows - N;
-  
-  return subview_col<eT>(this->m, this->aux_col1, start_row, N);
-  }
-
-
-
-template<typename eT>
-inline
-const subview_col<eT>
-subview_col<eT>::tail(const uword N) const
-  {
-  arma_extra_debug_sigprint();
-  
-  arma_debug_check( (N > subview<eT>::n_rows), "subview_col::tail(): size out of bounds");
-  
-  const uword start_row = subview<eT>::aux_row1 + subview<eT>::n_rows - N;
-  
-  return subview_col<eT>(this->m, this->aux_col1, start_row, N);
-  }
-
-
-
-template<typename eT>
-inline
-arma_warn_unused
-eT
-subview_col<eT>::min() const
-  {
-  arma_extra_debug_sigprint();
-  
-  if(subview<eT>::n_elem == 0)
-    {
-    arma_debug_check(true, "min(): object has no elements");
-    
-    return Datum<eT>::nan;
-    }
-  
-  return op_min::direct_min(colmem, subview<eT>::n_elem);
-  }
-
-
-
-template<typename eT>
-inline
-arma_warn_unused
-eT
-subview_col<eT>::max() const
-  {
-  arma_extra_debug_sigprint();
-  
-  if(subview<eT>::n_elem == 0)
-    {
-    arma_debug_check(true, "max(): object has no elements");
-    
-    return Datum<eT>::nan;
-    }
-  
-  return op_max::direct_max(colmem, subview<eT>::n_elem);
-  }
-
-
-
-template<typename eT>
-inline
-eT
-subview_col<eT>::min(uword& index_of_min_val) const
-  {
-  arma_extra_debug_sigprint();
-  
-  if(subview<eT>::n_elem == 0)
-    {
-    arma_debug_check(true, "min(): object has no elements");
-    
-    index_of_min_val = uword(0);
-    
-    return Datum<eT>::nan;
-    }
-  else
-    {
-    return op_min::direct_min(colmem, subview<eT>::n_elem, index_of_min_val);
-    }
-  }
-
-
-
-template<typename eT>
-inline
-eT
-subview_col<eT>::max(uword& index_of_max_val) const
-  {
-  arma_extra_debug_sigprint();
-  
-  if(subview<eT>::n_elem == 0)
-    {
-    arma_debug_check(true, "max(): object has no elements");
-    
-    index_of_max_val = uword(0);
-    
-    return Datum<eT>::nan;
-    }
-  else
-    {
-    return op_max::direct_max(colmem, subview<eT>::n_elem, index_of_max_val);
-    }
-  }
-
-
-
-template<typename eT>
-inline
-arma_warn_unused
-uword
-subview_col<eT>::index_min() const
-  {
-  arma_extra_debug_sigprint();
-  
-  uword index = 0;
-  
-  if(subview<eT>::n_elem == 0)
-    {
-    arma_debug_check(true, "index_min(): object has no elements");
-    }
-  else
-    {
-    op_min::direct_min(colmem, subview<eT>::n_elem, index);
-    }
-  
-  return index;
-  }
-
-
-
-template<typename eT>
-inline
-arma_warn_unused
-uword
-subview_col<eT>::index_max() const
-  {
-  arma_extra_debug_sigprint();
-  
-  uword index = 0;
-  
-  if(subview<eT>::n_elem == 0)
-    {
-    arma_debug_check(true, "index_max(): object has no elements");
-    }
-  else
-    {
-    op_max::direct_max(colmem, subview<eT>::n_elem, index);
-    }
-  
-  return index;
-  }
-
-
-
 //
 //
 //
@@ -3021,6 +2549,7 @@ subview_row<eT>::operator=(const subview<eT>& X)
   arma_extra_debug_sigprint();
   
   subview<eT>::operator=(X);
+  arma_debug_check( (subview<eT>::n_rows > 1), "subview_row(): incompatible dimensions" );
   }
 
 
@@ -3033,18 +2562,7 @@ subview_row<eT>::operator=(const subview_row<eT>& X)
   arma_extra_debug_sigprint();
   
   subview<eT>::operator=(X); // interprets 'subview_row' as 'subview'
-  }
-
-
-
-template<typename eT>
-inline
-void
-subview_row<eT>::operator=(const eT val)
-  {
-  arma_extra_debug_sigprint();
-  
-  subview<eT>::operator=(val); // interprets 'subview_row' as 'subview'
+  arma_debug_check( (subview<eT>::n_rows > 1), "subview_row(): incompatible dimensions" );
   }
 
 
@@ -3058,21 +2576,7 @@ subview_row<eT>::operator=(const Base<eT,T1>& X)
   arma_extra_debug_sigprint();
   
   subview<eT>::operator=(X);
-  }
-
-
-
-template<typename eT>
-template<typename T1, typename gen_type>
-inline
-typename enable_if2< is_same_type<typename T1::elem_type, eT>::value, void>::result
-subview_row<eT>::operator= (const Gen<T1,gen_type>& in)
-  {
-  arma_extra_debug_sigprint();
-  
-  arma_debug_assert_same_size(uword(1), subview<eT>::n_cols, (in.is_row ? uword(1) : in.n_rows), in.n_cols, "copy into submatrix");
-  
-  in.apply(*this);
+  arma_debug_check( (subview<eT>::n_rows > 1), "subview_row(): incompatible dimensions" );
   }
 
 
@@ -3103,18 +2607,6 @@ const Op<subview_row<eT>,op_strans>
 subview_row<eT>::st() const
   {
   return Op<subview_row<eT>,op_strans>(*this);
-  }
-
-
-
-template<typename eT>
-inline
-eT
-subview_row<eT>::at_alt(const uword ii) const
-  {
-  const uword index = (ii + (subview<eT>::aux_col1))*(subview<eT>::m).n_rows + (subview<eT>::aux_row1);
-  
-  return subview<eT>::m.mem[index];
   }
 
 
@@ -3291,347 +2783,6 @@ subview_row<eT>::subvec(const uword in_col1, const uword in_col2) const
   const uword base_col1 = this->aux_col1 + in_col1;
   
   return subview_row<eT>(this->m, this->aux_row1, base_col1, subview_n_cols);
-  }
-
-
-
-template<typename eT>
-inline
-subview_row<eT>
-subview_row<eT>::subvec(const uword start_col, const SizeMat& s)
-  {
-  arma_extra_debug_sigprint();
-  
-  arma_debug_check( (s.n_rows != 1), "subview_row::subvec(): given size does not specify a row vector" );
-  
-  arma_debug_check( ( (start_col >= subview<eT>::n_cols) || ((start_col + s.n_cols) > subview<eT>::n_cols) ), "subview_row::subvec(): size out of bounds" );
-  
-  const uword base_col1 = this->aux_col1 + start_col;
-  
-  return subview_row<eT>(this->m, this->aux_row1, base_col1, s.n_cols);
-  }
-
-
-
-template<typename eT>
-inline
-const subview_row<eT>
-subview_row<eT>::subvec(const uword start_col, const SizeMat& s) const
-  {
-  arma_extra_debug_sigprint();
-  
-  arma_debug_check( (s.n_rows != 1), "subview_row::subvec(): given size does not specify a row vector" );
-  
-  arma_debug_check( ( (start_col >= subview<eT>::n_cols) || ((start_col + s.n_cols) > subview<eT>::n_cols) ), "subview_row::subvec(): size out of bounds" );
-  
-  const uword base_col1 = this->aux_col1 + start_col;
-  
-  return subview_row<eT>(this->m, this->aux_row1, base_col1, s.n_cols);
-  }
-
-
-
-template<typename eT>
-inline
-subview_row<eT>
-subview_row<eT>::head(const uword N)
-  {
-  arma_extra_debug_sigprint();
-  
-  arma_debug_check( (N > subview<eT>::n_cols), "subview_row::head(): size out of bounds");
-  
-  return subview_row<eT>(this->m, this->aux_row1, this->aux_col1, N);
-  }
-
-
-
-template<typename eT>
-inline
-const subview_row<eT>
-subview_row<eT>::head(const uword N) const
-  {
-  arma_extra_debug_sigprint();
-  
-  arma_debug_check( (N > subview<eT>::n_cols), "subview_row::head(): size out of bounds");
-  
-  return subview_row<eT>(this->m, this->aux_row1, this->aux_col1, N);
-  }
-
-
-
-template<typename eT>
-inline
-subview_row<eT>
-subview_row<eT>::tail(const uword N)
-  {
-  arma_extra_debug_sigprint();
-  
-  arma_debug_check( (N > subview<eT>::n_cols), "subview_row::tail(): size out of bounds");
-  
-  const uword start_col = subview<eT>::aux_col1 + subview<eT>::n_cols - N;
-  
-  return subview_row<eT>(this->m, this->aux_row1, start_col, N);
-  }
-
-
-
-template<typename eT>
-inline
-const subview_row<eT>
-subview_row<eT>::tail(const uword N) const
-  {
-  arma_extra_debug_sigprint();
-  
-  arma_debug_check( (N > subview<eT>::n_cols), "subview_row::tail(): size out of bounds");
-  
-  const uword start_col = subview<eT>::aux_col1 + subview<eT>::n_cols - N;
-  
-  return subview_row<eT>(this->m, this->aux_row1, start_col, N);
-  }
-
-
-
-template<typename eT>
-inline
-arma_warn_unused
-uword
-subview_row<eT>::index_min() const
-  {
-  const Proxy< subview_row<eT> > P(*this);
-  
-  uword index = 0;
-  
-  if(P.get_n_elem() == 0)
-    {
-    arma_debug_check(true, "index_min(): object has no elements");
-    }
-  else
-    {
-    op_min::min_with_index(P, index);
-    }
-  
-  return index;
-  }
-
-
-
-template<typename eT>
-inline
-arma_warn_unused
-uword
-subview_row<eT>::index_max() const
-  {
-  const Proxy< subview_row<eT> > P(*this);
-  
-  uword index = 0;
-  
-  if(P.get_n_elem() == 0)
-    {
-    arma_debug_check(true, "index_max(): object has no elements");
-    }
-  else
-    {
-    op_max::max_with_index(P, index);
-    }
-  
-  return index;
-  }
-
-
-
-//
-//
-//
-
-
-
-template<typename eT>
-inline
-subview_row_strans<eT>::subview_row_strans(const subview_row<eT>& in_sv_row)
-  : sv_row(in_sv_row       )
-  , n_rows(in_sv_row.n_cols)
-  , n_elem(in_sv_row.n_elem)
-  {
-  arma_extra_debug_sigprint();
-  }
-
-
-
-template<typename eT>
-inline
-void
-subview_row_strans<eT>::extract(Mat<eT>& out) const
-  {
-  arma_extra_debug_sigprint();
-  
-  // NOTE: this function assumes that matrix 'out' has already been set to the correct size
-  
-  const Mat<eT>& X = sv_row.m;
-  
-  eT* out_mem = out.memptr();
-  
-  const uword row           = sv_row.aux_row1;
-  const uword start_col     = sv_row.aux_col1;
-  const uword sv_row_n_cols = sv_row.n_cols;
-  
-  uword ii,jj;
-  
-  for(ii=0, jj=1; jj < sv_row_n_cols; ii+=2, jj+=2)
-    {
-    const eT tmp1 = X.at(row, start_col+ii);
-    const eT tmp2 = X.at(row, start_col+jj);
-    
-    out_mem[ii] = tmp1;
-    out_mem[jj] = tmp2;
-    }
-  
-  if(ii < sv_row_n_cols)
-    {
-    out_mem[ii] = X.at(row, start_col+ii);
-    }
-  }
-
-
-
-template<typename eT>
-inline
-eT
-subview_row_strans<eT>::at_alt(const uword ii) const
-  {
-  return sv_row[ii];
-  }
-
-
-
-template<typename eT>
-inline
-eT
-subview_row_strans<eT>::operator[](const uword ii) const
-  {
-  return sv_row[ii];
-  }
-
-
-
-template<typename eT>
-inline
-eT
-subview_row_strans<eT>::operator()(const uword ii) const
-  {
-  return sv_row(ii);
-  }
-
-
-
-template<typename eT>
-inline
-eT
-subview_row_strans<eT>::operator()(const uword in_row, const uword in_col) const
-  {
-  return sv_row(in_col, in_row);  // deliberately swapped
-  }
-
-
-
-template<typename eT>
-inline
-eT
-subview_row_strans<eT>::at(const uword in_row, const uword) const
-  {
-  return sv_row.at(0, in_row);  // deliberately swapped
-  }
-
-
-
-//
-//
-//
-
-
-
-template<typename eT>
-inline
-subview_row_htrans<eT>::subview_row_htrans(const subview_row<eT>& in_sv_row)
-  : sv_row(in_sv_row       )
-  , n_rows(in_sv_row.n_cols)
-  , n_elem(in_sv_row.n_elem)
-  {
-  arma_extra_debug_sigprint();
-  }
-
-
-
-template<typename eT>
-inline
-void
-subview_row_htrans<eT>::extract(Mat<eT>& out) const
-  {
-  arma_extra_debug_sigprint();
-  
-  // NOTE: this function assumes that matrix 'out' has already been set to the correct size
-  
-  const Mat<eT>& X = sv_row.m;
-  
-  eT* out_mem = out.memptr();
-  
-  const uword row           = sv_row.aux_row1;
-  const uword start_col     = sv_row.aux_col1;
-  const uword sv_row_n_cols = sv_row.n_cols;
-  
-  for(uword ii=0; ii < sv_row_n_cols; ++ii)
-    {
-    out_mem[ii] = access::alt_conj( X.at(row, start_col+ii) );
-    }
-  }
-
-
-
-template<typename eT>
-inline
-eT
-subview_row_htrans<eT>::at_alt(const uword ii) const
-  {
-  return access::alt_conj( sv_row[ii] );
-  }
-
-
-
-template<typename eT>
-inline
-eT
-subview_row_htrans<eT>::operator[](const uword ii) const
-  {
-  return access::alt_conj( sv_row[ii] );
-  }
-
-
-
-template<typename eT>
-inline
-eT
-subview_row_htrans<eT>::operator()(const uword ii) const
-  {
-  return access::alt_conj( sv_row(ii) );
-  }
-
-
-
-template<typename eT>
-inline
-eT
-subview_row_htrans<eT>::operator()(const uword in_row, const uword in_col) const
-  {
-  return access::alt_conj( sv_row(in_col, in_row) );  // deliberately swapped
-  }
-
-
-
-template<typename eT>
-inline
-eT
-subview_row_htrans<eT>::at(const uword in_row, const uword) const
-  {
-  return access::alt_conj( sv_row.at(0, in_row) );  // deliberately swapped
   }
 
 

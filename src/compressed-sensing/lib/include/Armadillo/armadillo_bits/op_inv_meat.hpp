@@ -1,17 +1,14 @@
-// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
-// Copyright 2008-2016 National ICT Australia (NICTA)
+// Copyright (C) 2008-2011 NICTA (www.nicta.com.au)
+// Copyright (C) 2008-2011 Conrad Sanderson
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ------------------------------------------------------------------------
+// This file is part of the Armadillo C++ library.
+// It is provided without any warranty of fitness
+// for any purpose. You can redistribute this file
+// and/or modify it under the terms of the GNU
+// Lesser General Public License (LGPL) as published
+// by the Free Software Foundation, either version 3
+// of the License or (at your option) any later version.
+// (see http://www.opensource.org/licenses for more info)
 
 
 //! \addtogroup op_inv
@@ -22,7 +19,7 @@
 template<typename eT>
 inline
 void
-op_inv::apply(Mat<eT>& out, const Mat<eT>& A)
+op_inv::apply(Mat<eT>& out, const Mat<eT>& A, const bool slow)
   {
   arma_extra_debug_sigprint();
   
@@ -30,12 +27,12 @@ op_inv::apply(Mat<eT>& out, const Mat<eT>& A)
   // - auxlib::inv() copies A to out before inversion
   // - for 2x2 and 3x3 matrices the code is alias safe
   
-  bool status = auxlib::inv(out, A);
+  bool status = auxlib::inv(out, A, slow);
   
   if(status == false)
     {
     out.reset();
-    arma_stop_runtime_error("inv(): matrix seems singular");
+    arma_bad("inv(): matrix appears to be singular");
     }
   }
 
@@ -49,23 +46,25 @@ op_inv::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_inv>& X)
   {
   arma_extra_debug_sigprint();
   
-  const strip_diagmat<T1> strip(X.m);
+  typedef typename T1::elem_type eT;
   
-  bool status;
+  const strip_diagmat<T1> strip(X.m);
   
   if(strip.do_diagmat == true)
     {
-    status = op_inv::apply_diagmat(out, strip.M);
+    op_inv::apply_diag(out, strip.M);
     }
   else
     {
-    status = auxlib::inv(out, X.m);
-    }
+    const uword mode = X.aux_uword_a;
     
-  if(status == false)
-    {
-    out.reset();
-    arma_stop_runtime_error("inv(): matrix seems singular");
+    const bool status = (mode == 0) ? auxlib::inv(out, X.m) : auxlib::inv(out, X.m, true);
+    
+    if(status == false)
+      {
+      out.reset();
+      arma_bad("inv(): matrix appears to be singular");
+      }
     }
   }
 
@@ -73,51 +72,28 @@ op_inv::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_inv>& X)
 
 template<typename T1>
 inline
-bool
-op_inv::apply_diagmat(Mat<typename T1::elem_type>& out, const T1& X)
+void
+op_inv::apply_diag(Mat<typename T1::elem_type>& out, const Base<typename T1::elem_type, T1>& X)
   {
   arma_extra_debug_sigprint();
   
   typedef typename T1::elem_type eT;
   
-  const diagmat_proxy<T1> A(X);
+  const diagmat_proxy_check<T1> A(X.get_ref(), out);
   
-  arma_debug_check( (A.n_rows != A.n_cols), "inv(): given matrix must be square sized" );
+  const uword N = A.n_elem;
   
-  const uword N = (std::min)(A.n_rows, A.n_cols);
+  out.set_size(N,N);
   
-  bool status = true;
-  
-  if(A.is_alias(out) == false)
+  for(uword col=0; col<N; ++col)
     {
-    out.zeros(N,N);
+    for(uword row=0; row<col; ++row)   { out.at(row,col) = eT(0); }
     
-    for(uword i=0; i<N; ++i)
-      {
-      const eT val = A[i];
-      
-      out.at(i,i) = eT(1) / val;
-      
-      if(val == eT(0))  { status = false; }
-      }
-    }
-  else
-    {
-    Mat<eT> tmp(N, N, fill::zeros);
+    out.at(col,col) = eT(1) / A[col];
     
-    for(uword i=0; i<N; ++i)
-      {
-      const eT val = A[i];
-      
-      tmp.at(i,i) = eT(1) / val;
-      
-      if(val == eT(0))  { status = false; }
-      }
-    
-    out.steal_mem(tmp);
+    for(uword row=col+1; row<N; ++row) { out.at(row,col) = eT(0); }
     }
   
-  return status;
   }
 
 
@@ -135,7 +111,7 @@ op_inv_tr::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_inv_tr>& X)
   if(status == false)
     {
     out.reset();
-    arma_stop_runtime_error("inv(): matrix seems singular");
+    arma_bad("inv(): matrix appears to be singular");
     }
   }
 
@@ -149,12 +125,12 @@ op_inv_sympd::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_inv_sympd>&
   {
   arma_extra_debug_sigprint();
   
-  const bool status = auxlib::inv_sympd(out, X.m);
+  const bool status = auxlib::inv_sympd(out, X.m, X.aux_uword_a);
   
   if(status == false)
     {
     out.reset();
-    arma_stop_runtime_error("inv_sympd(): matrix is singular or not positive definite");
+    arma_bad("inv(): matrix appears to be singular");
     }
   }
 
