@@ -69,7 +69,7 @@ CsSrcApp::CsSrcApp() : m_yR(0), m_nodeId(0), m_clusterId(0),
 					   m_nextSeq(0), m_seed(1),
 					   m_n(0), m_m(0),
 					   //    m_nDevices(0), m_nTxDevices(0),
-					   m_nMeas(0), // m_nPackets(0),
+					  // m_nMeas(0), // m_nPackets(0),
 					   m_sent(0),
 					   m_normalize(false),
 					   m_running(false),
@@ -85,7 +85,7 @@ CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yR(m), m_nodeId(0), m_clusterId(0
 											 m_nextSeq(0), m_seed(1),
 											 m_n(n), m_m(m),
 											 //  m_nDevices(0), m_nTxDevices(0),
-											 m_nMeas(0), // m_nPackets(0),
+											// m_nMeas(0), // m_nPackets(0),
 											 m_sent(0),
 											 m_normalize(false),
 											 m_running(false),
@@ -162,12 +162,11 @@ void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp<double>> comp)
 	m_compR->Setup(m_seed, m_n, m_m, m_normalize);
 }
 
-void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp<double>> comp, uint32_t seed, uint32_t n, uint32_t m, bool norm)
+void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp<double>> comp,  uint32_t n, uint32_t m, bool norm)
 {
-	NS_LOG_FUNCTION(this << comp << seed << n << m << norm);
+	NS_LOG_FUNCTION(this << comp << n << m << norm);
 
 	m_compR = comp;
-	m_seed = seed;
 	m_n = n;
 	m_m = m;
 	m_normalize = norm;
@@ -325,6 +324,11 @@ bool CsSrcApp::HasPackets()
 	return !m_txPackets.empty();
 }
 
+bool CsSrcApp::IsSending()
+{
+	return m_sendEvent.IsRunning();
+}
+
 void CsSrcApp::SendPacket(Ptr<Packet> p)
 {
 	NS_LOG_FUNCTION(this << p);
@@ -353,3 +357,4 @@ void CsSrcApp::ScheduleTx(Time dt)
 	else if (HasPackets())
 		Simulator::Schedule(dt, &CsSrcApp::ScheduleTx, this, m_interval);
 }
+

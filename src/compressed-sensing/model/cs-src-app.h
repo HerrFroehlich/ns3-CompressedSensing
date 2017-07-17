@@ -65,7 +65,7 @@ class CsSrcApp : public Application
 	* \param filename name of file to read from
 	*
 	*/
-	void Setup(Ptr<CsNode> node,
+	virtual void Setup(Ptr<CsNode> node,
 			   std::string filename);
 
 	/**
@@ -85,7 +85,7 @@ class CsSrcApp : public Application
 	* \param m length of compressed vector
 	* \param norm normalize random matrix by 1/sqrt(m)?
 	*/
-	void SetTempCompressor(Ptr<CompressorTemp<double>> comp, uint32_t seed, uint32_t n, uint32_t m, bool norm = false);
+	void SetTempCompressor(Ptr<CompressorTemp<double>> comp, uint32_t n, uint32_t m, bool norm = false);
 
 	/**
 	* \brief sets the compression given by n and m
@@ -172,6 +172,13 @@ class CsSrcApp : public Application
 	*/
 	void ScheduleTx(Time dt);
 
+	/**
+	* \brief check if application is already sending packets
+	*
+	* \return true when packets are send
+	*/
+	bool IsSending();
+
 	SerialDataBuffer<double> m_yR;		  /**< buffers for  compressed real meas. vector */
 	CsHeader::T_IdField m_nodeId, m_clusterId;
 	CsHeader::T_SeqField m_nextSeq; /**< next sequence!*/
@@ -194,7 +201,7 @@ class CsSrcApp : public Application
 		// m_nDevices,   /**< number of net devices*/
 		// m_nTxDevices, /**< number of net devices*/
 					  //	m_packetSize, /**< Packet size in byte*/
-		m_nMeas,	  /**< NOF measurements to send*/
+		// m_nMeas,	  /**< NOF measurements to send*/
 		//m_nPackets,   /**< NOF packets to send*/
 		m_sent; /**< NOF packets already sent*/
 
