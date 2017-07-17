@@ -1,62 +1,41 @@
-// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
-// Copyright (C) 2008-2012 Conrad Sanderson
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This file is part of the Armadillo C++ library.
-// It is provided without any warranty of fitness
-// for any purpose. You can redistribute this file
-// and/or modify it under the terms of the GNU
-// Lesser General Public License (LGPL) as published
-// by the Free Software Foundation, either version 3
-// of the License or (at your option) any later version.
-// (see http://www.opensource.org/licenses for more info)
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup fn_elem
 //! @{
 
 
-
-//
-// find
-
-template<typename eT, typename T1>
-inline
-const mtOp<uword, T1, op_find>
-find(const Base<eT,T1>& X, const uword k = 0, const char* direction = "first")
-  {
-  arma_extra_debug_sigprint();
-  
-  const char sig = direction[0];
-  
-  arma_debug_check
-    (
-    (sig != 'f' && sig != 'F' && sig != 'l' && sig != 'L'),
-    "find(): 3rd input argument must be \"first\" or \"last\""
-    );
-  
-  const uword type = (sig == 'f' || sig == 'F') ? 0 : 1;
-  
-  return mtOp<uword, T1, op_find>(X.get_ref(), k, type);
-  }
-
-
-
 //
 // real
 
 template<typename T1>
+arma_warn_unused
 arma_inline
-const T1&
-real(const Base<typename T1::pod_type, T1>& X)
+typename enable_if2< (is_arma_type<T1>::value && is_cx<typename T1::elem_type>::no), const T1& >::result
+real(const T1& X)
   {
   arma_extra_debug_sigprint();
   
-  return X.get_ref();
+  return X;
   }
 
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const T1&
 real(const BaseCube<typename T1::pod_type, T1>& X)
@@ -69,18 +48,33 @@ real(const BaseCube<typename T1::pod_type, T1>& X)
 
 
 template<typename T1>
-inline
-const mtOp<typename T1::pod_type, T1, op_real>
-real(const Base<std::complex<typename T1::pod_type>, T1>& X)
+arma_warn_unused
+arma_inline
+const T1&
+real(const SpBase<typename T1::pod_type,T1>& A)
   {
   arma_extra_debug_sigprint();
   
-  return mtOp<typename T1::pod_type, T1, op_real>( X.get_ref() );
+  return A.get_ref();
   }
 
 
 
 template<typename T1>
+arma_warn_unused
+inline
+typename enable_if2< (is_arma_type<T1>::value && is_cx<typename T1::elem_type>::yes), const mtOp<typename T1::pod_type, T1, op_real> >::result
+real(const T1& X)
+  {
+  arma_extra_debug_sigprint();
+  
+  return mtOp<typename T1::pod_type, T1, op_real>( X );
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
 inline
 const mtOpCube<typename T1::pod_type, T1, op_real>
 real(const BaseCube<std::complex<typename T1::pod_type>, T1>& X)
@@ -92,10 +86,24 @@ real(const BaseCube<std::complex<typename T1::pod_type>, T1>& X)
 
 
 
+template<typename T1>
+arma_warn_unused
+arma_inline
+const mtSpOp<typename T1::pod_type, T1, spop_real>
+real(const SpBase<std::complex<typename T1::pod_type>,T1>& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return mtSpOp<typename T1::pod_type, T1, spop_real>(A.get_ref());
+  }
+
+
+
 //
 // imag
 
 template<typename T1>
+arma_warn_unused
 inline
 const Gen< Mat<typename T1::pod_type>, gen_zeros >
 imag(const Base<typename T1::pod_type,T1>& X)
@@ -110,6 +118,7 @@ imag(const Base<typename T1::pod_type,T1>& X)
 
 
 template<typename T1>
+arma_warn_unused
 inline
 const GenCube<typename T1::pod_type, gen_zeros>
 imag(const BaseCube<typename T1::pod_type,T1>& X)
@@ -124,18 +133,35 @@ imag(const BaseCube<typename T1::pod_type,T1>& X)
 
 
 template<typename T1>
+arma_warn_unused
 inline
-const mtOp<typename T1::pod_type, T1, op_imag>
-imag(const Base<std::complex<typename T1::pod_type>, T1>& X)
+SpMat<typename T1::pod_type>
+imag(const SpBase<typename T1::pod_type,T1>& A)
   {
   arma_extra_debug_sigprint();
   
-  return mtOp<typename T1::pod_type, T1, op_imag>( X.get_ref() );
+  const SpProxy<T1> P(A.get_ref());
+  
+  return SpMat<typename T1::pod_type>(P.get_n_rows(), P.get_n_cols());
   }
 
 
 
 template<typename T1>
+arma_warn_unused
+inline
+typename enable_if2< (is_arma_type<T1>::value && is_cx<typename T1::elem_type>::yes), const mtOp<typename T1::pod_type, T1, op_imag> >::result
+imag(const T1& X)
+  {
+  arma_extra_debug_sigprint();
+  
+  return mtOp<typename T1::pod_type, T1, op_imag>( X );
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
 inline
 const mtOpCube<typename T1::pod_type, T1, op_imag>
 imag(const BaseCube<std::complex<typename T1::pod_type>,T1>& X)
@@ -147,22 +173,37 @@ imag(const BaseCube<std::complex<typename T1::pod_type>,T1>& X)
 
 
 
+template<typename T1>
+arma_warn_unused
+arma_inline
+const mtSpOp<typename T1::pod_type, T1, spop_imag>
+imag(const SpBase<std::complex<typename T1::pod_type>,T1>& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return mtSpOp<typename T1::pod_type, T1, spop_imag>(A.get_ref());
+  }
+
+
+
 //
 // log
 
 template<typename T1>
+arma_warn_unused
 arma_inline
-const eOp<T1, eop_log>
-log(const Base<typename T1::elem_type,T1>& A)
+typename enable_if2< is_arma_type<T1>::value, const eOp<T1, eop_log> >::result
+log(const T1& A)
   {
   arma_extra_debug_sigprint();
   
-  return eOp<T1, eop_log>(A.get_ref());
+  return eOp<T1, eop_log>(A);
   }
 
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOpCube<T1, eop_log>
 log(const BaseCube<typename T1::elem_type,T1>& A)
@@ -178,18 +219,20 @@ log(const BaseCube<typename T1::elem_type,T1>& A)
 // log2
 
 template<typename T1>
+arma_warn_unused
 arma_inline
-const eOp<T1, eop_log2>
-log2(const Base<typename T1::elem_type,T1>& A)
+typename enable_if2< is_arma_type<T1>::value, const eOp<T1, eop_log2> >::result
+log2(const T1& A)
   {
   arma_extra_debug_sigprint();
   
-  return eOp<T1, eop_log2>(A.get_ref());
+  return eOp<T1, eop_log2>(A);
   }
 
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOpCube<T1, eop_log2>
 log2(const BaseCube<typename T1::elem_type,T1>& A)
@@ -205,18 +248,20 @@ log2(const BaseCube<typename T1::elem_type,T1>& A)
 // log10
 
 template<typename T1>
+arma_warn_unused
 arma_inline
-const eOp<T1, eop_log10>
-log10(const Base<typename T1::elem_type,T1>& A)
+typename enable_if2< is_arma_type<T1>::value, const eOp<T1, eop_log10> >::result
+log10(const T1& A)
   {
   arma_extra_debug_sigprint();
   
-  return eOp<T1, eop_log10>(A.get_ref());
+  return eOp<T1, eop_log10>(A);
   }
 
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOpCube<T1, eop_log10>
 log10(const BaseCube<typename T1::elem_type,T1>& A)
@@ -232,18 +277,20 @@ log10(const BaseCube<typename T1::elem_type,T1>& A)
 // exp
 
 template<typename T1>
+arma_warn_unused
 arma_inline
-const eOp<T1, eop_exp>
-exp(const Base<typename T1::elem_type,T1>& A)
+typename enable_if2< is_arma_type<T1>::value, const eOp<T1, eop_exp> >::result
+exp(const T1& A)
   {
   arma_extra_debug_sigprint();
   
-  return eOp<T1, eop_exp>(A.get_ref());
+  return eOp<T1, eop_exp>(A);
   }
 
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOpCube<T1, eop_exp>
 exp(const BaseCube<typename T1::elem_type,T1>& A)
@@ -258,18 +305,20 @@ exp(const BaseCube<typename T1::elem_type,T1>& A)
 // exp2
 
 template<typename T1>
+arma_warn_unused
 arma_inline
-const eOp<T1, eop_exp2>
-exp2(const Base<typename T1::elem_type,T1>& A)
+typename enable_if2< is_arma_type<T1>::value, const eOp<T1, eop_exp2> >::result
+exp2(const T1& A)
   {
   arma_extra_debug_sigprint();
   
-  return eOp<T1, eop_exp2>(A.get_ref());
+  return eOp<T1, eop_exp2>(A);
   }
 
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOpCube<T1, eop_exp2>
 exp2(const BaseCube<typename T1::elem_type,T1>& A)
@@ -284,18 +333,20 @@ exp2(const BaseCube<typename T1::elem_type,T1>& A)
 // exp10
 
 template<typename T1>
+arma_warn_unused
 arma_inline
-const eOp<T1, eop_exp10>
-exp10(const Base<typename T1::elem_type,T1>& A)
+typename enable_if2< is_arma_type<T1>::value, const eOp<T1, eop_exp10> >::result
+exp10(const T1& A)
   {
   arma_extra_debug_sigprint();
   
-  return eOp<T1, eop_exp10>(A.get_ref());
+  return eOp<T1, eop_exp10>(A);
   }
 
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOpCube<T1, eop_exp10>
 exp10(const BaseCube<typename T1::elem_type,T1>& A)
@@ -312,20 +363,20 @@ exp10(const BaseCube<typename T1::elem_type,T1>& A)
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
-const eOp<T1, eop_abs>
-abs(const Base<typename T1::elem_type,T1>& X, const typename arma_not_cx<typename T1::elem_type>::result* junk = 0)
+typename enable_if2< (is_arma_type<T1>::value && is_cx<typename T1::elem_type>::no), const eOp<T1, eop_abs> >::result
+abs(const T1& X)
   {
   arma_extra_debug_sigprint();
   
-  arma_ignore(junk);
-  
-  return eOp<T1, eop_abs>(X.get_ref());
+  return eOp<T1, eop_abs>(X);
   }
 
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOpCube<T1, eop_abs>
 abs(const BaseCube<typename T1::elem_type,T1>& X, const typename arma_not_cx<typename T1::elem_type>::result* junk = 0)
@@ -340,20 +391,20 @@ abs(const BaseCube<typename T1::elem_type,T1>& X, const typename arma_not_cx<typ
 
 
 template<typename T1>
+arma_warn_unused
 inline
-const mtOp<typename T1::pod_type, T1, op_abs>
-abs(const Base<std::complex<typename T1::pod_type>, T1>& X, const typename arma_cx_only<typename T1::elem_type>::result* junk = 0)
+typename enable_if2< (is_arma_type<T1>::value && is_cx<typename T1::elem_type>::yes), const mtOp<typename T1::pod_type, T1, op_abs> >::result
+abs(const T1& X)
   {
   arma_extra_debug_sigprint();
   
-  arma_ignore(junk);
-  
-  return mtOp<typename T1::pod_type, T1, op_abs>( X.get_ref() );
+  return mtOp<typename T1::pod_type, T1, op_abs>(X);
   }
 
 
 
 template<typename T1>
+arma_warn_unused
 inline
 const mtOpCube<typename T1::pod_type, T1, op_abs>
 abs(const BaseCube< std::complex<typename T1::pod_type>,T1>& X, const typename arma_cx_only<typename T1::elem_type>::result* junk = 0)
@@ -367,22 +418,140 @@ abs(const BaseCube< std::complex<typename T1::pod_type>,T1>& X, const typename a
 
 
 
-//
-// square
-
 template<typename T1>
+arma_warn_unused
 arma_inline
-const eOp<T1, eop_square>
-square(const Base<typename T1::elem_type,T1>& A)
+const SpOp<T1, spop_abs>
+abs(const SpBase<typename T1::elem_type,T1>& X, const typename arma_not_cx<typename T1::elem_type>::result* junk = 0)
   {
   arma_extra_debug_sigprint();
+  arma_ignore(junk);
   
-  return eOp<T1, eop_square>(A.get_ref());
+  return SpOp<T1, spop_abs>(X.get_ref());
   }
 
 
 
 template<typename T1>
+arma_warn_unused
+arma_inline
+const mtSpOp<typename T1::pod_type, T1, spop_cx_abs>
+abs(const SpBase< std::complex<typename T1::pod_type>, T1>& X, const typename arma_cx_only<typename T1::elem_type>::result* junk = 0)
+  {
+  arma_extra_debug_sigprint();
+  arma_ignore(junk);
+  
+  return mtSpOp<typename T1::pod_type, T1, spop_cx_abs>(X.get_ref());
+  }
+
+
+
+//
+// arg
+
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+typename enable_if2< (is_arma_type<T1>::value && is_cx<typename T1::elem_type>::no), const eOp<T1, eop_arg> >::result
+arg(const T1& X)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOp<T1, eop_arg>(X);
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+const eOpCube<T1, eop_arg>
+arg(const BaseCube<typename T1::elem_type,T1>& X, const typename arma_not_cx<typename T1::elem_type>::result* junk = 0)
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_ignore(junk);
+  
+  return eOpCube<T1, eop_arg>(X.get_ref());
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+inline
+typename enable_if2< (is_arma_type<T1>::value && is_cx<typename T1::elem_type>::yes), const mtOp<typename T1::pod_type, T1, op_arg> >::result
+arg(const T1& X)
+  {
+  arma_extra_debug_sigprint();
+  
+  return mtOp<typename T1::pod_type, T1, op_arg>(X);
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+inline
+const mtOpCube<typename T1::pod_type, T1, op_arg>
+arg(const BaseCube< std::complex<typename T1::pod_type>,T1>& X, const typename arma_cx_only<typename T1::elem_type>::result* junk = 0)
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_ignore(junk);
+  
+  return mtOpCube<typename T1::pod_type, T1, op_arg>( X.get_ref() );
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+const SpOp<T1, spop_arg>
+arg(const SpBase<typename T1::elem_type,T1>& X, const typename arma_not_cx<typename T1::elem_type>::result* junk = 0)
+  {
+  arma_extra_debug_sigprint();
+  arma_ignore(junk);
+  
+  return SpOp<T1, spop_arg>(X.get_ref());
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+const mtSpOp<typename T1::pod_type, T1, spop_cx_arg>
+arg(const SpBase< std::complex<typename T1::pod_type>, T1>& X, const typename arma_cx_only<typename T1::elem_type>::result* junk = 0)
+  {
+  arma_extra_debug_sigprint();
+  arma_ignore(junk);
+  
+  return mtSpOp<typename T1::pod_type, T1, spop_cx_arg>(X.get_ref());
+  }
+
+
+
+//
+// square
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+typename enable_if2< is_arma_type<T1>::value, const eOp<T1, eop_square> >::result
+square(const T1& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOp<T1, eop_square>(A);
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
 arma_inline
 const eOpCube<T1, eop_square>
 square(const BaseCube<typename T1::elem_type,T1>& A)
@@ -394,22 +563,37 @@ square(const BaseCube<typename T1::elem_type,T1>& A)
 
 
 
+template<typename T1>
+arma_warn_unused
+arma_inline
+const SpOp<T1, spop_square>
+square(const SpBase<typename T1::elem_type,T1>& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return SpOp<T1, spop_square>(A.get_ref());
+  }
+
+
+
 //
 // sqrt
 
 template<typename T1>
+arma_warn_unused
 arma_inline
-const eOp<T1, eop_sqrt>
-sqrt(const Base<typename T1::elem_type,T1>& A)
+typename enable_if2< is_arma_type<T1>::value, const eOp<T1, eop_sqrt> >::result
+sqrt(const T1& A)
   {
   arma_extra_debug_sigprint();
   
-  return eOp<T1, eop_sqrt>(A.get_ref());
+  return eOp<T1, eop_sqrt>(A);
   }
 
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOpCube<T1, eop_sqrt>
 sqrt(const BaseCube<typename T1::elem_type,T1>& A)
@@ -421,46 +605,76 @@ sqrt(const BaseCube<typename T1::elem_type,T1>& A)
 
 
 
+template<typename T1>
+arma_warn_unused
+arma_inline
+const SpOp<T1, spop_sqrt>
+sqrt(const SpBase<typename T1::elem_type,T1>& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return SpOp<T1, spop_sqrt>(A.get_ref());
+  }
+
+
+
 //
 // conj
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const T1&
 conj(const Base<typename T1::pod_type,T1>& A)
   {
   arma_extra_debug_sigprint();
-
+  
   return A.get_ref();
   }
 
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const T1&
 conj(const BaseCube<typename T1::pod_type,T1>& A)
   {
   arma_extra_debug_sigprint();
-
+  
   return A.get_ref();
   }
 
 
 
 template<typename T1>
+arma_warn_unused
+arma_inline
+const T1&
+conj(const SpBase<typename T1::pod_type,T1>& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return A.get_ref();
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
 arma_inline
 const eOp<T1, eop_conj>
 conj(const Base<std::complex<typename T1::pod_type>,T1>& A)
   {
   arma_extra_debug_sigprint();
-
+  
   return eOp<T1, eop_conj>(A.get_ref());
   }
 
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOpCube<T1, eop_conj>
 conj(const BaseCube<std::complex<typename T1::pod_type>,T1>& A)
@@ -473,48 +687,22 @@ conj(const BaseCube<std::complex<typename T1::pod_type>,T1>& A)
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
-const T1&
-conj(const eOp<T1, eop_conj>& A)
+const SpOp<T1, spop_conj>
+conj(const SpBase<std::complex<typename T1::pod_type>,T1>& A)
   {
   arma_extra_debug_sigprint();
   
-  return A.m;
+  return SpOp<T1, spop_conj>(A.get_ref());
   }
-
-
-
-template<typename T1>
-arma_inline
-const T1&
-conj(const eOpCube<T1, eop_conj>& A)
-  {
-  arma_extra_debug_sigprint();
-  
-  return A.m;
-  }
-
-
-
-// TODO: this needs a more elaborate template restriction mechanism to work properly,
-//       i.e. an overloaded version of thus function should do nothing if the input type is non-complex
-// 
-// //! the conjugate of the transpose of a complex matrix is the same as the hermitian transpose
-// template<typename T1>
-// arma_inline
-// const Op<T1, op_htrans>
-// conj(const Op<T1, op_strans>& A)
-//   {
-//   arma_extra_debug_sigprint();
-//   
-//   return Op<T1, op_htrans>(A.m);
-//   }
 
 
 
 // pow
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOp<T1, eop_pow>
 pow(const Base<typename T1::elem_type,T1>& A, const typename T1::elem_type exponent)
@@ -527,6 +715,7 @@ pow(const Base<typename T1::elem_type,T1>& A, const typename T1::elem_type expon
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOpCube<T1, eop_pow>
 pow(const BaseCube<typename T1::elem_type,T1>& A, const typename T1::elem_type exponent)
@@ -541,6 +730,7 @@ pow(const BaseCube<typename T1::elem_type,T1>& A, const typename T1::elem_type e
 // pow, specialised handling (non-complex exponent for complex matrices)
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOp<T1, eop_pow>
 pow(const Base<typename T1::elem_type,T1>& A, const typename T1::elem_type::value_type exponent)
@@ -555,6 +745,7 @@ pow(const Base<typename T1::elem_type,T1>& A, const typename T1::elem_type::valu
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOpCube<T1, eop_pow>
 pow(const BaseCube<typename T1::elem_type,T1>& A, const typename T1::elem_type::value_type exponent)
@@ -572,18 +763,20 @@ pow(const BaseCube<typename T1::elem_type,T1>& A, const typename T1::elem_type::
 // floor
 
 template<typename T1>
+arma_warn_unused
 arma_inline
-const eOp<T1, eop_floor>
-floor(const Base<typename T1::elem_type,T1>& A)
+typename enable_if2< is_arma_type<T1>::value, const eOp<T1, eop_floor> >::result
+floor(const T1& A)
   {
   arma_extra_debug_sigprint();
   
-  return eOp<T1, eop_floor>(A.get_ref());
+  return eOp<T1, eop_floor>(A);
   }
 
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOpCube<T1, eop_floor>
 floor(const BaseCube<typename T1::elem_type,T1>& A)
@@ -595,22 +788,37 @@ floor(const BaseCube<typename T1::elem_type,T1>& A)
 
 
 
+template<typename T1>
+arma_warn_unused
+arma_inline
+const SpOp<T1, spop_floor>
+floor(const SpBase<typename T1::elem_type,T1>& X)
+  {
+  arma_extra_debug_sigprint();
+  
+  return SpOp<T1, spop_floor>(X.get_ref());
+  }
+
+
+
 //
 // ceil
 
 template<typename T1>
+arma_warn_unused
 arma_inline
-const eOp<T1, eop_ceil>
-ceil(const Base<typename T1::elem_type,T1>& A)
+typename enable_if2< is_arma_type<T1>::value, const eOp<T1, eop_ceil> >::result
+ceil(const T1& A)
   {
   arma_extra_debug_sigprint();
   
-  return eOp<T1, eop_ceil>(A.get_ref());
+  return eOp<T1, eop_ceil>(A);
   }
 
 
 
 template<typename T1>
+arma_warn_unused
 arma_inline
 const eOpCube<T1, eop_ceil>
 ceil(const BaseCube<typename T1::elem_type,T1>& A)
@@ -621,5 +829,238 @@ ceil(const BaseCube<typename T1::elem_type,T1>& A)
   }
 
 
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+const SpOp<T1, spop_ceil>
+ceil(const SpBase<typename T1::elem_type,T1>& X)
+  {
+  arma_extra_debug_sigprint();
+  
+  return SpOp<T1, spop_ceil>(X.get_ref());
+  }
+
+
+
+//
+// round
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+typename enable_if2< is_arma_type<T1>::value, const eOp<T1, eop_round> >::result
+round(const T1& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOp<T1, eop_round>(A);
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+const eOpCube<T1, eop_round>
+round(const BaseCube<typename T1::elem_type,T1>& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOpCube<T1, eop_round>(A.get_ref());
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+const SpOp<T1, spop_round>
+round(const SpBase<typename T1::elem_type,T1>& X)
+  {
+  arma_extra_debug_sigprint();
+  
+  return SpOp<T1, spop_round>(X.get_ref());
+  }
+
+
+
+//
+// trunc
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+typename enable_if2< is_arma_type<T1>::value, const eOp<T1, eop_trunc> >::result
+trunc(const T1& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOp<T1, eop_trunc>(A);
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+const eOpCube<T1, eop_trunc>
+trunc(const BaseCube<typename T1::elem_type,T1>& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOpCube<T1, eop_trunc>(A.get_ref());
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+const SpOp<T1, spop_trunc>
+trunc(const SpBase<typename T1::elem_type,T1>& X)
+  {
+  arma_extra_debug_sigprint();
+  
+  return SpOp<T1, spop_trunc>(X.get_ref());
+  }
+
+
+
+//
+// sign
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+typename enable_if2< is_arma_type<T1>::value, const eOp<T1, eop_sign> >::result
+sign(const T1& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOp<T1, eop_sign>(A);
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+const eOpCube<T1, eop_sign>
+sign(const BaseCube<typename T1::elem_type,T1>& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOpCube<T1, eop_sign>(A.get_ref());
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+const SpOp<T1, spop_sign>
+sign(const SpBase<typename T1::elem_type,T1>& X)
+  {
+  arma_extra_debug_sigprint();
+  
+  return SpOp<T1, spop_sign>(X.get_ref());
+  }
+
+
+
+//
+// erf
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+typename enable_if2< (is_arma_type<T1>::value && is_cx<typename T1::elem_type>::no), const eOp<T1, eop_erf> >::result
+erf(const T1& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOp<T1, eop_erf>(A);
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+typename enable_if2< is_cx<typename T1::elem_type>::no, const eOpCube<T1, eop_erf> >::result
+erf(const BaseCube<typename T1::elem_type,T1>& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOpCube<T1, eop_erf>(A.get_ref());
+  }
+
+
+
+//
+// erfc
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+typename enable_if2< (is_arma_type<T1>::value && is_cx<typename T1::elem_type>::no), const eOp<T1, eop_erfc> >::result
+erfc(const T1& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOp<T1, eop_erfc>(A);
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+typename enable_if2< is_cx<typename T1::elem_type>::no, const eOpCube<T1, eop_erfc> >::result
+erfc(const BaseCube<typename T1::elem_type,T1>& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOpCube<T1, eop_erfc>(A.get_ref());
+  }
+
+
+
+//
+// lgamma
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+typename enable_if2< (is_arma_type<T1>::value && is_cx<typename T1::elem_type>::no), const eOp<T1, eop_lgamma> >::result
+lgamma(const T1& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOp<T1, eop_lgamma>(A);
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+typename enable_if2< is_cx<typename T1::elem_type>::no, const eOpCube<T1, eop_lgamma> >::result
+lgamma(const BaseCube<typename T1::elem_type,T1>& A)
+  {
+  arma_extra_debug_sigprint();
+  
+  return eOpCube<T1, eop_lgamma>(A.get_ref());
+  }
+
+
+
+// the functions below are currently unused; reserved for potential future use
+
+template<typename T1> void exp_approx(const T1&) { arma_stop_logic_error("unimplemented"); }
+template<typename T1> void log_approx(const T1&) { arma_stop_logic_error("unimplemented"); }
+template<typename T1> void approx_exp(const T1&) { arma_stop_logic_error("unimplemented"); }
+template<typename T1> void approx_log(const T1&) { arma_stop_logic_error("unimplemented"); }
 
 //! @}

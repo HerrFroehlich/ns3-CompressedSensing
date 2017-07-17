@@ -1,14 +1,17 @@
-// Copyright (C) 2011-2012 NICTA (www.nicta.com.au)
-// Copyright (C) 2011-2012 Conrad Sanderson
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This file is part of the Armadillo C++ library.
-// It is provided without any warranty of fitness
-// for any purpose. You can redistribute this file
-// and/or modify it under the terms of the GNU
-// Lesser General Public License (LGPL) as published
-// by the Free Software Foundation, either version 3
-// of the License or (at your option) any later version.
-// (see http://www.opensource.org/licenses for more info)
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup arrayops
@@ -25,8 +28,28 @@ class arrayops
   
   
   template<typename eT>
-  static inline void
-  copy_big(eT* dest, const eT* src, const uword n_elem);
+  arma_hot inline static void
+  copy_small(eT* dest, const eT* src, const uword n_elem);
+  
+  
+  template<typename eT>
+  arma_hot inline static void
+  copy_forwards(eT* dest, const eT* src, const uword n_elem);
+  
+  
+  template<typename eT>
+  arma_hot inline static void
+  copy_backwards(eT* dest, const eT* src, const uword n_elem);
+  
+  
+  template<typename eT>
+  arma_hot inline static void
+  fill_zeros(eT* dest, const uword n_elem);
+  
+  
+  template<typename eT>
+  arma_hot inline static void
+  replace(eT* mem, const uword n_elem, const eT old_val, const eT new_val);
   
   
   // 
@@ -77,6 +100,27 @@ class arrayops
   inplace_div(eT* dest, const eT* src, const uword n_elem);
   
   
+  template<typename eT>
+  arma_hot inline static
+  void
+  inplace_plus_base(eT* dest, const eT* src, const uword n_elem);
+  
+  template<typename eT>
+  arma_hot inline static
+  void
+  inplace_minus_base(eT* dest, const eT* src, const uword n_elem);
+  
+  template<typename eT>
+  arma_hot inline static
+  void
+  inplace_mul_base(eT* dest, const eT* src, const uword n_elem);
+   
+  template<typename eT>
+  arma_hot inline static
+  void
+  inplace_div_base(eT* dest, const eT* src, const uword n_elem);
+  
+  
   // 
   // array op= scalar
   
@@ -84,6 +128,16 @@ class arrayops
   arma_hot inline static
   void
   inplace_set(eT* dest, const eT val, const uword n_elem);
+  
+  template<typename eT>
+  arma_hot inline static
+  void
+  inplace_set_base(eT* dest, const eT val, const uword n_elem);
+  
+  template<typename eT>
+  arma_hot inline static
+  void
+  inplace_set_small(eT* dest, const eT val, const uword n_elem);
   
   template<typename eT, const uword n_elem>
   arma_hot inline static
@@ -110,54 +164,53 @@ class arrayops
   inplace_div(eT* dest, const eT val, const uword n_elem);
   
   
+  template<typename eT>
+  arma_hot inline static
+  void
+  inplace_plus_base(eT* dest, const eT val, const uword n_elem);
+  
+  template<typename eT>
+  arma_hot inline static
+  void
+  inplace_minus_base(eT* dest, const eT val, const uword n_elem);
+  
+  template<typename eT>
+  arma_hot inline static void
+  inplace_mul_base(eT* dest, const eT val, const uword n_elem);
+  
+  template<typename eT>
+  arma_hot inline static
+  void
+  inplace_div_base(eT* dest, const eT val, const uword n_elem);
+  
+  
   // 
   // scalar = op(array)
   
   template<typename eT>
-  arma_hot arma_pure inline static
+  arma_hot inline static
   eT
   accumulate(const eT* src, const uword n_elem);
   
   template<typename eT>
-  arma_hot arma_pure inline static
+  arma_hot inline static
   eT
   product(const eT* src, const uword n_elem);
   
   template<typename eT>
-  arma_hot arma_pure inline static
+  arma_hot inline static
   bool
   is_finite(const eT* src, const uword n_elem);
   
   template<typename eT>
-  arma_hot arma_pure inline static
-  typename get_pod_type<eT>::result
-  norm_1(const eT* src, const uword n_elem);
+  arma_hot inline static
+  bool
+  has_inf(const eT* src, const uword n_elem);
   
   template<typename eT>
-  arma_hot arma_pure inline static
-  eT
-  norm_2(const eT* src, const uword n_elem, const typename arma_not_cx<eT>::result* junk = 0);
-  
-  template<typename T>
-  arma_hot arma_pure inline static
-  T
-  norm_2(const std::complex<T>* src, const uword n_elem);
-  
-  template<typename eT>
-  arma_hot arma_pure inline static
-  typename get_pod_type<eT>::result
-  norm_k(const eT* src, const uword n_elem, const int k);
-  
-  template<typename eT>
-  arma_hot arma_pure inline static
-  typename get_pod_type<eT>::result
-  norm_max(const eT* src, const uword n_elem);
-  
-  template<typename eT>
-  arma_hot arma_pure inline static
-  typename get_pod_type<eT>::result
-  norm_min(const eT* src, const uword n_elem);
-  
+  arma_hot inline static
+  bool
+  has_nan(const eT* src, const uword n_elem);
   };
 
 

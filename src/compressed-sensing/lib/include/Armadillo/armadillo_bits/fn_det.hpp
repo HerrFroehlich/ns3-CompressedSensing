@@ -1,14 +1,17 @@
-// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
-// Copyright (C) 2008-2012 Conrad Sanderson
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This file is part of the Armadillo C++ library.
-// It is provided without any warranty of fitness
-// for any purpose. You can redistribute this file
-// and/or modify it under the terms of the GNU
-// Lesser General Public License (LGPL) as published
-// by the Free Software Foundation, either version 3
-// of the License or (at your option) any later version.
-// (see http://www.opensource.org/licenses for more info)
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup fn_det
@@ -16,108 +19,167 @@
 
 
 
-//! determinant of mat
 template<typename T1>
-inline
 arma_warn_unused
-typename T1::elem_type
+inline
+typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, typename T1::elem_type >::result
 det
   (
-  const Base<typename T1::elem_type,T1>& X,
-  const bool slow = false,
-  const typename arma_blas_type_only<typename T1::elem_type>::result* junk = 0
+  const Base<typename T1::elem_type,T1>& X
   )
   {
   arma_extra_debug_sigprint();
-  arma_ignore(junk);
   
-  return auxlib::det(X, slow);
+  return auxlib::det(X.get_ref());
   }
 
 
 
-//! determinant of diagmat
 template<typename T1>
-inline
 arma_warn_unused
+inline
 typename T1::elem_type
 det
   (
-  const Op<T1, op_diagmat>& X,
-  const bool slow = false
+  const Op<T1, op_diagmat>& X
   )
   {
   arma_extra_debug_sigprint();
-  arma_ignore(slow);
   
   typedef typename T1::elem_type eT;
   
   const diagmat_proxy<T1> A(X.m);
   
-  const uword A_n_elem = A.n_elem;
+  arma_debug_check( (A.n_rows != A.n_cols), "det(): given matrix must be square sized" );
   
-  eT val = eT(1);
+  const uword N = (std::min)(A.n_rows, A.n_cols);
   
-  for(uword i=0; i<A_n_elem; ++i)
+  eT val1 = eT(1);
+  eT val2 = eT(1);
+  
+  uword i,j;
+  for(i=0, j=1; j<N; i+=2, j+=2)
     {
-    val *= A[i];
+    val1 *= A[i];
+    val2 *= A[j];
     }
   
-  return val;
+  
+  if(i < N)
+    {
+    val1 *= A[i];
+    }
+  
+  return val1 * val2;
+  }
+
+
+
+template<typename T1>
+arma_warn_unused
+inline
+typename T1::elem_type
+det
+  (
+  const Op<T1, op_trimat>& X
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  typedef typename T1::elem_type eT;
+  
+  const Proxy<T1> P(X.m);
+  
+  const uword N = P.get_n_rows();
+  
+  arma_debug_check( (N != P.get_n_cols()), "det(): given matrix must be square sized" );
+  
+  eT val1 = eT(1);
+  eT val2 = eT(1);
+  
+  uword i,j;
+  for(i=0, j=1; j<N; i+=2, j+=2)
+    {
+    val1 *= P.at(i,i);
+    val2 *= P.at(j,j);
+    }
+  
+  if(i < N)
+    {
+    val1 *= P.at(i,i);
+    }
+  
+  return val1 * val2;
   }
 
 
 
 //! determinant of inv(A), without doing the inverse operation
 template<typename T1>
-inline
 arma_warn_unused
-typename T1::elem_type
+inline
+typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, typename T1::elem_type >::result
 det
   (
-  const Op<T1,op_inv>& in,
-  const bool slow = false,
-  const typename arma_blas_type_only<typename T1::elem_type>::result* junk = 0
+  const Op<T1,op_inv>& X
   )
   {
   arma_extra_debug_sigprint();
-  arma_ignore(junk);
   
   typedef typename T1::elem_type eT;
   
-  eT tmp = det(in.m, slow);
-  arma_warn( (tmp == eT(0)), "det(): warning: denominator is zero" );
+  const eT tmp = det(X.m);
+  
+  if(tmp == eT(0))  { arma_debug_warn("det(): denominator is zero" ); }
   
   return eT(1) / tmp;
   }
 
 
 
-//! determinant of trans(A)
+//! NOTE: don't use this form: it will be removed
 template<typename T1>
+arma_deprecated
 inline
-arma_warn_unused
-typename T1::elem_type
+typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, typename T1::elem_type >::result
 det
   (
-  const Op<T1,op_htrans>& in,
-  const bool slow = false,
-  const typename arma_blas_type_only<typename T1::elem_type>::result* junk1 = 0,
-  const typename         arma_not_cx<typename T1::elem_type>::result* junk2 = 0
+  const Base<typename T1::elem_type,T1>& X,
+  const bool   // argument kept only for compatibility with old user code
   )
   {
   arma_extra_debug_sigprint();
-  arma_ignore(junk1);
-  arma_ignore(junk2);
   
-  return auxlib::det(in.m, slow);  // bypass op_htrans
+  // arma_debug_warn("det(X,bool) is deprecated and will be removed; change to det(X)");
+  
+  return det(X.get_ref());
+  }
+
+
+
+//! NOTE: don't use this form: it will be removed
+template<typename T1>
+arma_deprecated
+inline
+typename enable_if2< is_supported_blas_type<typename T1::elem_type>::value, typename T1::elem_type >::result
+det
+  (
+  const Base<typename T1::elem_type,T1>& X,
+  const char*   // argument kept only for compatibility with old user code
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  // arma_debug_warn("det(X,char*) is deprecated and will be removed; change to det(X)");
+  
+  return det(X.get_ref());
   }
 
 
 
 template<typename T>
-arma_inline
 arma_warn_unused
+arma_inline
 const typename arma_scalar_only<T>::result &
 det(const T& x)
   {

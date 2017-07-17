@@ -1,15 +1,17 @@
-// Copyright (C) 2009-2010 NICTA (www.nicta.com.au)
-// Copyright (C) 2009-2010 Conrad Sanderson
-// Copyright (C) 2009-2010 Dimitrios Bouzas
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This file is part of the Armadillo C++ library.
-// It is provided without any warranty of fitness
-// for any purpose. You can redistribute this file
-// and/or modify it under the terms of the GNU
-// Lesser General Public License (LGPL) as published
-// by the Free Software Foundation, either version 3
-// of the License or (at your option) any later version.
-// (see http://www.opensource.org/licenses for more info)
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 
@@ -18,33 +20,27 @@
 
 
 
-//! \brief
-//! eps version for non-complex matrices and vectors
 template<typename T1>
+arma_warn_unused
 inline
 const eOp<T1, eop_eps>
 eps(const Base<typename T1::elem_type, T1>& X, const typename arma_not_cx<typename T1::elem_type>::result* junk = 0)
   {
   arma_extra_debug_sigprint();
-  
   arma_ignore(junk);
-  
-  typedef typename T1::elem_type eT;
   
   return eOp<T1, eop_eps>(X.get_ref());
   }
 
 
 
-//! \brief
-//! eps version for complex matrices and vectors
 template<typename T1>
+arma_warn_unused
 inline
 Mat< typename T1::pod_type >
 eps(const Base< std::complex<typename T1::pod_type>, T1>& X, const typename arma_cx_only<typename T1::elem_type>::result* junk = 0)
   {
   arma_extra_debug_sigprint();
-  
   arma_ignore(junk);
   
   typedef typename T1::pod_type   T;
@@ -56,14 +52,14 @@ eps(const Base< std::complex<typename T1::pod_type>, T1>& X, const typename arma
   Mat<T> out(A.n_rows, A.n_cols);
   
          T* out_mem = out.memptr();
-  const eT* A_mem   = A.memptr();
-  const uword n_elem  = A.n_elem;
+  const eT*   A_mem =   A.memptr();
+  
+  const uword n_elem = A.n_elem;
   
   for(uword i=0; i<n_elem; ++i)
     {
     out_mem[i] = eop_aux::direct_eps( A_mem[i] );
     }
-  
   
   return out;
   }
@@ -71,8 +67,8 @@ eps(const Base< std::complex<typename T1::pod_type>, T1>& X, const typename arma
 
 
 template<typename eT>
-arma_inline
 arma_warn_unused
+arma_inline
 typename arma_integral_only<eT>::result
 eps(const eT& x)
   {
@@ -84,9 +80,9 @@ eps(const eT& x)
 
 
 template<typename eT>
-arma_inline
 arma_warn_unused
-typename arma_float_only<eT>::result
+arma_inline
+typename arma_real_only<eT>::result
 eps(const eT& x)
   {
   return eop_aux::direct_eps(x);
@@ -95,9 +91,9 @@ eps(const eT& x)
 
 
 template<typename T>
-arma_inline
 arma_warn_unused
-typename arma_float_only<T>::result
+arma_inline
+typename arma_real_only<T>::result
 eps(const std::complex<T>& x)
   {
   return eop_aux::direct_eps(x);

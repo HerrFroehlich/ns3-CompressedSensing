@@ -1,14 +1,17 @@
-// Copyright (C) 2009-2012 NICTA (www.nicta.com.au)
-// Copyright (C) 2009-2012 Conrad Sanderson
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This file is part of the Armadillo C++ library.
-// It is provided without any warranty of fitness
-// for any purpose. You can redistribute this file
-// and/or modify it under the terms of the GNU
-// Lesser General Public License (LGPL) as published
-// by the Free Software Foundation, either version 3
-// of the License or (at your option) any later version.
-// (see http://www.opensource.org/licenses for more info)
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup fn_sort_index
@@ -16,113 +19,136 @@
 
 
 
-
-template<typename T1, typename T2>
-struct arma_sort_index_packet_ascend
-  {
-  T1 val;
-  T2 index;
-  };
-
-
-
-template<typename T1, typename T2>
-struct arma_sort_index_packet_descend
-  {
-  T1 val;
-  T2 index;
-  };
-
-
-
-template<typename T1, typename T2>
-inline
-bool
-operator< (const arma_sort_index_packet_ascend<T1,T2>& A, const arma_sort_index_packet_ascend<T1,T2>& B)
-  {
-  return A.val < B.val;
-  }
-
-
-
-template<typename T1, typename T2>
-inline
-bool
-operator< (const arma_sort_index_packet_descend<T1,T2>& A, const arma_sort_index_packet_descend<T1,T2>& B)
-  {
-  return A.val > B.val;
-  }
-
-
-
-template<typename umat_elem_type, typename packet_type, typename eT>
-void
-inline
-sort_index_helper(umat_elem_type* out_mem, std::vector<packet_type>& packet_vec, const eT* in_mem)
-  {
-  arma_extra_debug_sigprint();
-  
-  const uword n_elem = packet_vec.size();
-  
-  for(uword i=0; i<n_elem; ++i)
-    {
-    packet_vec[i].val   = in_mem[i];
-    packet_vec[i].index = i;
-    }
-  
-  std::sort( packet_vec.begin(), packet_vec.end() );
-  
-  for(uword i=0; i<n_elem; ++i)
-    {
-    out_mem[i] = packet_vec[i].index;
-    }
-  }
-
-
-
 template<typename T1>
-inline
-umat
+arma_warn_unused
+arma_inline
+const mtOp<uword,T1,op_sort_index>
 sort_index
   (
-  const Base<typename T1::elem_type,T1>& X,
-  const uword sort_type = 0,
-  const typename arma_not_cx<typename T1::elem_type>::result* junk = 0
+  const Base<typename T1::elem_type,T1>& X
   )
   {
   arma_extra_debug_sigprint();
   
-  typedef typename T1::elem_type eT;
-  
-  const unwrap<T1>   tmp(X.get_ref());
-  const Mat<eT>& A = tmp.M;
-  
-  if(A.is_empty() == true)
-    {
-    return umat();
-    }
-  
-  arma_debug_check( (A.is_vec() == false), "sort_index(): currently only handles vectors");
-  
-  typedef typename umat::elem_type out_elem_type;
-  
-  umat out(A.n_rows, A.n_cols);
-  
-  if(sort_type == 0)
-    {
-    std::vector< arma_sort_index_packet_ascend<eT,out_elem_type> > packet_vec(A.n_elem);
-    
-    sort_index_helper(out.memptr(), packet_vec, A.mem);
-    }
-  else
-    {
-    std::vector< arma_sort_index_packet_descend<eT,out_elem_type> > packet_vec(A.n_elem);
-    
-    sort_index_helper(out.memptr(), packet_vec, A.mem);
-    }
-  
-  return out;
+  return mtOp<uword,T1,op_sort_index>(X.get_ref(), uword(0), uword(0));
   }
+
+
+
+//! NOTE: don't use this form: it will be removed
+template<typename T1>
+arma_deprecated
+inline
+const mtOp<uword,T1,op_sort_index>
+sort_index
+  (
+  const Base<typename T1::elem_type,T1>& X,
+  const uword sort_type
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  // arma_debug_warn("sort_index(X,uword) is deprecated and will be removed; change to sort_index(X,sort_direction)");
+  
+  arma_debug_check( (sort_type > 1), "sort_index(): parameter 'sort_type' must be 0 or 1" );
+  
+  return mtOp<uword,T1,op_sort_index>(X.get_ref(), sort_type, uword(0));
+  }
+
+
+
+template<typename T1, typename T2>
+arma_warn_unused
+inline
+typename
+enable_if2
+  <
+  ( (is_arma_type<T1>::value == true) && (is_same_type<T2, char>::value == true) ),
+  const mtOp<uword,T1,op_sort_index>
+  >::result
+sort_index
+  (
+  const T1& X,
+  const T2* sort_direction
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  const char sig = (sort_direction != NULL) ? sort_direction[0] : char(0);
+  
+  arma_debug_check( ((sig != 'a') && (sig != 'd')), "sort_index(): unknown sort direction" );
+  
+  return mtOp<uword,T1,op_sort_index>(X, ((sig == 'a') ? uword(0) : uword(1)), uword(0));
+  }
+
+
+
+//
+
+
+
+template<typename T1>
+arma_warn_unused
+arma_inline
+const mtOp<uword,T1,op_stable_sort_index>
+stable_sort_index
+  (
+  const Base<typename T1::elem_type,T1>& X
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  return mtOp<uword,T1,op_stable_sort_index>(X.get_ref(), uword(0), uword(0));
+  }
+
+
+
+//! NOTE: don't use this form: it will be removed
+template<typename T1>
+arma_deprecated
+inline
+const mtOp<uword,T1,op_stable_sort_index>
+stable_sort_index
+  (
+  const Base<typename T1::elem_type,T1>& X,
+  const uword sort_type
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  // arma_debug_warn("stable_sort_index(X,uword) is deprecated and will be removed; change to stable_sort_index(X,sort_direction)");
+  
+  arma_debug_check( (sort_type > 1), "stable_sort_index(): parameter 'sort_type' must be 0 or 1" );
+  
+  return mtOp<uword,T1,op_stable_sort_index>(X.get_ref(), sort_type, uword(0));
+  }
+
+
+
+template<typename T1, typename T2>
+arma_warn_unused
+inline
+typename
+enable_if2
+  <
+  ( (is_arma_type<T1>::value == true) && (is_same_type<T2, char>::value == true) ),
+  const mtOp<uword,T1,op_stable_sort_index>
+  >::result
+stable_sort_index
+  (
+  const T1& X,
+  const T2* sort_direction
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  const char sig = (sort_direction != NULL) ? sort_direction[0] : char(0);
+  
+  arma_debug_check( ((sig != 'a') && (sig != 'd')), "stable_sort_index(): unknown sort direction" );
+  
+  return mtOp<uword,T1,op_stable_sort_index>(X, ((sig == 'a') ? uword(0) : uword(1)), uword(0));
+  }
+
 
 
 //! @}

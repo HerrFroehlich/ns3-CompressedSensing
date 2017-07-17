@@ -1,14 +1,17 @@
-// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
-// Copyright (C) 2008-2012 Conrad Sanderson
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This file is part of the Armadillo C++ library.
-// It is provided without any warranty of fitness
-// for any purpose. You can redistribute this file
-// and/or modify it under the terms of the GNU
-// Lesser General Public License (LGPL) as published
-// by the Free Software Foundation, either version 3
-// of the License or (at your option) any later version.
-// (see http://www.opensource.org/licenses for more info)
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup podarray
@@ -23,20 +26,19 @@ struct podarray_prealloc_n_elem
 
 
 
-//! A lightweight array for POD types. If the amount of memory requested is small, the stack is used.
-
+//! A lightweight array for POD types. For internal use only!
 template<typename eT>
 class podarray
   {
   public:
   
-  arma_aligned const uword     n_elem; //!< number of elements held
-  arma_aligned const eT* const mem;    //!< pointer to memory used by the object
+  arma_aligned const uword n_elem; //!< number of elements held
+  arma_aligned       eT*   mem;    //!< pointer to memory used by the object
   
   
   protected:
-  //! Internal memory, to avoid calling the 'new' operator for small amounts of memory.
-  arma_aligned eT mem_local[ podarray_prealloc_n_elem::val ];
+  //! internal memory, to avoid calling the 'new' operator for small amounts of memory.
+  arma_align_mem eT mem_local[ podarray_prealloc_n_elem::val ];
   
   
   public:
@@ -60,8 +62,11 @@ class podarray
   arma_inline eT& operator() (const uword i);
   arma_inline eT  operator() (const uword i) const;
   
+  inline void set_min_size(const uword min_n_elem);
+  
   inline void set_size(const uword new_n_elem);
   inline void reset();
+  
   
   inline void fill(const eT val);
   
@@ -73,10 +78,11 @@ class podarray
   
   arma_hot inline void copy_row(const Mat<eT>& A, const uword row);
   
+  
   protected:
   
-  inline void init(const uword new_n_elem);
-  
+  inline void init_cold(const uword new_n_elem);
+  inline void init_warm(const uword new_n_elem);
   };
 
 

@@ -1,14 +1,17 @@
-// Copyright (C) 2009-2012 NICTA (www.nicta.com.au)
-// Copyright (C) 2009-2012 Conrad Sanderson
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This file is part of the Armadillo C++ library.
-// It is provided without any warranty of fitness
-// for any purpose. You can redistribute this file
-// and/or modify it under the terms of the GNU
-// Lesser General Public License (LGPL) as published
-// by the Free Software Foundation, either version 3
-// of the License or (at your option) any later version.
-// (see http://www.opensource.org/licenses for more info)
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup glue_relational
@@ -42,9 +45,9 @@
     \
     uword* out_mem = out.memptr();\
     \
-    const bool prefer_at_accessor = (Proxy<T1>::prefer_at_accessor || Proxy<T2>::prefer_at_accessor);\
+    const bool use_at = (Proxy<T1>::use_at || Proxy<T2>::use_at);\
     \
-    if(prefer_at_accessor == false)\
+    if(use_at == false)\
       {\
       typename Proxy<T1>::ea_type A = P1.get_ea();\
       typename Proxy<T2>::ea_type B = P2.get_ea();\
@@ -67,12 +70,11 @@
         }\
       else\
         {\
-        uword count = 0;\
-        \
         for(uword col=0; col<n_cols; ++col)\
-        for(uword row=0; row<n_rows; ++row, ++count)\
+        for(uword row=0; row<n_rows; ++row)\
           {\
-          out_mem[count] = (P1.at(row,col) operator_rel P2.at(row,col)) ? uword(1) : uword(0);\
+          *out_mem = (P1.at(row,col) operator_rel P2.at(row,col)) ? uword(1) : uword(0);\
+          out_mem++;\
           }\
         }\
       }\
@@ -109,9 +111,9 @@
     \
     uword* out_mem = out.memptr();\
     \
-    const bool prefer_at_accessor = (ProxyCube<T1>::prefer_at_accessor || ProxyCube<T2>::prefer_at_accessor);\
+    const bool use_at = (ProxyCube<T1>::use_at || ProxyCube<T2>::use_at);\
     \
-    if(prefer_at_accessor == false)\
+    if(use_at == false)\
       {\
       typename ProxyCube<T1>::ea_type A = P1.get_ea();\
       typename ProxyCube<T2>::ea_type B = P2.get_ea();\
@@ -125,13 +127,12 @@
       }\
     else\
       {\
-      uword count = 0;\
-      \
       for(uword slice = 0; slice < n_slices; ++slice)\
-      for(uword col   = 0; col   < n_cols;   ++col)\
-      for(uword row   = 0; row   < n_rows;   ++row, ++count)\
+      for(uword col   = 0; col   < n_cols;   ++col  )\
+      for(uword row   = 0; row   < n_rows;   ++row  )\
         {\
-        out_mem[count] = (P1.at(row,col,slice) operator_rel P2.at(row,col,slice)) ? uword(1) : uword(0);\
+        *out_mem = (P1.at(row,col,slice) operator_rel P2.at(row,col,slice)) ? uword(1) : uword(0);\
+        out_mem++;\
         }\
       }\
     }\
@@ -242,6 +243,38 @@ glue_rel_noteq::apply
 
 
 
+template<typename T1, typename T2>
+inline
+void
+glue_rel_and::apply
+  (
+        Mat   <uword>& out,
+  const mtGlue<uword, T1, T2, glue_rel_and>& X
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_applier_mat(&&, "operator&&");
+  }
+
+
+
+template<typename T1, typename T2>
+inline
+void
+glue_rel_or::apply
+  (
+        Mat   <uword>& out,
+  const mtGlue<uword, T1, T2, glue_rel_or>& X
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_applier_mat(||, "operator||");
+  }
+
+
+
 //
 //
 //
@@ -340,6 +373,38 @@ glue_rel_noteq::apply
   arma_extra_debug_sigprint();
   
   arma_applier_cube(!=, "operator!=");
+  }
+
+
+
+template<typename T1, typename T2>
+inline
+void
+glue_rel_and::apply
+  (
+        Cube      <uword>& out,
+  const mtGlueCube<uword, T1, T2, glue_rel_and>& X
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_applier_cube(&&, "operator&&");
+  }
+
+
+
+template<typename T1, typename T2>
+inline
+void
+glue_rel_or::apply
+  (
+        Cube      <uword>& out,
+  const mtGlueCube<uword, T1, T2, glue_rel_or>& X
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  arma_applier_cube(||, "operator||");
   }
 
 

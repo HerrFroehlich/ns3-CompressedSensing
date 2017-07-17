@@ -1,16 +1,17 @@
-// Copyright (C) 2010-2012 NICTA (www.nicta.com.au)
-// Copyright (C) 2010-2012 Conrad Sanderson
-// Copyright (C) 2010 Dimitrios Bouzas
-// Copyright (C) 2011 Stanislav Funiak
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This file is part of the Armadillo C++ library.
-// It is provided without any warranty of fitness
-// for any purpose. You can redistribute this file
-// and/or modify it under the terms of the GNU
-// Lesser General Public License (LGPL) as published
-// by the Free Software Foundation, either version 3
-// of the License or (at your option) any later version.
-// (see http://www.opensource.org/licenses for more info)
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup op_princomp
@@ -52,21 +53,15 @@ op_princomp::direct_princomp
   if(n_rows > 1) // more than one sample
     {
     // subtract the mean - use score_out as temporary matrix
-    score_out = in - repmat(mean(in), n_rows, 1);
- 	  
+    score_out = in;  score_out.each_row() -= mean(in);
+    
     // singular value decomposition
     Mat<eT> U;
     Col<eT> s;
     
-    const bool svd_ok = svd(U,s,coeff_out,score_out);
+    const bool svd_ok = svd(U, s, coeff_out, score_out);
     
-    if(svd_ok == false)
-      {
-      return false;
-      }
-    
-    
-    //U.reset();  // TODO: do we need this ?  U will get automatically deleted anyway
+    if(svd_ok == false)  { return false; }
     
     // normalize the eigenvalues
     s /= std::sqrt( double(n_rows - 1) );
@@ -152,21 +147,15 @@ op_princomp::direct_princomp
   if(n_rows > 1) // more than one sample
     {
     // subtract the mean - use score_out as temporary matrix
-    score_out = in - repmat(mean(in), n_rows, 1);
- 	  
+    score_out = in;  score_out.each_row() -= mean(in);
+    
     // singular value decomposition
     Mat<eT> U;
     Col<eT> s;
     
-    const bool svd_ok = svd(U,s,coeff_out,score_out);
+    const bool svd_ok = svd(U, s, coeff_out, score_out);
     
-    if(svd_ok == false)
-      {
-      return false;
-      }
-    
-    
-    // U.reset();
+    if(svd_ok == false)  { return false; }
     
     // normalize the eigenvalues
     s /= std::sqrt( double(n_rows - 1) );
@@ -233,20 +222,15 @@ op_princomp::direct_princomp
   if(n_rows > 1) // more than one sample
     {
     // subtract the mean - use score_out as temporary matrix
-    score_out = in - repmat(mean(in), n_rows, 1);
- 	  
+    score_out = in;  score_out.each_row() -= mean(in);
+    
     // singular value decomposition
     Mat<eT> U;
     Col<eT> s;
     
-    const bool svd_ok = svd(U,s,coeff_out,score_out);
+    const bool svd_ok = svd(U, s, coeff_out, score_out);
     
-    if(svd_ok == false)
-      {
-      return false;
-      }
-    
-    // U.reset();
+    if(svd_ok == false)  { return false; }
     
     // normalize the eigenvalues
     s /= std::sqrt( double(n_rows - 1) );
@@ -299,18 +283,15 @@ op_princomp::direct_princomp
   
   if(in.n_elem != 0)
     {
+    Mat<eT> tmp = in; tmp.each_row() -= mean(in);
+    
     // singular value decomposition
     Mat<eT> U;
     Col<eT> s;
     
-    const Mat<eT> tmp = in - repmat(mean(in), in.n_rows, 1);
+    const bool svd_ok = svd(U, s, coeff_out, tmp);
     
-    const bool svd_ok = svd(U,s,coeff_out, tmp);
-    
-    if(svd_ok == false)
-      {
-      return false;
-      }
+    if(svd_ok == false)  { return false; }
     }
   else
     {
@@ -357,21 +338,15 @@ op_princomp::direct_princomp
   if(n_rows > 1) // more than one sample
     {
     // subtract the mean - use score_out as temporary matrix
-    score_out = in - repmat(mean(in), n_rows, 1);
+    score_out = in;  score_out.each_row() -= mean(in);
  	  
     // singular value decomposition
     Mat<eT> U;
-    Col<T> s;
+    Col< T> s;
     
-    const bool svd_ok = svd(U,s,coeff_out,score_out); 
+    const bool svd_ok = svd(U, s, coeff_out, score_out); 
     
-    if(svd_ok == false)
-      {
-      return false;
-      }
-    
-    
-    //U.reset();
+    if(svd_ok == false)  { return false; }
     
     // normalize the eigenvalues
     s /= std::sqrt( double(n_rows - 1) );
@@ -455,21 +430,15 @@ op_princomp::direct_princomp
   if(n_rows > 1) // more than one sample
     {
     // subtract the mean - use score_out as temporary matrix
-    score_out = in - repmat(mean(in), n_rows, 1);
- 	  
+    score_out = in;  score_out.each_row() -= mean(in);
+    
     // singular value decomposition
     Mat<eT> U;
     Col< T> s;
     
-    const bool svd_ok = svd(U,s,coeff_out,score_out);
+    const bool svd_ok = svd(U, s, coeff_out, score_out);
     
-    if(svd_ok == false)
-      {
-      return false;
-      }
-    
-    
-    // U.reset();
+    if(svd_ok == false)  { return false; }
     
     // normalize the eigenvalues
     s /= std::sqrt( double(n_rows - 1) );
@@ -488,7 +457,6 @@ op_princomp::direct_princomp
       
     // compute the eigenvalues of the principal vectors
     latent_out = s%s;
-
     }
   else // 0 or 1 samples
     {
@@ -537,20 +505,15 @@ op_princomp::direct_princomp
   if(n_rows > 1) // more than one sample
     {
     // subtract the mean - use score_out as temporary matrix
-    score_out = in - repmat(mean(in), n_rows, 1);
- 	  
+    score_out = in;  score_out.each_row() -= mean(in);
+    
     // singular value decomposition
     Mat<eT> U;
     Col< T> s;
     
-    const bool svd_ok = svd(U,s,coeff_out,score_out);
+    const bool svd_ok = svd(U, s, coeff_out, score_out);
     
-    if(svd_ok == false)
-      {
-      return false;
-      }
-    
-    // U.reset();
+    if(svd_ok == false)  { return false; }
     
     // normalize the eigenvalues
     s /= std::sqrt( double(n_rows - 1) );
@@ -602,18 +565,15 @@ op_princomp::direct_princomp
   
   if(in.n_elem != 0)
     {
- 	  // singular value decomposition
- 	  Mat<eT> U;
+    // singular value decomposition
+    Mat<eT> U;
     Col< T> s;
     
-    const Mat<eT> tmp = in - repmat(mean(in), in.n_rows, 1);
+    Mat<eT> tmp = in;  tmp.each_row() -= mean(in);
     
-    const bool svd_ok = svd(U,s,coeff_out, tmp);
+    const bool svd_ok = svd(U, s, coeff_out, tmp);
     
-    if(svd_ok == false)
-      {
-      return false;
-      }
+    if(svd_ok == false)  { return false; }
     }
   else
     {
@@ -647,7 +607,7 @@ op_princomp::apply
     {
     out.reset();
     
-    arma_bad("princomp(): failed to converge");
+    arma_stop_runtime_error("princomp(): decomposition failed");
     }
   }
 

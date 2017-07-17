@@ -1,17 +1,20 @@
-// Copyright (C) 2011 NICTA (www.nicta.com.au)
-// Copyright (C) 2011 Conrad Sanderson
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This file is part of the Armadillo C++ library.
-// It is provided without any warranty of fitness
-// for any purpose. You can redistribute this file
-// and/or modify it under the terms of the GNU
-// Lesser General Public License (LGPL) as published
-// by the Free Software Foundation, either version 3
-// of the License or (at your option) any later version.
-// (see http://www.opensource.org/licenses for more info)
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
-//! \addtogroup Gen
+//! \addtogroup GenCube
 //! @{
 
 
@@ -40,23 +43,9 @@ GenCube<eT, gen_type>::~GenCube()
 template<typename eT, typename gen_type>
 arma_inline
 eT
-GenCube<eT, gen_type>::generate()
-  {
-       if(is_same_type<gen_type, gen_ones_full>::value == true) { return eT(1);                   }
-  else if(is_same_type<gen_type, gen_zeros    >::value == true) { return eT(0);                   }
-  else if(is_same_type<gen_type, gen_randu    >::value == true) { return eT(eop_aux_randu<eT>()); }
-  else if(is_same_type<gen_type, gen_randn    >::value == true) { return eT(eop_aux_randn<eT>()); }
-  else                                                          { return eT();                    }
-  }
-
-
-
-template<typename eT, typename gen_type>
-arma_inline
-eT
 GenCube<eT, gen_type>::operator[](const uword) const
   {
-  return GenCube<eT, gen_type>::generate();
+  return (*this).generate();
   }
 
 
@@ -66,7 +55,17 @@ arma_inline
 eT
 GenCube<eT, gen_type>::at(const uword, const uword, const uword) const
   {
-  return GenCube<eT, gen_type>::generate();
+  return (*this).generate();
+  }
+
+
+
+template<typename eT, typename gen_type>
+arma_inline
+eT
+GenCube<eT, gen_type>::at_alt(const uword) const
+  {
+  return (*this).generate();
   }
 
 
@@ -81,10 +80,10 @@ GenCube<eT, gen_type>::apply(Cube<eT>& out) const
   // NOTE: we're assuming that the cube has already been set to the correct size;
   // this is done by either the Cube contructor or operator=()
   
-       if(is_same_type<gen_type, gen_ones_full>::value == true) { out.ones();  }
-  else if(is_same_type<gen_type, gen_zeros    >::value == true) { out.zeros(); }
-  else if(is_same_type<gen_type, gen_randu    >::value == true) { out.randu(); }
-  else if(is_same_type<gen_type, gen_randn    >::value == true) { out.randn(); }
+       if(is_same_type<gen_type, gen_ones >::yes) { out.ones();  }
+  else if(is_same_type<gen_type, gen_zeros>::yes) { out.zeros(); }
+  else if(is_same_type<gen_type, gen_randu>::yes) { out.randu(); }
+  else if(is_same_type<gen_type, gen_randn>::yes) { out.randn(); }
   }
 
 
@@ -106,8 +105,8 @@ GenCube<eT, gen_type>::apply_inplace_plus(Cube<eT>& out) const
   
   for(i=0, j=1; j<n_elem; i+=2, j+=2)
     {
-    const eT tmp_i = GenCube<eT, gen_type>::generate();
-    const eT tmp_j = GenCube<eT, gen_type>::generate();
+    const eT tmp_i = (*this).generate();
+    const eT tmp_j = (*this).generate();
     
     out_mem[i] += tmp_i;
     out_mem[j] += tmp_j;
@@ -115,7 +114,7 @@ GenCube<eT, gen_type>::apply_inplace_plus(Cube<eT>& out) const
   
   if(i < n_elem)
     {
-    out_mem[i] += GenCube<eT, gen_type>::generate();
+    out_mem[i] += (*this).generate();
     }
   }
 
@@ -139,8 +138,8 @@ GenCube<eT, gen_type>::apply_inplace_minus(Cube<eT>& out) const
   
   for(i=0, j=1; j<n_elem; i+=2, j+=2)
     {
-    const eT tmp_i = GenCube<eT, gen_type>::generate();
-    const eT tmp_j = GenCube<eT, gen_type>::generate();
+    const eT tmp_i = (*this).generate();
+    const eT tmp_j = (*this).generate();
     
     out_mem[i] -= tmp_i;
     out_mem[j] -= tmp_j;
@@ -148,7 +147,7 @@ GenCube<eT, gen_type>::apply_inplace_minus(Cube<eT>& out) const
   
   if(i < n_elem)
     {
-    out_mem[i] -= GenCube<eT, gen_type>::generate();
+    out_mem[i] -= (*this).generate();
     }
   }
 
@@ -172,8 +171,8 @@ GenCube<eT, gen_type>::apply_inplace_schur(Cube<eT>& out) const
   
   for(i=0, j=1; j<n_elem; i+=2, j+=2)
     {
-    const eT tmp_i = GenCube<eT, gen_type>::generate();
-    const eT tmp_j = GenCube<eT, gen_type>::generate();
+    const eT tmp_i = (*this).generate();
+    const eT tmp_j = (*this).generate();
     
     out_mem[i] *= tmp_i;
     out_mem[j] *= tmp_j;
@@ -181,7 +180,7 @@ GenCube<eT, gen_type>::apply_inplace_schur(Cube<eT>& out) const
   
   if(i < n_elem)
     {
-    out_mem[i] *= GenCube<eT, gen_type>::generate();
+    out_mem[i] *= (*this).generate();
     }
   }
 
@@ -205,8 +204,8 @@ GenCube<eT, gen_type>::apply_inplace_div(Cube<eT>& out) const
   
   for(i=0, j=1; j<n_elem; i+=2, j+=2)
     {
-    const eT tmp_i = GenCube<eT, gen_type>::generate();
-    const eT tmp_j = GenCube<eT, gen_type>::generate();
+    const eT tmp_i = (*this).generate();
+    const eT tmp_j = (*this).generate();
     
     out_mem[i] /= tmp_i;
     out_mem[j] /= tmp_j;
@@ -214,10 +213,27 @@ GenCube<eT, gen_type>::apply_inplace_div(Cube<eT>& out) const
   
   if(i < n_elem)
     {
-    out_mem[i] /= GenCube<eT, gen_type>::generate();
+    out_mem[i] /= (*this).generate();
     }
   }
 
+
+
+template<typename eT, typename gen_type>
+inline
+void
+GenCube<eT, gen_type>::apply(subview_cube<eT>& out) const
+  {
+  arma_extra_debug_sigprint();
+  
+  // NOTE: we're assuming that the subcube has the same dimensions as the GenCube object
+  // this is checked by subview_cube::operator=()
+  
+       if(is_same_type<gen_type, gen_ones >::yes) { out.ones();  }
+  else if(is_same_type<gen_type, gen_zeros>::yes) { out.zeros(); }
+  else if(is_same_type<gen_type, gen_randu>::yes) { out.randu(); }
+  else if(is_same_type<gen_type, gen_randn>::yes) { out.randn(); }
+  }
 
 
 

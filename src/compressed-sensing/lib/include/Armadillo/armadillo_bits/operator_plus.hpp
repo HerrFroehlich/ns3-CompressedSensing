@@ -1,14 +1,17 @@
-// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
-// Copyright (C) 2008-2012 Conrad Sanderson
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This file is part of the Armadillo C++ library.
-// It is provided without any warranty of fitness
-// for any purpose. You can redistribute this file
-// and/or modify it under the terms of the GNU
-// Lesser General Public License (LGPL) as published
-// by the Free Software Foundation, either version 3
-// of the License or (at your option) any later version.
-// (see http://www.opensource.org/licenses for more info)
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup operator_plus
@@ -64,7 +67,7 @@ arma_inline
 typename
 enable_if2
   <
-  (is_arma_type<T1>::value && is_complex<typename T1::elem_type>::value == false),
+  (is_arma_type<T1>::value && is_cx<typename T1::elem_type>::no),
   const mtOp<typename std::complex<typename T1::pod_type>, T1, op_cx_scalar_plus>
   >::result
 operator+
@@ -86,7 +89,7 @@ arma_inline
 typename
 enable_if2
   <
-  (is_arma_type<T1>::value && is_complex<typename T1::elem_type>::value == false),
+  (is_arma_type<T1>::value && is_cx<typename T1::elem_type>::no),
   const mtOp<typename std::complex<typename T1::pod_type>, T1, op_cx_scalar_plus>
   >::result
 operator+
@@ -130,7 +133,7 @@ inline
 typename
 enable_if2
   <
-  (is_arma_type<T1>::value && is_arma_type<T2>::value && (is_same_type<typename T1::elem_type, typename T2::elem_type>::value == false)),
+  (is_arma_type<T1>::value && is_arma_type<T2>::value && (is_same_type<typename T1::elem_type, typename T2::elem_type>::no)),
   const mtGlue<typename promote_type<typename T1::elem_type, typename T2::elem_type>::result, T1, T2, glue_mixed_plus>
   >::result
 operator+
@@ -149,6 +152,153 @@ operator+
   promote_type<eT1,eT2>::check();
   
   return mtGlue<out_eT, T1, T2, glue_mixed_plus>( X, Y );
+  }
+
+
+
+//! addition of two sparse objects
+template<typename T1, typename T2>
+inline
+arma_hot
+typename
+enable_if2
+  <
+  (is_arma_sparse_type<T1>::value && is_arma_sparse_type<T2>::value && is_same_type<typename T1::elem_type, typename T2::elem_type>::value),
+  SpGlue<T1,T2,spglue_plus>
+  >::result
+operator+
+  (
+  const T1& x,
+  const T2& y
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  return SpGlue<T1,T2,spglue_plus>(x, y);
+  }
+
+
+
+//! addition of sparse and non-sparse object
+template<typename T1, typename T2>
+inline
+typename
+enable_if2
+  <
+  (is_arma_type<T1>::value && is_arma_sparse_type<T2>::value && is_same_type<typename T1::elem_type, typename T2::elem_type>::value),
+  Mat<typename T1::elem_type>
+  >::result
+operator+
+  (
+  const T1& x,
+  const T2& y
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  Mat<typename T1::elem_type> result(x);
+  
+  const SpProxy<T2> pb(y);
+  
+  arma_debug_assert_same_size( result.n_rows, result.n_cols, pb.get_n_rows(), pb.get_n_cols(), "addition" );
+  
+  typename SpProxy<T2>::const_iterator_type it     = pb.begin();
+  typename SpProxy<T2>::const_iterator_type it_end = pb.end();
+  
+  while(it != it_end)
+    {
+    result.at(it.row(), it.col()) += (*it);
+    ++it;
+    }
+  
+  return result;
+  }
+
+
+
+//! addition of sparse and non-sparse object
+template<typename T1, typename T2>
+inline
+typename
+enable_if2
+  <
+  (is_arma_sparse_type<T1>::value && is_arma_type<T2>::value && is_same_type<typename T1::elem_type, typename T2::elem_type>::value),
+  Mat<typename T1::elem_type>
+  >::result
+operator+
+  (
+  const T1& x,
+  const T2& y
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  // Just call the other order (these operations are commutative)
+  return (y + x);
+  }
+
+
+
+template<typename parent, unsigned int mode, typename T2>
+arma_inline
+Mat<typename parent::elem_type>
+operator+
+  (
+  const subview_each1<parent,mode>&          X,
+  const Base<typename parent::elem_type,T2>& Y
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  return subview_each1_aux::operator_plus(X, Y.get_ref());
+  }
+
+
+
+template<typename T1, typename parent, unsigned int mode>
+arma_inline
+Mat<typename parent::elem_type>
+operator+
+  (
+  const Base<typename parent::elem_type,T1>& X,
+  const subview_each1<parent,mode>&          Y
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  return subview_each1_aux::operator_plus(Y, X.get_ref());  // NOTE: swapped order
+  }
+
+
+
+template<typename parent, unsigned int mode, typename TB, typename T2>
+arma_inline
+Mat<typename parent::elem_type>
+operator+
+  (
+  const subview_each2<parent,mode,TB>&       X,
+  const Base<typename parent::elem_type,T2>& Y
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  return subview_each2_aux::operator_plus(X, Y.get_ref());
+  }
+
+
+
+template<typename T1, typename parent, unsigned int mode, typename TB>
+arma_inline
+Mat<typename parent::elem_type>
+operator+
+  (
+  const Base<typename parent::elem_type,T1>& X,
+  const subview_each2<parent,mode,TB>&       Y
+  )
+  {
+  arma_extra_debug_sigprint();
+  
+  return subview_each2_aux::operator_plus(Y, X.get_ref());  // NOTE: swapped order
   }
 
 

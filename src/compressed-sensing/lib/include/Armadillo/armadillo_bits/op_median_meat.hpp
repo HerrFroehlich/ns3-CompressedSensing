@@ -1,14 +1,17 @@
-// Copyright (C) 2009-2012 NICTA (www.nicta.com.au)
-// Copyright (C) 2009-2012 Conrad Sanderson
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This file is part of the Armadillo C++ library.
-// It is provided without any warranty of fitness
-// for any purpose. You can redistribute this file
-// and/or modify it under the terms of the GNU
-// Lesser General Public License (LGPL) as published
-// by the Free Software Foundation, either version 3
-// of the License or (at your option) any later version.
-// (see http://www.opensource.org/licenses for more info)
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup op_median
@@ -29,56 +32,101 @@ op_median::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_median>& in)
   
   typedef typename T1::elem_type eT;
   
-  const unwrap_check<T1> tmp(in.m, out);
-  const Mat<eT>&     X = tmp.M;
-  
-  const uword X_n_rows = X.n_rows;
-  const uword X_n_cols = X.n_cols;
-  
   const uword dim = in.aux_uword_a;
-  arma_debug_check( (dim > 1), "median(): incorrect usage. dim must be 0 or 1");
+  arma_debug_check( (dim > 1), "median(): parameter 'dim' must be 0 or 1" );
   
-  if(dim == 0)  // in each column
+  const Proxy<T1> P(in.m);
+  
+  typedef typename Proxy<T1>::stored_type P_stored_type;
+  
+  const bool is_alias = P.is_alias(out);
+  
+  if( (is_Mat<P_stored_type>::value == true) || is_alias )
     {
-    arma_extra_debug_print("op_median::apply(), dim = 0");
+    const unwrap_check<P_stored_type> tmp(P.Q, is_alias);
     
-    arma_debug_check( (X_n_rows == 0), "median(): given object has zero rows" );
+    const typename unwrap_check<P_stored_type>::stored_type& X = tmp.M;
     
-    out.set_size(1, X_n_cols);
+    const uword X_n_rows = X.n_rows;
+    const uword X_n_cols = X.n_cols;
     
-    std::vector<eT> tmp_vec(X_n_rows);
-      
-    for(uword col=0; col<X_n_cols; ++col)
+    if(dim == 0)  // in each column
       {
-      const eT* colmem = X.colptr(col);
+      arma_extra_debug_print("op_median::apply(): dim = 0");
       
-      for(uword row=0; row<X_n_rows; ++row)
+      out.set_size((X_n_rows > 0) ? 1 : 0, X_n_cols);
+      
+      if(X_n_rows > 0)
         {
-        tmp_vec[row] = colmem[row];
+        std::vector<eT> tmp_vec(X_n_rows);
+        
+        for(uword col=0; col < X_n_cols; ++col)
+          {
+          arrayops::copy( &(tmp_vec[0]), X.colptr(col), X_n_rows );
+          
+          out[col] = op_median::direct_median(tmp_vec);
+          }
         }
+      }
+    else  // in each row
+      {
+      arma_extra_debug_print("op_median::apply(): dim = 1");
       
-      out[col] = op_median::direct_median(tmp_vec);
+      out.set_size(X_n_rows, (X_n_cols > 0) ? 1 : 0);
+      
+      if(X_n_cols > 0)
+        {
+        std::vector<eT> tmp_vec(X_n_cols);
+          
+        for(uword row=0; row < X_n_rows; ++row)
+          {
+          for(uword col=0; col < X_n_cols; ++col)  { tmp_vec[col] = X.at(row,col); }
+          
+          out[row] = op_median::direct_median(tmp_vec);
+          }
+        }
       }
     }
   else
-  if(dim == 1)  // in each row
     {
-    arma_extra_debug_print("op_median::apply(), dim = 1");
+    const uword P_n_rows = P.get_n_rows();
+    const uword P_n_cols = P.get_n_cols();
     
-    arma_debug_check( (X_n_cols == 0), "median(): given object has zero columns" );
-    
-    out.set_size(X_n_rows, 1);
-    
-    std::vector<eT> tmp_vec(X_n_cols);
-      
-    for(uword row=0; row<X_n_rows; ++row)
+    if(dim == 0)  // in each column
       {
-      for(uword col=0; col<X_n_cols; ++col)
-        {
-        tmp_vec[col] = X.at(row,col);
-        }
+      arma_extra_debug_print("op_median::apply(): dim = 0");
       
-      out[row] = op_median::direct_median(tmp_vec);
+      out.set_size((P_n_rows > 0) ? 1 : 0, P_n_cols);
+      
+      if(P_n_rows > 0)
+        {
+        std::vector<eT> tmp_vec(P_n_rows);
+        
+        for(uword col=0; col < P_n_cols; ++col)
+          {
+          for(uword row=0; row < P_n_rows; ++row)  { tmp_vec[row] = P.at(row,col); }
+          
+          out[col] = op_median::direct_median(tmp_vec);
+          }
+        }
+      }
+    else  // in each row
+      {
+      arma_extra_debug_print("op_median::apply(): dim = 1");
+      
+      out.set_size(P_n_rows, (P_n_cols > 0) ? 1 : 0);
+      
+      if(P_n_cols > 0)
+        {
+        std::vector<eT> tmp_vec(P_n_cols);
+          
+        for(uword row=0; row < P_n_rows; ++row)
+          {
+          for(uword col=0; col < P_n_cols; ++col)  { tmp_vec[col] = P.at(row,col); }
+          
+          out[row] = op_median::direct_median(tmp_vec);
+          }
+        }
       }
     }
   }
@@ -95,7 +143,7 @@ op_median::apply(Mat< std::complex<T> >& out, const Op<T1,op_median>& in)
   
   typedef typename std::complex<T> eT;
   
-  arma_type_check(( is_same_type<eT, typename T1::elem_type>::value == false ));
+  arma_type_check(( is_same_type<eT, typename T1::elem_type>::no ));
   
   const unwrap_check<T1> tmp(in.m, out);
   const Mat<eT>&     X = tmp.M;
@@ -104,59 +152,61 @@ op_median::apply(Mat< std::complex<T> >& out, const Op<T1,op_median>& in)
   const uword X_n_cols = X.n_cols;
   
   const uword dim = in.aux_uword_a;
-  arma_debug_check( (dim > 1), "median(): incorrect usage. dim must be 0 or 1");
+  arma_debug_check( (dim > 1), "median(): parameter 'dim' must be 0 or 1" );
   
   if(dim == 0)  // in each column
     {
-    arma_extra_debug_print("op_median::apply(), dim = 0");
+    arma_extra_debug_print("op_median::apply(): dim = 0");
     
-    arma_debug_check( (X_n_rows == 0), "median(): given object has zero rows" );
-
-    out.set_size(1, X_n_cols);
+    out.set_size((X_n_rows > 0) ? 1 : 0, X_n_cols);
     
-    std::vector< arma_cx_median_packet<T> > tmp_vec(X_n_rows);
-    
-    for(uword col=0; col<X_n_cols; ++col)
+    if(X_n_rows > 0)
       {
-      const eT* colmem = X.colptr(col);
+      std::vector< arma_cx_median_packet<T> > tmp_vec(X_n_rows);
       
-      for(uword row=0; row<X_n_rows; ++row)
+      for(uword col=0; col<X_n_cols; ++col)
         {
-        tmp_vec[row].val   = std::abs(colmem[row]);
-        tmp_vec[row].index = row;
-        }
-      
-      uword index1;
-      uword index2;
-      op_median::direct_cx_median_index(index1, index2, tmp_vec);
+        const eT* colmem = X.colptr(col);
         
-      out[col] = op_mean::robust_mean(colmem[index1], colmem[index2]);
+        for(uword row=0; row<X_n_rows; ++row)
+          {
+          tmp_vec[row].val   = std::abs(colmem[row]);
+          tmp_vec[row].index = row;
+          }
+        
+        uword index1;
+        uword index2;
+        op_median::direct_cx_median_index(index1, index2, tmp_vec);
+          
+        out[col] = op_mean::robust_mean(colmem[index1], colmem[index2]);
+        }
       }
     }
   else
   if(dim == 1)  // in each row
     {
-    arma_extra_debug_print("op_median::apply(), dim = 1");
+    arma_extra_debug_print("op_median::apply(): dim = 1");
     
-    arma_debug_check( (X_n_cols == 0), "median(): given object has zero columns" );
+    out.set_size(X_n_rows, (X_n_cols > 0) ? 1 : 0);
     
-    out.set_size(X_n_rows, 1);
-    
-    std::vector< arma_cx_median_packet<T> > tmp_vec(X_n_cols);
-    
-    for(uword row=0; row<X_n_rows; ++row)
+    if(X_n_cols > 0)
       {
-      for(uword col=0; col<X_n_cols; ++col)
+      std::vector< arma_cx_median_packet<T> > tmp_vec(X_n_cols);
+      
+      for(uword row=0; row<X_n_rows; ++row)
         {
-        tmp_vec[col].val   = std::abs(X.at(row,col));
-        tmp_vec[col].index = col;
+        for(uword col=0; col<X_n_cols; ++col)
+          {
+          tmp_vec[col].val   = std::abs(X.at(row,col));
+          tmp_vec[col].index = col;
+          }
+        
+        uword index1;
+        uword index2;
+        op_median::direct_cx_median_index(index1, index2, tmp_vec);
+        
+        out[row] = op_mean::robust_mean( X.at(row,index1), X.at(row,index2) );
         }
-      
-      uword index1;
-      uword index2;
-      op_median::direct_cx_median_index(index1, index2, tmp_vec);
-      
-      out[row] = op_mean::robust_mean( X.at(row,index1), X.at(row,index2) );
       }
     }
   }
@@ -176,49 +226,58 @@ op_median::median_vec
   arma_ignore(junk);
   
   typedef typename T1::elem_type eT;
-
+  
+  typedef typename Proxy<T1>::stored_type P_stored_type;
+    
   const Proxy<T1> P(X);
   
   const uword n_elem = P.get_n_elem();
   
-  arma_debug_check( (n_elem == 0), "median(): given object has no elements" );
+  if(n_elem == 0)
+    {
+    arma_debug_check(true, "median(): object has no elements");
+    
+    return Datum<eT>::nan;
+    }
   
   std::vector<eT> tmp_vec(n_elem);
-    
-  if(Proxy<T1>::prefer_at_accessor == false)
+  
+  if(is_Mat<P_stored_type>::value == true)
     {
-    typedef typename Proxy<T1>::ea_type ea_type;
+    const unwrap<P_stored_type> tmp(P.Q);
     
-    ea_type A = P.get_ea();
+    const typename unwrap<P_stored_type>::stored_type& Y = tmp.M;
     
-    for(uword i=0; i<n_elem; ++i)
-      {
-      tmp_vec[i] = A[i];
-      }
+    arrayops::copy( &(tmp_vec[0]), Y.memptr(), n_elem );
     }
   else
     {
-    const uword n_rows = P.get_n_rows();
-    const uword n_cols = P.get_n_cols();
-    
-    if(n_cols == 1)
+    if(Proxy<T1>::use_at == false)
       {
-      for(uword row=0; row < n_rows; ++row)
-        {
-        tmp_vec[row] = P.at(row,0);
-        }
-      }
-    else
-    if(n_rows == 1)
-      {
-      for(uword col=0; col < n_cols; ++col)
-        {
-        tmp_vec[col] = P.at(0,col);
-        }
+      typedef typename Proxy<T1>::ea_type ea_type;
+      
+      ea_type A = P.get_ea();
+      
+      for(uword i=0; i<n_elem; ++i)  { tmp_vec[i] = A[i]; }
       }
     else
       {
-      arma_stop("op_median::median_vec(): expected a vector" );
+      const uword n_rows = P.get_n_rows();
+      const uword n_cols = P.get_n_cols();
+      
+      if(n_cols == 1)
+        {
+        for(uword row=0; row < n_rows; ++row)  { tmp_vec[row] = P.at(row,0); }
+        }
+      else
+      if(n_rows == 1)
+        {
+        for(uword col=0; col < n_cols; ++col)  { tmp_vec[col] = P.at(0,col); }
+        }
+      else
+        {
+        arma_stop_logic_error("op_median::median_vec(): expected a vector" );
+        }
       }
     }
   
@@ -246,11 +305,16 @@ op_median::median_vec
   
   const uword n_elem = P.get_n_elem();
   
-  arma_debug_check( (n_elem == 0), "median(): given object has no elements" );
+  if(n_elem == 0)
+    {
+    arma_debug_check(true, "median(): object has no elements");
+    
+    return Datum<eT>::nan;
+    }
   
   std::vector< arma_cx_median_packet<T> > tmp_vec(n_elem);
   
-  if(Proxy<T1>::prefer_at_accessor == false)
+  if(Proxy<T1>::use_at == false)
     {
     typedef typename Proxy<T1>::ea_type ea_type;
     
@@ -304,7 +368,7 @@ op_median::median_vec
       }
     else
       {
-      arma_stop("op_median::median_vec(): expected a vector" );
+      arma_stop_logic_error("op_median::median_vec(): expected a vector" );
       
       return eT(0);
       }
@@ -321,18 +385,28 @@ op_median::direct_median(std::vector<eT>& X)
   {
   arma_extra_debug_sigprint();
   
-  const uword n_elem = X.size();
+  const uword n_elem = uword(X.size());
   const uword half   = n_elem/2;
   
-  std::sort(X.begin(), X.end());
+  typename std::vector<eT>::iterator first    = X.begin();
+  typename std::vector<eT>::iterator nth      = first + half;
+  typename std::vector<eT>::iterator pastlast = X.end();
   
-  if((n_elem % 2) == 0)
+  std::nth_element(first, nth, pastlast);
+  
+  if((n_elem % 2) == 0)  // even number of elements
     {
-    return op_mean::robust_mean(X[half-1], X[half]);
+    typename std::vector<eT>::iterator start   = X.begin();
+    typename std::vector<eT>::iterator pastend = start + half;
+    
+    const eT val1 = (*nth);
+    const eT val2 = (*(std::max_element(start, pastend)));
+    
+    return op_mean::robust_mean(val1, val2);
     }
-  else
+  else  // odd number of elements
     {
-    return X[half];
+    return (*nth);
     }
   }
 
@@ -350,19 +424,28 @@ op_median::direct_cx_median_index
   {
   arma_extra_debug_sigprint();
   
-  const uword n_elem = X.size();
+  typedef arma_cx_median_packet<T> eT;
+  
+  const uword n_elem = uword(X.size());
   const uword half   = n_elem/2;
   
-  std::sort(X.begin(), X.end());
+  typename std::vector<eT>::iterator first    = X.begin();
+  typename std::vector<eT>::iterator nth      = first + half;
+  typename std::vector<eT>::iterator pastlast = X.end();
   
-  if((n_elem % 2) == 0)
+  std::nth_element(first, nth, pastlast);
+  
+  out_index1 = (*nth).index;
+  
+  if((n_elem % 2) == 0)  // even number of elements
     {
-    out_index1 = X[half-1].index;
-    out_index2 = X[half  ].index;
+    typename std::vector<eT>::iterator start   = X.begin();
+    typename std::vector<eT>::iterator pastend = start + half;
+    
+    out_index2 = (*(std::max_element(start, pastend))).index;
     }
-  else
+  else  // odd number of elements
     {
-    out_index1 = X[half].index;
     out_index2 = out_index1;
     }
   }

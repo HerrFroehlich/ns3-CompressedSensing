@@ -1,14 +1,17 @@
-// Copyright (C) 2008-2012 NICTA (www.nicta.com.au)
-// Copyright (C) 2008-2012 Conrad Sanderson
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This file is part of the Armadillo C++ library.
-// It is provided without any warranty of fitness
-// for any purpose. You can redistribute this file
-// and/or modify it under the terms of the GNU
-// Lesser General Public License (LGPL) as published
-// by the Free Software Foundation, either version 3
-// of the License or (at your option) any later version.
-// (see http://www.opensource.org/licenses for more info)
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup wall_clock
@@ -38,9 +41,9 @@ wall_clock::tic()
   {
   arma_extra_debug_sigprint();
   
-  #if defined(ARMA_USE_BOOST_DATE)
+  #if defined(ARMA_USE_CXX11)
     {
-    boost_time1 = boost::posix_time::microsec_clock::local_time();
+    chrono_time1 = std::chrono::steady_clock::now();
     valid = true;
     }
   #elif defined(ARMA_HAVE_GETTIMEOFDAY)
@@ -50,7 +53,7 @@ wall_clock::tic()
     }
   #else
     {
-    time1 = clock();
+    time1 = std::clock();
     valid = true;
     }
   #endif
@@ -66,25 +69,30 @@ wall_clock::toc()
   
   if(valid)
     {
-    #if defined(ARMA_USE_BOOST_DATE)
+    #if defined(ARMA_USE_CXX11)
       {
-      boost_duration = boost::posix_time::microsec_clock::local_time() - boost_time1;
-      return boost_duration.total_microseconds() * 1e-6;
+      const std::chrono::steady_clock::time_point chrono_time2 = std::chrono::steady_clock::now();
+      
+      typedef std::chrono::duration<double> duration_type;
+      
+      const duration_type chrono_span = std::chrono::duration_cast< duration_type >(chrono_time2 - chrono_time1);
+      
+      return chrono_span.count();
       }
     #elif defined(ARMA_HAVE_GETTIMEOFDAY)
       {
       gettimeofday(&posix_time2, 0);
       
-      const double tmp_time1 = posix_time1.tv_sec + posix_time1.tv_usec * 1.0e-6;
-      const double tmp_time2 = posix_time2.tv_sec + posix_time2.tv_usec * 1.0e-6;
+      const double tmp_time1 = double(posix_time1.tv_sec) + double(posix_time1.tv_usec) * 1.0e-6;
+      const double tmp_time2 = double(posix_time2.tv_sec) + double(posix_time2.tv_usec) * 1.0e-6;
       
       return tmp_time2 - tmp_time1;
       }
     #else
       {
-      clock_t time2 = clock();
+      std::clock_t time2 = std::clock();
       
-      clock_t diff = time2 - time1;
+      std::clock_t diff = time2 - time1;
       
       return double(diff) / double(CLOCKS_PER_SEC);
       }
