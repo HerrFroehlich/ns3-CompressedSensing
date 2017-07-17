@@ -10,7 +10,8 @@
 #define CS_CLUSTERAPP_H
 
 #include "cs-src-app.h"
-#include "node-data-buffer.h"
+#include "ns3/mat-buffer.h"
+#include "ns3/node-data-buffer-meta.h"
 
 /**
 * \ingroup csApps
@@ -24,6 +25,15 @@
 class CsClusterApp : public CsSrcApp
 {
 public:
+  enum E_DropCause
+  {
+    SIZE_MISMATCH,     /**< size of received data is not matching with expected size  */
+    EXPIRED_SEQ,       /**< received old sequence number*/
+    SRC_NOT_IN_CLUSTER /**< received data from source node which is not in this cluster*/
+  };
+  typedef void (*RxDropCallback)(Ptr<const Packet>, E_DropCause); /**< callback signature:  dropping a received packet*/
+  typedef void (*CompressFailCallback)(CsHeader::T_IdField);      /**< callback signature:  compression failed*/
+
   static TypeId GetTypeId(void);
 
   /**
@@ -35,21 +45,52 @@ public:
 	* \brief create an CsClusterApp
 	*
 	* \param n length of original temporal measurement vector (source)
-	* \param m1 length of compressed temporal vector (source)
+	* \param m length of compressed temporal vector (source)
   * \param m2 NOF of spatial and temporal compressed vectors
 	*/
-  CsSrcApp(uint32_t n, uint32_t m1, uint32_t m2);
+  CsClusterApp(uint32_t n, uint32_t m, uint32_t m2);
 
   /**
 	* \brief setups the application
 	* MUST be called before starting the application
 	*
+	* \param node Csnode to aggregate application to
 	* \param clusterId ID for this cluster node
-	* \param rxDevIdx vector containing indices of devices wich only receive
+	* \param filename name of file to read from
 	*
 	* \return returnDesc
 	*/
-  Setup(Ptr<CsNode> node, T_IdField clusterId, uint32_t nSrcNodes, std::string filename);
+  virtual void Setup(Ptr<CsNode> node, std::string filename);
+
+  /**
+	* \brief sets the used spatial compressor
+	*  The NOF measurements used for compression may differ from sequence to sequence, as the source nodes transmit randomly. 
+  *  This means the compressor's "n"  does not need to be given as parameter.
+  *  Therefore the compressor will be setup later during compression.
+	* \param comp  pointer to compressor
+	*/
+  void SetSpatialCompressor(Ptr<Compressor<double>> comp);
+
+  /**
+	* \brief sets the used spatial compressor
+	*  The NOF measurements used for compression may differ from sequence to sequence, as the source nodes transmit randomly. 
+  *  This means the compressor's "n"  does not need to be given as parameter.
+  *  Therefore the compressor will be setup later during compression.
+	*
+	* \param comp  pointer to compressor
+	* \param m2 NOF compressed vectors
+	* \param norm normalize random matrix by 1/sqrt(m)?
+	*/
+  void SetSpatialCompressor(Ptr<Compressor<double>> comp, uint32_t l, bool norm = false);
+
+  /**
+	* \brief sets the compression given by m2
+	*  The NOF measurements used for compression may differ from sequence to sequence, as the source nodes transmit randomly. 
+  *  This means the compressor's "n"  does not need to be given as parameter.
+  *
+	* \param l NOF compressed vectors
+	*/
+  void SetSpatialCompressDim(uint32_t l);
 
   //inherited from Application
   virtual void StartApplication();
@@ -67,6 +108,7 @@ private:
   *
   */
   void DoNetworkCoding();
+
   /**
   * \brief action on net device receive
   * The received data will be stored 
@@ -79,14 +121,43 @@ private:
   */
   bool Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnused, const Address &adrUnused);
 
-  uint32_t m_m1,                  /**< length of compressed temporal vector (source)*/
-      m_m2;                       /**< NOF of spatial and temporal compressed vectors*/
+  /**
+  * \brief action when source data was received on a NetDevice
+  *
+  * \param p   received packet
+  *
+  */
+  bool ReceiveSrc(const Ptr<const Packet> p);
+
+  /**
+  * \brief action when data from another  cluster was received on a NetDevice
+  *
+  * \param p   received packet
+  *
+  */
+  bool ReceiveCluster(const Ptr<const Packet> p);
+
+  /**
+  * \brief start a new sequence
+  *
+  * \param seq new sequence 
+  *
+  */
+  void StartNewSeq(CsHeader::T_SeqField seq);
+
+  uint32_t m_l,                   /**< NOF of spatial and temporal compressed vectors*/
+      m_outBufSize;               /**< size of output buffer*/
   Ptr<Compressor<double>> m_comp; /**< compressor*/
 
-  SerialDataBuffer<double> outBuf;                            /**< buffer containing output data*/
-  std::map<T_NodeIdTag, NodeDataBuffer<double>> m_srcDataMap, /**< NodeDataBuffer for incoming source node data*/
-      m_clusterDataMap;                                       /**< NodeDataBuffer for  incoming cluster  node data*/
-  bool m_isSetup;
+  SerialDataBuffer<double> m_outBuf;                                /**< buffer containing output data*/
+  MatBuffer<double> m_zData;                                   /**< buffer containg spatially compressed data*/
+  NodeDataBufferMeta<double, CsHeader::T_IdField> m_srcDataBuffer; /**< NodeDataBuffer with meta data for incoming source node data*/
+  //m_clusterDataMap;                                                 /**< NodeDataBuffer for  incoming cluster  node data*/
+  bool m_normalize,                                                 /**< normalize random matrix by 1/sqrt(m)?*/
+      m_running,
+      m_isSetup;
+  TracedCallback<Ptr<const Packet>, E_DropCause> m_rxDropTrace; /**< callback:  dropping a received packet*/
+  TracedCallback<CsHeader::T_IdField> m_compressFailTrace;      /**< trace when compression failed*/
 };
 
 #endif //CS_CLUSTERAPP_H
