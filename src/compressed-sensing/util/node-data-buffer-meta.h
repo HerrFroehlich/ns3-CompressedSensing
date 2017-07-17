@@ -68,7 +68,7 @@ class NodeDataBufferMeta : public ns3::Object
 	*
 	* \return remaining NOF rows
 	*/
-	uint32_t WriteData(T *buffer, uint32_t bufSize, TM meta);
+	uint32_t WriteData(const T *buffer, uint32_t bufSize, TM meta);
 
 	/**
 	* \brief checks if storage is full
@@ -217,7 +217,7 @@ uint32_t NodeDataBufferMeta<T, TM>::WriteData(const Row<T> &vect, TM meta)
 }
 
 template <typename T, typename TM>
-uint32_t NodeDataBufferMeta<T, TM>::WriteData(T *buffer, uint32_t bufSize, TM meta)
+uint32_t NodeDataBufferMeta<T, TM>::WriteData(const T *buffer, uint32_t bufSize, TM meta)
 {
 	NS_ASSERT(buffer); //null pointer check
 	NS_ASSERT_MSG(bufSize == m_nRow, " Buffer size  must equal N!");
