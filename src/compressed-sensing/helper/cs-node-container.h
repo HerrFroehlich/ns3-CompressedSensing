@@ -24,7 +24,7 @@ class CsNodeContainer
 	/// CsNode container iterator
 	typedef std::vector<Ptr<CsNode>>::const_iterator Iterator;
 
-	typedef uint32_t (*SeedCreator)(uint32_t); /**< signature for a function with which seeds are created for a given node number*/
+	typedef uint32_t (*SeedCreator)(uint32_t, CsHeader::T_IdField); /**< signature for a function with which seeds are created for a given node number*/
 
 	/**
    * Create an empty CsNodeContainer.
@@ -214,28 +214,38 @@ class CsNodeContainer
    * \brief Create n nodes and append pointers to them to the end of this 
    * CsNodeContainer.
    *
-   * CsNodes are of the given type are create and a seed for them is calculated via the default/ optional creator function
+   * CsNodes are of the given type are created. Seed and IDs are not set!
    *
    * \param type type of CsNodes to create
    * \param n The number of Nodes to create
-   * \param seeder function with SeedCreator signature, which determines the seed of each node
    */
-	void Create(CsNode::NodeType type, uint32_t n, SeedCreator seeder = 0);
+	void Create(CsNode::NodeType type, uint32_t n);
 
 	/**
    * \brief Create n nodes with specified systemId for distributed simulations 
    * and append pointers to them to the end of this CsNodeContainer.
    *
-   * CsNodes are of the given type are create and a seed for them is calculated via the default/ optional creator function
+   * CsNodes are of the given type are created. Seed and IDs are not set!
    * Adds the ability to specify systemId for distributed simulations.
    *
    * \param type type of CsNodes to create
    * \param n The number of CsNodes to create
-   * \param systemId The system id or rank associated with this node
+   * \param systemId The system id or rank associated with the nodes
+   */
+	void Create(CsNode::NodeType type, uint32_t n, uint32_t systemId);
+
+	/**
+   * \brief Creates a Cluster with source n nodes and append pointers to them to the end of this 
+   * CsNodeContainer.
+   *
+   * The cluster node will be stored first. The node ids are set incrementally by one.
+   * A seed for the nodes is calculated via the default/ the given optional creator function.
+   *
+   * \param id cluster id 
+   * \param n The number of Nodes to create
    * \param seeder function with SeedCreator signature, which determines the seed of each node
    */
-	void Create(CsNode::NodeType type, uint32_t n, uint32_t systemId, SeedCreator seeder = 0);
-
+	void CreateCluster(CsHeader::T_IdField id, uint32_t n, SeedCreator seeder = 0);
 	/**
    * \brief Append the contents of another CsNodeContainer to the end of
    * this container.
@@ -276,17 +286,18 @@ class CsNodeContainer
   private:
 	/**
 	* \brief default seed creator function
-	* the seed simply equals the given number	
+  *
+	* the seed simply equals the given number + id + 1	
 	*
 	* \param number current node number	
+	* \param id cluster id
 	*
 	* \return seed to associate with node
 	*/
-	uint32_t DefaultSeedCreator(uint32_t number);
+	uint32_t DefaultSeedCreator(uint32_t number, CsHeader::T_IdField id);
 
 	std::vector<Ptr<CsNode>> m_nodes; //!< Nodes smart pointers
 };
 
-;
 
 #endif  //CSNODE_CONTAINER_H	
