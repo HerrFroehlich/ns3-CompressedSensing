@@ -64,7 +64,7 @@ class Compressor : public Object
 
 	/**
 	* \brief compresses data from input buffer and writes it to the output buffer
-	* If X is a matrix, column-wise order in the input buffer is assumed. In this case the output buffer is also written in acolumn-wise order
+	* If X is a matrix, column-wise order in the input buffer is assumed. In this case the output buffer is also written column by column.
 	*
 	* \param bufferIn pointer to input buffer 
 	* \param bufLenIn length of input buffer (must be vecLen*n)
@@ -73,6 +73,36 @@ class Compressor : public Object
 	*
 	*/
 	void Compress(const T *bufferIn, uint32_t bufLenIn, T *bufferOut, uint32_t bufLenOut) const;
+
+	/**
+	* \brief compresses data from input matrix and writes it to the output buffer
+	*
+	* The output buffer is written column by column.
+	*
+	* \param matIn input matrix
+	* \param bufferOut pointer to output buffer
+	* \param bufLenOut length of output buffer (must be vecLen*m)
+	*
+	*/
+	void Compress(const arma::Mat<T> &matIn, T *bufferOut, uint32_t bufLenOut) const;
+
+	/**
+	* \brief compresses data from input matrix with sparse rows and writes it to the output buffer
+	*
+	* The sparse SxV matrix is represented by 2 parameters: 
+	* - its non-zero-row data
+	* - a Sx1 vector of indices giving the actual row index of each data row in the sparse matrix.
+	* Note that S<N and that V == the length of a measurement vector.
+	* The output buffer is written column by column.
+	*
+	* \param data data of sparse matrix WITHOUT sparse rows
+	* \param idx  vector containing row indices
+	* \param bufferOut pointer to output buffer
+	* \param bufLenOut length of output buffer (must be vecLen*m)
+	*
+	*/
+	template<typename TI>
+	void CompressSparse(const arma::Mat<T> &data, const arma::Col<TI> &idx, T *bufferOut, uint32_t bufLenOut) const;
 
 	/**
 	* \brief sets the seed used for the random matrix and regenerates it

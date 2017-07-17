@@ -92,19 +92,49 @@ template <typename T>
 void Compressor<T>::Compress(const T *bufferIn, uint32_t bufLenIn, T *bufferOut, uint32_t bufLenOut) const
 {
 	NS_LOG_FUNCTION(this << bufferIn << bufLenIn << bufferOut << bufLenOut);
-	NS_ASSERT_MSG(bufLenIn == m_bufLenIn, "Incorrect input buffer size");
-	NS_ASSERT_MSG(bufLenOut == m_bufLenOut, "Incorrect output buffer size");
+	NS_ASSERT_MSG(bufLenIn == m_bufLenIn, "Incorrect input buffer size!");
+	NS_ASSERT(bufferIn); //null pointer check
 
 	klab::TSmartPointer<kl1p::TOperator<T>> op_ptr = m_ranMat * m_transMat;
 	const arma::Mat<T> x(const_cast<T *>(bufferIn), m_n, m_vecLen, false);
+	Compress(x, bufferOut, bufLenOut);
+}
+
+template <typename T>
+void Compressor<T>::Compress(const arma::Mat<T> &matIn, T *bufferOut, uint32_t bufLenOut) const
+{
+	NS_LOG_FUNCTION(this << matIn << bufferOut << bufLenOut);
+	NS_ASSERT_MSG(bufLenOut == m_bufLenOut, "Incorrect output buffer size!");
+	NS_ASSERT_MSG((matIn.n_rows == m_n) && (matIn.n_cols == m_vecLen), "Incorrect matrix size!");
+	NS_ASSERT(bufferOut); //null pointer check
+
+	klab::TSmartPointer<kl1p::TOperator<T>> op_ptr = m_ranMat * m_transMat;
 	arma::Mat<T> y(bufferOut, m_m, m_vecLen, false);
 
 	for (uint32_t i = 0; i < m_vecLen; i++)
 	{
 		Col<T> yVec(m_m);
-		op_ptr->apply(x.col(i), yVec);
+		op_ptr->apply(matIn.col(i), yVec);
 		y.col(i) = yVec;
 	}
+}
+
+template <typename T>
+template <typename TI>
+void Compressor<T>::CompressSparse(const arma::Mat<T> &data, const arma::Col<TI> &idx, T *bufferOut, uint32_t bufLenOut) const
+{
+	NS_LOG_FUNCTION(this << data << idx << bufferOut << bufLenOut);
+	NS_ASSERT(data.n_cols == idx.n_cols);
+
+	arma::Mat<T> sp = arma::zeros<arma::Mat<T>>(m_m, m_n);
+	//arma::SpMat<T> sp(m_m, m_n); // contains zeros by default
+	for (uint32_t i = 0; i < idx.n_elem; i++)
+	{
+		uint32_t rowIdx = idx.at(i);
+		sp.row(rowIdx) = data.row(i);
+	}
+
+	Compress(sp, bufferOut, bufLenOut);
 }
 
 template <typename T>
@@ -140,6 +170,13 @@ void Compressor<T>::SetTransMat(Ptr<TransMatrix<T>> transMat_ptr)
 
 template class Compressor<double>;
 template class Compressor<cx_double>;
+
+template void Compressor<double>::CompressSparse<uint8_t>(const arma::Mat<double> &data, const arma::Col<uint8_t> &idx, double *bufferOut, uint32_t bufLenOut) const;
+template void Compressor<double>::CompressSparse<uint16_t>(const arma::Mat<double> &data, const arma::Col<uint16_t> &idx, double *bufferOut, uint32_t bufLenOut) const;
+template void Compressor<double>::CompressSparse<uint32_t>(const arma::Mat<double> &data, const arma::Col<uint32_t> &idx, double *bufferOut, uint32_t bufLenOut) const;
+template void Compressor<cx_double>::CompressSparse<uint8_t>(const arma::Mat<cx_double> &data, const arma::Col<uint8_t> &idx, cx_double *bufferOut, uint32_t bufLenOut) const;
+template void Compressor<cx_double>::CompressSparse<uint16_t>(const arma::Mat<cx_double> &data, const arma::Col<uint16_t> &idx, cx_double *bufferOut, uint32_t bufLenOut) const;
+template void Compressor<cx_double>::CompressSparse<uint32_t>(const arma::Mat<cx_double> &data, const arma::Col<uint32_t> &idx, cx_double *bufferOut, uint32_t bufLenOut) const;
 
 /*--------  CompressorTemp  --------*/
 template <>
