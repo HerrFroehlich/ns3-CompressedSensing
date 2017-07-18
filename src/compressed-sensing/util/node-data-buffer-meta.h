@@ -100,7 +100,7 @@ class NodeDataBufferMeta : public ns3::Object
 	*
 	* \return row meta data
 	*/
-	TM ReadMeta(uint32_t colIdx) const;
+	TM ReadMeta(uint32_t idx) const;
 
 	/**
 	* \brief reads all written data
@@ -260,10 +260,10 @@ Col<T> NodeDataBufferMeta<T, TM>::ReadCol(uint32_t colIdx) const
 }
 
 template <typename T, typename TM>
-TM NodeDataBufferMeta<T, TM>::ReadMeta(uint32_t colIdx) const
+TM NodeDataBufferMeta<T, TM>::ReadMeta(uint32_t idx) const
 {
-	NS_ASSERT_MSG(colIdx < m_nCol, "Index exceeding NOF columns");
-	return m_metaData.at(colIdx);
+	NS_ASSERT_MSG(idx < m_nRow, "Index exceeding NOF rows");
+	return m_metaData.at(idx);
 }
 
 template <typename T, typename TM>
