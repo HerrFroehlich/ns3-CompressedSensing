@@ -16,6 +16,7 @@
 #include "ns3/buffer.h"
 using namespace ns3;
 /**
+* \ingroup simpleN
 * \class SimpleHeader
 *
 * \brief a simple header containing an 8bit-ID and variable payload

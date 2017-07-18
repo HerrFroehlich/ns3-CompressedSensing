@@ -16,6 +16,7 @@
 #include <iostream>
 
 /**
+* \ingroup simpleN
 * \class SimpleSinkApp
 *
 * \brief a SimpleSinkApp  which receives data of selected Type from several source nodes

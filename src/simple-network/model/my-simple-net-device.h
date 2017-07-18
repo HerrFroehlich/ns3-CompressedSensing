@@ -25,6 +25,7 @@ using namespace ns3;
 
 class MySimpleChannel;
 /**
+* \ingroup simpleN
 * \class MySimpleNetDevice
 *
 * \brief simple net device model

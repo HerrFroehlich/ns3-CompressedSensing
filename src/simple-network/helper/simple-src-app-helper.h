@@ -21,6 +21,7 @@ class SimpleSrcAppHelper
 public:
   static TypeId GetTypeId(void);
   /**
+* \ingroup simpleN
 	* \brief create SimpleSrcAppHelper to install easily SimpleSrcApp t multiple nodes
 	*
   */

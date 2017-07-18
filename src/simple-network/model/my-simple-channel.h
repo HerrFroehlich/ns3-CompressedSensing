@@ -1,4 +1,12 @@
+
 /**
+ * \defgroup simpleN Simple Network
+ *
+ * Provides a channel and a net device for a basic network with point-to-point links with no need of addressing and network protocols.
+ * A net device helper class and also example applications (source/sink) are contributed.
+ */
+/**
+* 
 * \file MySimpleChannel.h
 *
 * \author Tobias Waurick
@@ -20,6 +28,7 @@
 
 using namespace ns3;
 /**
+* \ingroup simpleN
 * \class MySimpleChannel
 *
 * \brief simple bidirectional point to point channel with delay

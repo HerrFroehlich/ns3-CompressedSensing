@@ -20,6 +20,7 @@
 #include <string>
 
 /**
+* \ingroup simpleN
 * \class DataBuffer
 *
 * \brief a general buffer class to store and read data
@@ -169,6 +170,7 @@ void DataBuffer<T>::Resize(uint32_t size)
 
 
 /**
+* \ingroup simpleN
 * \class SimpleSrcApp
 *
 * \brief simple node application transmitting without transport protocols
