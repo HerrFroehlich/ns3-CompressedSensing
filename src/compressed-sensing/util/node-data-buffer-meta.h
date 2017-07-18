@@ -205,7 +205,7 @@ uint32_t NodeDataBufferMeta<T, TM>::WriteData(const Row<T> &vect, TM meta)
 {
 	NS_ASSERT_MSG(!m_isFull, "Buffer is already full.");
 	uint32_t vectSize = vect.n_elem;
-	NS_ASSERT_MSG(vectSize == m_nRow, " Data vector must be of size N!");
+	NS_ASSERT_MSG(vectSize == m_nCol, " Data vector must be of size N!");
 
 	m_dataMat.row(m_rowWrIdx) = vect;
 	m_metaData(m_rowWrIdx) = meta;
@@ -220,22 +220,24 @@ template <typename T, typename TM>
 uint32_t NodeDataBufferMeta<T, TM>::WriteData(const T *buffer, uint32_t bufSize, TM meta)
 {
 	NS_ASSERT(buffer); //null pointer check
-	NS_ASSERT_MSG(bufSize == m_nRow, " Buffer size  must equal N!");
+	NS_ASSERT_MSG(bufSize == m_nCol, " Buffer size  must equal N!");
 
-	T *matMem_ptr = m_dataMat.memptr(); // here data is stored in a column by column order
+	const Row<T> vect(const_cast<T*> (buffer), bufSize, false);
+	return WriteData(vect, meta);
+	// T *matMem_ptr = m_dataMat.memptr(); // here data is stored in a column 	by column order
 
-	for (uint32_t i = 0; i < bufSize; i++)
-	{
-		uint32_t matMemStart = m_nRow * i + m_rowWrIdx;
-		*(matMem_ptr + matMemStart) = *(buffer + i);
-	}
+	// for (uint32_t i = 0; i < bufSize; i++)
+	// {
+	// 	uint32_t matMemStart = m_nRow * i + m_rowWrIdx;
+	// 	*(matMem_ptr + matMemStart) = *(buffer + i);
+	// }
 
-	m_metaData(m_rowWrIdx) = meta;
+	// m_metaData(m_rowWrIdx) = meta;
 
-	m_rowWrIdx++;
-	if (m_rowWrIdx == m_nRow)
-		m_isFull = true;
-	return m_nRow - m_rowWrIdx;
+	// m_rowWrIdx++;
+	// if (m_rowWrIdx == m_nRow)
+	// 	m_isFull = true;
+	// return m_nRow - m_rowWrIdx;
 }
 
 template <typename T, typename TM>
