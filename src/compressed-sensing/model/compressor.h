@@ -38,6 +38,8 @@ template <typename T>
 class Compressor : public Object
 {
   public:
+	typedef void (*CompleteCallback)(const arma::Mat<T> &); /**< callback signature: complete a compression*/
+
 	static TypeId GetTypeId(void);
 	Compressor();
 
@@ -101,7 +103,7 @@ class Compressor : public Object
 	* \param bufLenOut length of output buffer (must be vecLen*m)
 	*
 	*/
-	template<typename TI>
+	template <typename TI>
 	void CompressSparse(const arma::Mat<T> &data, const arma::Col<TI> &idx, T *bufferOut, uint32_t bufLenOut) const;
 
 	/**
@@ -140,6 +142,7 @@ class Compressor : public Object
 	bool m_normalize;								/**< normalize random matrix?*/
 	klab::TSmartPointer<RandomMatrix> m_ranMat;		/**< Random matrix form from which sensing matrix is constructed*/
 	klab::TSmartPointer<TransMatrix<T>> m_transMat; /**< Transformation matrix form from which sensing matrix is constructed*/
+	TracedCallback<const arma::Mat<T> &> m_completeCb;	/**< callback when compression is completed*/
 };
 
 /**

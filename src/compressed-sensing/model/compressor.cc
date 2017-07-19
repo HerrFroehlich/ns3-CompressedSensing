@@ -29,7 +29,11 @@ TypeId Compressor<double>::GetTypeId(void)
 										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(),
 										  MakePointerAccessor(&Compressor::SetTransMat),
-										  MakePointerChecker<TransMatrix<double>>());
+										  MakePointerChecker<TransMatrix<double>>())
+							.AddTraceSource("Complete",
+											"Trace source indicating that compression completed",
+											MakeTraceSourceAccessor(&Compressor::m_completeCb),
+											"Compressor::CompleteCallback");
 	return tid;
 }
 
@@ -49,7 +53,11 @@ TypeId Compressor<cx_double>::GetTypeId(void)
 										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(),
 										  MakePointerAccessor(&Compressor::SetTransMat),
-										  MakePointerChecker<TransMatrix<cx_double>>());
+										  MakePointerChecker<TransMatrix<cx_double>>())
+							.AddTraceSource("Complete",
+											"Trace source indicating that compression completed",
+											MakeTraceSourceAccessor(&Compressor::m_completeCb),
+											"Compressor::CompleteCallback");
 	return tid;
 }
 
@@ -117,6 +125,8 @@ void Compressor<T>::Compress(const arma::Mat<T> &matIn, T *bufferOut, uint32_t b
 		op_ptr->apply(matIn.col(i), yVec);
 		y.col(i) = yVec;
 	}
+
+	m_completeCb(y);
 }
 
 template <typename T>
