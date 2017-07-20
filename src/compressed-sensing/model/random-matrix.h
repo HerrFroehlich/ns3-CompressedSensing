@@ -169,6 +169,8 @@ klab::TSmartPointer<kl1p::TOperator<cx_double>> operator*(const klab::TSmartPoin
 class IdentRandomMatrix : public RandomMatrix
 {
 public:
+
+  static TypeId GetTypeId();
   /**
   * \brief create a empty matrix
   *
@@ -214,6 +216,8 @@ private:
 class GaussianRandomMatrix : public RandomMatrix
 {
 public:
+
+  static TypeId GetTypeId();
   /**
   * \brief create a empty matrix
   *
@@ -276,6 +280,8 @@ private:
 class BernRandomMatrix : public RandomMatrix
 {
 public:
+
+  static TypeId GetTypeId();
   /**
   * \brief create a empty matrix
   *

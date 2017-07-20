@@ -148,6 +148,15 @@ klab::TSmartPointer<kl1p::TOperator<cx_double>> operator*(const klab::TSmartPoin
 }
 
 /*********  IdentRandomMatrix  **********/
+NS_OBJECT_ENSURE_REGISTERED(IdentRandomMatrix);
+TypeId IdentRandomMatrix::GetTypeId(void)
+{
+	static TypeId tid = TypeId("IdentRandomMatrix")
+							.SetParent<RandomMatrix>()
+							.SetGroupName("CompressedSensing");
+	return tid;
+}
+
 IdentRandomMatrix::IdentRandomMatrix()
 {
 }
@@ -196,6 +205,23 @@ IdentRandomMatrix *IdentRandomMatrix::Clone() const
 	return new IdentRandomMatrix(*this);
 }
 /*********  GaussianRandomMatrix  **********/
+NS_OBJECT_ENSURE_REGISTERED(GaussianRandomMatrix);
+TypeId GaussianRandomMatrix::GetTypeId(void)
+{
+	static TypeId tid = TypeId("GaussianRandomMatrix")
+							.SetParent<RandomMatrix>()
+							.SetGroupName("CompressedSensing")
+							.AddAttribute("Mean", "mean of underlying gaussian distribution",
+										  DoubleValue(0),
+										  MakeDoubleAccessor(&GaussianRandomMatrix::m_mean),
+										  MakeDoubleChecker<double>())
+							.AddAttribute("Var", "variance of underlying gaussian distribution",
+										  DoubleValue(1),
+										  MakeDoubleAccessor(&GaussianRandomMatrix::m_var),
+										  MakeDoubleChecker<double>());
+	return tid;
+}
+
 GaussianRandomMatrix::GaussianRandomMatrix()
 {
 }
@@ -239,6 +265,14 @@ GaussianRandomMatrix *GaussianRandomMatrix::Clone() const
 	return new GaussianRandomMatrix(*this);
 }
 /*********  BernRandomMatrix  **********/
+NS_OBJECT_ENSURE_REGISTERED(BernRandomMatrix);
+TypeId BernRandomMatrix::GetTypeId(void)
+{
+	static TypeId tid = TypeId("BernRandomMatrix")
+							.SetParent<RandomMatrix>()
+							.SetGroupName("CompressedSensing");
+	return tid;
+}
 BernRandomMatrix::BernRandomMatrix()
 {
 }
