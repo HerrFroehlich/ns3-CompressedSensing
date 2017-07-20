@@ -20,14 +20,22 @@ using namespace ns3;
 * \ingroup compsens
  * \defgroup compr Compressors
  *
- * Classes to compress data via random matrices
+ * Classes to compress data via random matrices and transfromations
  */
 
 /**
 * \ingroup compr
 * \class Compressor	
 *
-* compresses measurement vectors X into a lower dimensional space Y
+* \brief Compresses measurement vectors X into a lower dimensional space Y.
+*
+* The seed for the random matrix, length of X and Y  and the size of a single measurement vector are set in a Setup method,
+* which should be called before initiating the compression via Compress.
+* In addition to compressing dense matrices, it is also possible to compress sparse matrices, where some rows are zero ENTIRELY.
+*
+* This Template can be used with the following explicit instantiations (see for Attributes) :\n
+* Compressor<double>\n
+* Compressor<cx_double>\n
 *
 * \tparam T type of internal data (either double or arma::cx_double)
 *
@@ -149,7 +157,13 @@ class Compressor : public Object
 * \ingroup compr
 * \class CompressorTemp
 *
-* compresses measurements X into a lower dimensional space Y (temporal coding)
+* \brief compresses measurements X into a lower dimensional space Y (temporal coding)
+*
+* Similiar to Compressor<T>, but here the length of a measurement vector is fixed to 1;
+*
+* This Template can be used with the following explicit instantiations (see for Attributes) :\n
+* CompressorTemp<double>\n
+* CompressorTemp<cx_double>\n
 *
 * \tparam T type of internal data (either double or arma::cx_double)
 *

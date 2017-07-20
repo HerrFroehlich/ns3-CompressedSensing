@@ -13,8 +13,7 @@ NS_LOG_COMPONENT_DEFINE("OMP_Reconstructor");
 template <>
 TypeId OMP_Reconstructor<double>::GetTypeId(void)
 {
-	std::string name = TypeNameGet<OMP_Reconstructor<double>>();
-	static TypeId tid = TypeId(("ns3::OMP_Reconstructor<" + name + ">").c_str())
+	static TypeId tid = TypeId("OMP_Reconstructor<double>")
 							.SetParent<Reconstructor<double>>()
 							.SetGroupName("CompressedSensing")
 							.AddConstructor<OMP_Reconstructor<double>>()
@@ -32,7 +31,7 @@ TypeId OMP_Reconstructor<double>::GetTypeId(void)
 template <>
 TypeId OMP_Reconstructor<cx_double>::GetTypeId(void)
 {
-	static TypeId tid = TypeId("ns3::OMP_Reconstructor<cx_double>")
+	static TypeId tid = TypeId("OMP_Reconstructor<cx_double>")
 							.SetParent<Reconstructor<cx_double>>()
 							.SetGroupName("CompressedSensing")
 							.AddConstructor<OMP_Reconstructor<cx_double>>()
@@ -46,6 +45,7 @@ TypeId OMP_Reconstructor<cx_double>::GetTypeId(void)
 										  MakeDoubleChecker<double>());
 	return tid;
 }
+
 
 
 template <typename T>
@@ -116,15 +116,17 @@ int64_t OMP_Reconstructor<T>::Reconstruct(T_NodeIdTag nodeId, uint32_t kspars, u
 	return time;
 }
 
-template class OMP_Reconstructor<double>;
-template class OMP_Reconstructor<cx_double>;
+// template class OMP_Reconstructor<double>;
+// template class OMP_Reconstructor<cx_double>;
+OBJECT_TEMPLATE_CLASS_DEFINE(OMP_Reconstructor, double);
+OBJECT_TEMPLATE_CLASS_DEFINE(OMP_Reconstructor, cx_double);
 
 /*--------  OMP_ReconstructorTemp  --------*/
 
 template <>
 TypeId OMP_ReconstructorTemp<double>::GetTypeId(void)
 {
-	static TypeId tid = TypeId("ns3::OMP_ReconstructorTemp<double>")
+	static TypeId tid = TypeId("OMP_ReconstructorTemp<double>")
 							.SetParent<OMP_Reconstructor<double>>()
 							.SetGroupName("CompressedSensing")
 							.AddConstructor<OMP_ReconstructorTemp<double>>();
@@ -135,7 +137,7 @@ template <>
 TypeId OMP_ReconstructorTemp<cx_double>::GetTypeId(void)
 {
 	std::string name = TypeNameGet<OMP_Reconstructor<cx_double>>();
-	static TypeId tid = TypeId("ns3::OMP_ReconstructorTemp<cx_double>")
+	static TypeId tid = TypeId("OMP_ReconstructorTemp<cx_double>")
 							.SetParent<OMP_Reconstructor<cx_double>>()
 							.SetGroupName("CompressedSensing")
 							.AddConstructor<OMP_ReconstructorTemp<cx_double>>();
@@ -172,6 +174,8 @@ uint32_t OMP_ReconstructorTemp<T>::Write(T_NodeIdTag nodeId, T data)
 	return Reconstructor<T>::WriteData(nodeId, &data, 1);
 }
 
-template class OMP_ReconstructorTemp<double>;
-template class OMP_ReconstructorTemp<cx_double>;
+// template class OMP_ReconstructorTemp<double>;
+// template class OMP_ReconstructorTemp<cx_double>;
+OBJECT_TEMPLATE_CLASS_DEFINE(OMP_ReconstructorTemp, double);
+OBJECT_TEMPLATE_CLASS_DEFINE(OMP_ReconstructorTemp, cx_double);
 

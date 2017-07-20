@@ -11,11 +11,16 @@
 
 #include "reconstructor.h"
 using namespace kl1p;
+
 /**
 * \ingroup rec
-* \class OMP_ReconstructorBase
+* \class OMP_Reconstructor
 *
 * \brief base class template for several omp reconstructors
+*
+* This Template can be used with the following explicit instantiations (see for Attributes) :\n
+* OMP_Reconstructor<double>\n
+* OMP_Reconstructor<cx_double>\n
 *
 * \tparam T	type of data
 */
@@ -66,8 +71,11 @@ class OMP_Reconstructor : public Reconstructor<T>
 * \ingroup rec
 * \class OMP_ReconstructorTemp
 *
-* \brief an reconstructor using OMP to recover real data from several nodes, which is for each temporally correlated
+* \brief an reconstructor using OMP to recover real data from several nodes which were compressed temporally
 *
+* This Template can be used with the following explicit instantiations (see for Attributes) :\n
+* OMP_ReconstructorTemp<double>\n
+* OMP_ReconstructorTemp<cx_double>\n
 */
 template <typename T>
 class OMP_ReconstructorTemp : public OMP_Reconstructor<T>
@@ -109,4 +117,5 @@ class OMP_ReconstructorTemp : public OMP_Reconstructor<T>
 	uint32_t Write(T_NodeIdTag nodeId, T data);
 
 };
+
 #endif //OMP_TEMP_RECONSTRUCTOR

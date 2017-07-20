@@ -18,6 +18,7 @@
 #include "random-matrix.h"
 #include "transform-matrix.h"
 #include "cs-header.h"
+#include "ns3/template-registration.h"
 
 using namespace ns3;
 using namespace arma;
@@ -38,6 +39,9 @@ typedef CsHeader::T_IdField T_NodeIdTag;
 * This class is used as a base class for different CS reconstructors (using KL1p).
 * The base takes care of storing data for multiple nodes. Their individual random sensing matrix is recreated from used seed, which is also stored.
 * Additionally a transformation matrix if needed can be aggregated.
+* This Template can be used with the following explicit instantiations (see for Attributes) :\n
+* Reconstructor<double>\n
+* Reconstructor<cx_double>\n
 *
 * \tparam T type of internal data (either double or arma::cx_double)
 *

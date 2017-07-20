@@ -14,19 +14,20 @@ NS_LOG_COMPONENT_DEFINE("Reconstructor");
 template <typename T>
 TypeId Reconstructor<T>::GetTypeId(void)
 {
-	std::string name = TypeNameGet<Reconstructor<T>>();
-	static TypeId tid = TypeId(("ns3::Reconstructor<" + name + ">").c_str())
+	// std::string name = TypeNameGet<Reconstructor<T>>();
+	std::string name = GetTypeParamName<T>();
+	static TypeId tid = TypeId(("Reconstructor<" + name + ">").c_str())
 							.SetParent<Object>()
 							//.AddConstructor<Reconstructor>()
 							.SetGroupName("CompressedSensing")
 							.AddAttribute("RanMatrix", "The underlying random matrix form to create the sensing matrix",
-										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT ,
+										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(CreateObject<IdentRandomMatrix>()),
 										  MakePointerAccessor(&Reconstructor::SetRanMat),
 										  //  MakePointerAccessor(&Reconstructor::m_ranMat),
 										  MakePointerChecker<RandomMatrix>())
 							.AddAttribute("TransMatrix", "The underlying matrix of a real transformation in which the solution is sparse",
-										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT ,
+										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(),
 										  MakePointerAccessor(&Reconstructor::SetTransMat),
 										  MakePointerChecker<TransMatrix<T>>())
@@ -287,5 +288,8 @@ const typename Reconstructor<T>::T_NodeInfo &Reconstructor<T>::CheckOutInfo(T_No
 	return *(m_infoNowConst);
 }
 
-template class Reconstructor<double>;
-template class Reconstructor<cx_double>;
+// template class Reconstructor<double>;
+// template class Reconstructor<cx_double>;
+
+OBJECT_TEMPLATE_CLASS_DEFINE(Reconstructor, double);
+OBJECT_TEMPLATE_CLASS_DEFINE(Reconstructor, cx_double);

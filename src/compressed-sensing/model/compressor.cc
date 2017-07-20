@@ -8,6 +8,7 @@
 #include "compressor.h"
 #include <armadillo>
 #include "assert.h"
+#include "ns3/template-registration.h"
 
 NS_LOG_COMPONENT_DEFINE("Compressor");
 
@@ -16,7 +17,7 @@ NS_LOG_COMPONENT_DEFINE("Compressor");
 template <>
 TypeId Compressor<double>::GetTypeId(void)
 {
-	static TypeId tid = TypeId("ns3::Compressor<double>")
+	static TypeId tid = TypeId("Compressor<double>")
 							.SetParent<Object>()
 							.AddConstructor<Compressor<double>>()
 							.SetGroupName("CompressedSensing")
@@ -40,7 +41,7 @@ TypeId Compressor<double>::GetTypeId(void)
 template <>
 TypeId Compressor<cx_double>::GetTypeId(void)
 {
-	static TypeId tid = TypeId("ns3::Compressor<cx_double>")
+	static TypeId tid = TypeId("Compressor<cx_double>")
 							.SetParent<Object>()
 							.AddConstructor<Compressor<cx_double>>()
 							.SetGroupName("CompressedSensing")
@@ -178,8 +179,10 @@ void Compressor<T>::SetTransMat(Ptr<TransMatrix<T>> transMat_ptr)
 		m_transMat->SetSize(m_n);
 }
 
-template class Compressor<double>;
-template class Compressor<cx_double>;
+// template class Compressor<double>;
+// template class Compressor<cx_double>;
+OBJECT_TEMPLATE_CLASS_DEFINE(Compressor, double);
+OBJECT_TEMPLATE_CLASS_DEFINE(Compressor, cx_double);
 
 template void Compressor<double>::CompressSparse<uint8_t>(const arma::Mat<double> &data, const arma::Col<uint8_t> &idx, double *bufferOut, uint32_t bufLenOut) const;
 template void Compressor<double>::CompressSparse<uint16_t>(const arma::Mat<double> &data, const arma::Col<uint16_t> &idx, double *bufferOut, uint32_t bufLenOut) const;
@@ -192,7 +195,7 @@ template void Compressor<cx_double>::CompressSparse<uint32_t>(const arma::Mat<cx
 template <>
 TypeId CompressorTemp<double>::GetTypeId(void)
 {
-	static TypeId tid = TypeId("ns3::CompressorTemp<double>")
+	static TypeId tid = TypeId("CompressorTemp<double>")
 							.SetParent<Compressor<double>>()
 							.AddConstructor<CompressorTemp<double>>()
 							.SetGroupName("CompressedSensing");
@@ -202,7 +205,7 @@ TypeId CompressorTemp<double>::GetTypeId(void)
 template <>
 TypeId CompressorTemp<cx_double>::GetTypeId(void)
 {
-	static TypeId tid = TypeId("ns3::Compressor<cx_double>")
+	static TypeId tid = TypeId("CompressorTemp<cx_double>")
 							.SetParent<Compressor<cx_double>>()
 							.AddConstructor<Compressor<cx_double>>()
 							.SetGroupName("CompressedSensing");
@@ -224,5 +227,7 @@ void CompressorTemp<T>::Setup(uint32_t seed, uint32_t n, uint32_t m, bool norm)
 	Compressor<T>::Setup(seed, n, m, VECLEN, norm);
 }
 
-template class CompressorTemp<double>;
-template class CompressorTemp<cx_double>;
+// template class CompressorTemp<double>;
+// template class CompressorTemp<cx_double>;
+OBJECT_TEMPLATE_CLASS_DEFINE(CompressorTemp, double);
+OBJECT_TEMPLATE_CLASS_DEFINE(CompressorTemp, cx_double);
