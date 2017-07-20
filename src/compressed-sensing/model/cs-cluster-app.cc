@@ -17,6 +17,11 @@ CsClusterApp::GetTypeId(void)
 							.SetParent<CsSrcApp>()
 							.SetGroupName("CompressedSensing")
 							.AddConstructor<CsClusterApp>()
+							.AddAttribute("TimeOut",
+										  "The time to wait for new source data",
+										  TimeValue(Seconds(10)),
+										  MakeTimeAccessor(&CsClusterApp::m_timeout),
+										  MakeTimeChecker(Seconds(0)))
 							.AddAttribute("ComprSpat", "Spatial Compressor",
 										  PointerValue(CreateObject<Compressor<double>>()),
 										  MakePointerAccessor(&CsClusterApp::m_comp),
@@ -25,6 +30,9 @@ CsClusterApp::GetTypeId(void)
 										  UintegerValue(64),
 										  MakeUintegerAccessor(&CsClusterApp::m_l),
 										  MakeUintegerChecker<uint32_t>())
+							.AddTraceSource("Rx", "A new packet is received",
+											MakeTraceSourceAccessor(&CsClusterApp::m_rxTrace),
+											"ns3::Packet::TracedCallback")
 							.AddTraceSource("RxDrop",
 											"Trace source indicating a packet has been dropped by the device during reception",
 											MakeTraceSourceAccessor(&CsClusterApp::m_rxDropTrace),
@@ -37,13 +45,16 @@ CsClusterApp::GetTypeId(void)
 	return tid;
 }
 
-CsClusterApp::CsClusterApp() : m_l(0), m_zData()
+CsClusterApp::CsClusterApp() : m_l(0), m_zData(),
+							   m_normalize(false), m_running(false), m_isSetup(false),
+							   m_timeoutEvent(EventId())
 {
 	NS_LOG_FUNCTION(this);
 }
 
 CsClusterApp::CsClusterApp(uint32_t n, uint32_t m, uint32_t l) : CsSrcApp(n, m), m_l(l), m_outBufSize(2 * m * l), m_zData(m, l),
-																 m_normalize(false), m_running(false), m_isSetup(false)
+																 m_normalize(false), m_running(false), m_isSetup(false),
+																 m_timeoutEvent(EventId())
 {
 	NS_LOG_FUNCTION(this << n << m << l);
 }
@@ -62,7 +73,9 @@ void CsClusterApp::Setup(Ptr<CsNode> node, std::string filename)
 		(*it)->SetReceiveCallback(MakeCallback(&CsClusterApp::Receive, this));
 	}
 
-	m_outBufSize = 2 * m_m * m_l;
+	m_outBufSize = m_m * m_l;
+
+	m_srcDataBuffer.Resize(N_SRCNODES, m_m);
 
 	m_isSetup = true;
 }
@@ -72,7 +85,7 @@ void CsClusterApp::SetSpatialCompressor(Ptr<Compressor<double>> comp)
 	NS_LOG_FUNCTION(this << comp);
 
 	m_comp = comp;
-	// m_comp->Setup(m_node->GetSeed(), m_l, m_m, m_normalize);
+	m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
 }
 
 void CsClusterApp::SetSpatialCompressor(Ptr<Compressor<double>> comp, uint32_t l, bool norm)
@@ -83,7 +96,7 @@ void CsClusterApp::SetSpatialCompressor(Ptr<Compressor<double>> comp, uint32_t l
 	SetSpatialCompressDim(l);
 	m_normalize = norm;
 
-	// m_comp->Setup(m_node->GetSeed(), m_l, m_m, m_normalize);
+	m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
 }
 
 void CsClusterApp::SetSpatialCompressDim(uint32_t l)
@@ -94,7 +107,7 @@ void CsClusterApp::SetSpatialCompressDim(uint32_t l)
 
 	m_zData.Resize(m_l, m_m);
 	// m_yR.Resize(m);
-	// m_comp->Setup(m_node->GetSeed(), m_l, m_m, m_normalize);
+	m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
 }
 void CsClusterApp::StartApplication()
 {
@@ -133,28 +146,39 @@ bool CsClusterApp::CompressNext()
 	uint32_t zBufSize = m_zData.nElem();
 	double *zData = new double[zBufSize]; //temporal buffer on heap will be moved to m_zData
 
-	m_comp->Setup(m_node->GetSeed(), nMeas, m_l, m_m, m_normalize);
 	m_comp->CompressSparse(m_srcDataBuffer.ReadAll(),
 						   m_srcDataBuffer.ReadAllMeta(),
 						   zData, m_l * m_m);
+	//m_comp->Compress(m_srcDataBuffer.ReadAll(),
+	//    zData, m_l * m_m);
 	m_zData.WrMove(zData, zBufSize);
+
+	//write info bit field
+	m_srcInfo.reset();
+	for (uint32_t i = 0; i < m_srcDataBuffer.GetWrRow(); i++)
+	{
+		uint32_t idx = m_srcDataBuffer.ReadMeta(i);
+		m_srcInfo[idx] = 1;
+	}
+
 	return true;
 }
 
-void CsClusterApp::CreateCsPackets() //TODO
+void CsClusterApp::CreateCsPackets()
 {
 	NS_LOG_FUNCTION(this);
 	/*--------  Create packets from that data  --------*/
 	std::vector<Ptr<Packet>> pktList;
 
 	uint32_t payloadSize = GetMaxPayloadSize();
-	uint32_t packetsNow = 1 + (m_outBufSize / payloadSize);
+	uint32_t packetsNow = 1 + (m_outBufSize / payloadSize); //
 
 	CsHeader header;
 	header.SetClusterId(m_clusterId);
 	header.SetNodeId(m_nodeId);
 	header.SetSeq(m_nextSeq);
 	header.SetDataSize(payloadSize);
+	header.SetSrcInfo(m_srcInfo);
 
 	const uint8_t *byte_ptr = reinterpret_cast<const uint8_t *>(m_outBuf.GetMem());
 	uint32_t remain = m_outBufSize;
@@ -162,10 +186,12 @@ void CsClusterApp::CreateCsPackets() //TODO
 	{
 		remain -= payloadSize;
 		Ptr<Packet> p = Create<Packet>(byte_ptr + i * payloadSize, payloadSize);
+		p->AddHeader(header);
 		pktList.push_back(p);
 	}
 	//last package
 	Ptr<Packet> p = Create<Packet>(byte_ptr + (packetsNow - 1) * payloadSize, remain);
+	p->AddHeader(header);
 	pktList.push_back(p);
 
 	WriteTxPacketList(pktList);
@@ -174,7 +200,7 @@ void CsClusterApp::CreateCsPackets() //TODO
 uint32_t
 CsClusterApp::GetMaxPayloadSize() //TODO: for now mxl, might be too large in future, send row by row?pw
 {
-	return 2 * m_m * m_l * sizeof(double);
+	return m_m * m_l * sizeof(double);
 }
 
 void CsClusterApp::DoNetworkCoding() //TODO: actual NC
@@ -182,18 +208,20 @@ void CsClusterApp::DoNetworkCoding() //TODO: actual NC
 	NS_LOG_FUNCTION(this);
 
 	arma::Col<CsHeader::T_IdField> ids;
-	arma::Mat<double> tmp(2 * m_l, m_m);
+	// arma::Mat<double> tmp(2 * m_l, m_m);
 
-	tmp.rows(0, m_l - 1) = m_zData.Read();
+	// tmp.rows(0, m_l - 1) = m_zData.Read();
 
-	for (auto it = ids.begin(); it != ids.end(); it++) //create unity rows
-	{
-		uint32_t i = *it;
-		tmp(m_l + i, i) = 1.0;
-	}
+	// for (auto it = ids.begin(); it != ids.end(); it++) //create unity rows
+	// {
+	// 	uint32_t i = *it;
+	// 	tmp(m_l + i, i) = 1.0;
+	// }
+	arma::Mat<double> tmp = m_zData.Read();
+
 	tmp = tmp.t(); // since we send row by row
 
-	m_outBuf.WriteNext(tmp.memptr(), 2 * m_l * m_m);
+	m_outBuf.WriteNext(tmp.memptr(), m_l * m_m);
 }
 
 bool CsClusterApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnused, const Address &adrUnused)
@@ -203,6 +231,14 @@ bool CsClusterApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idU
 	(void)adrUnused;
 
 	bool success = false;
+
+	//call receive trace
+	m_rxTrace(p);
+
+	//cancel old time out event and start a new
+	Simulator::Cancel(m_timeoutEvent);
+	m_timeoutEvent = Simulator::Schedule(m_timeout, &CsClusterApp::StartNewSeq, this, m_nextSeq + 1);
+
 	CsHeader header;
 	CsHeader::T_IdField nodeId,
 		clusterId;
@@ -243,14 +279,14 @@ bool CsClusterApp::ReceiveSrc(const Ptr<const Packet> packet)
 		return false;
 	}
 
-	size = header.GetDataSize();
+	size = header.GetDataSize() / sizeof(double);
 	if (size != m_m) //check if has correct size
 	{
 		m_rxDropTrace(packet, E_DropCause::SIZE_MISMATCH);
 		return false;
 	}
 
-	double* data = new double[m_m];
+	double *data = new double[m_m];
 	uint32_t nBytes = CsSrcApp::GetMaxPayloadSize();
 	p->CopyData(reinterpret_cast<uint8_t *>(data), nBytes);
 

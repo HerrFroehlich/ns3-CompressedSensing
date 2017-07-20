@@ -149,15 +149,25 @@ private:
       m_outBufSize;               /**< size of output buffer*/
   Ptr<Compressor<double>> m_comp; /**< compressor*/
 
-  SerialDataBuffer<double> m_outBuf;                                /**< buffer containing output data*/
-  MatBuffer<double> m_zData;                                   /**< buffer containg spatially compressed data*/
+  SerialDataBuffer<double> m_outBuf;                               /**< buffer containing output data*/
+  MatBuffer<double> m_zData;                                       /**< buffer containg spatially compressed data*/
   NodeDataBufferMeta<double, CsHeader::T_IdField> m_srcDataBuffer; /**< NodeDataBuffer with meta data for incoming source node data*/
   //m_clusterDataMap;                                                 /**< NodeDataBuffer for  incoming cluster  node data*/
-  bool m_normalize,                                                 /**< normalize random matrix by 1/sqrt(m)?*/
+  std::bitset<CsHeader::SRCINFO_BITLEN> m_srcInfo;
+
+  bool m_normalize, /**< normalize random matrix by 1/sqrt(m)?*/
       m_running,
       m_isSetup;
+      
+
+	Time m_timeout; /**< Packet inter-send time*/
+	EventId m_timeoutEvent; /**< timeout event when waiting for new source data*/
+
+  TracedCallback<Ptr<const Packet>> m_rxTrace;                  /**< received a packet*/
   TracedCallback<Ptr<const Packet>, E_DropCause> m_rxDropTrace; /**< callback:  dropping a received packet*/
   TracedCallback<CsHeader::T_IdField> m_compressFailTrace;      /**< trace when compression failed*/
+
+  const static uint32_t N_SRCNODES = CsHeader::MAX_SRCNODES+1; /**< maximum NOF source nodes, +1 since cluster is also source!*/
 };
 
 #endif //CS_CLUSTERAPP_H
