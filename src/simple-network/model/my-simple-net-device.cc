@@ -20,7 +20,7 @@ NS_OBJECT_ENSURE_REGISTERED(MySimpleNetDevice);
 
 TypeId MySimpleNetDevice::GetTypeId(void)
 {
-  static TypeId tid = TypeId("ns3::MySimpleNetDevice")
+  static TypeId tid = TypeId("MySimpleNetDevice")
                           .SetParent<NetDevice>()
                           .SetGroupName("SimpleNetwork")
                           .AddConstructor<MySimpleNetDevice>()

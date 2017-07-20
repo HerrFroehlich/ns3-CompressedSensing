@@ -18,7 +18,7 @@ NS_OBJECT_ENSURE_REGISTERED (MySimpleChannel);
 
 TypeId MySimpleChannel::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::MySimpleChannel")
+  static TypeId tid = TypeId ("MySimpleChannel")
     .SetParent<Channel> ()
     .SetGroupName ("SimpleNetwork")
     .AddConstructor<MySimpleChannel> ()
