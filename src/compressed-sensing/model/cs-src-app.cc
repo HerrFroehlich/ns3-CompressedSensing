@@ -24,9 +24,9 @@ CsSrcApp::GetTypeId(void)
 							.AddConstructor<CsSrcApp>()
 							.AddAttribute("Interval",
 										  "The time to wait between packets",
-										  TimeValue(MilliSeconds(1)),
+										  TimeValue(MilliSeconds(100)),
 										  MakeTimeAccessor(&CsSrcApp::m_interval),
-										  MakeTimeChecker())
+										  MakeTimeChecker(Seconds(0)))
 							// .AddAttribute("PacketSize", "Maximum size of outbound packets' payload in bytes",
 							// 			  UintegerValue(8),
 							// 			  MakeUintegerAccessor(&CsSrcApp::m_packetSize),
@@ -101,7 +101,7 @@ void CsSrcApp::Setup(Ptr<CsNode> node, std::string filename)
 	using namespace std;
 	NS_LOG_FUNCTION(this << node << filename);
 	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
-	NS_ASSERT_MSG(node->IsSource(), "Must be a source node!");
+	NS_ASSERT_MSG(node->IsSource() || node->IsCluster(), "Must be a source or cluster node!");
 
 	m_node = node;
 	m_nodeId = node->GetNodeId();
@@ -234,7 +234,7 @@ void CsSrcApp::SendToAll(Ptr<Packet> p)
 	Ptr<NetDevice> device;
 
 	//call trace source
-	NS_LOG_INFO(m_node->GetId() << " is about to send");
+	NS_LOG_INFO(m_node->GetId() << " is about to send\n" << p->ToString());
 	m_txTrace(p);
 	NetDeviceContainer devices = m_node->GetTxDevices();
 	for (auto it = devices.Begin(); it != devices.End(); it++)
@@ -296,7 +296,7 @@ void CsSrcApp::CreateCsPackets()
 
 	// Ptr<Packet> p = Create<Packet>(reinterpret_cast<uint8_t *>(yData), payloadSize);
 	Ptr<Packet> p = Create<Packet>(reinterpret_cast<const uint8_t *>(m_yR.GetMem()), payloadSize);
-
+	p->AddHeader(header);
 	pktList.push_back(p);
 	WriteTxPacketList(pktList);
 	/*--------  Update members  --------*/
@@ -307,7 +307,7 @@ void CsSrcApp::WriteTxPacketList(const std::vector<Ptr<Packet>> &pktList)
 {
 	NS_LOG_FUNCTION(this);
 	if (HasPackets())
-		m_txPackets.insert(m_txPackets.begin() + pktList.size(), pktList.begin(), pktList.end());
+		m_txPackets.insert(m_txPackets.begin() + pktList.size() - 1, pktList.begin(), pktList.end());
 	else
 		m_txPackets = pktList;
 }

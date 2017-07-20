@@ -89,7 +89,7 @@ class CsSrcApp : public Application
 
 	/**
 	* \brief sets the compression given by n and m
-
+	*
 	* \param n length of original measurement vector
 	* \param m length of compressed vector
 	*/
