@@ -1,0 +1,204 @@
+/**
+* \file cs-cluster-simple-helper.h
+*
+* \author Tobias Waurick
+* \date 18.07.17
+*	
+*/
+
+#ifndef CS_CLUSTER__SIMPLE_HELPER_H
+#define CS_CLUSTER__SIMPLE_HELPER_H
+
+#include<string>
+#include "ns3/random-variable-stream.h"
+#include "cs-node-container.h"
+#include "ns3/cs-header.h"
+#include "cs-node-container.h"
+#include "ns3/my-simple-net-device-helper.h"
+#include "ns3/cs-cluster-app.h"
+	/**
+* \ingroup util
+* \class CsClusterSimpleHelper
+*
+* \brief Helper to create a cluster connected with MySimpleChannel and MySimpleNetDevice, as well adding applications
+*
+* This helper makes the creation of a cluster much easier. By calling Create a cluster with one cluster and n
+* source nodes is initiated. Each source node is connected to the cluster node via a point to point link using 
+* MySimpleChannel and MySimpleNetDevices. Hereby n receiving net devices are attached to the the cluster node,
+* every source node one transmitting net device. Finally for the cluster node a CsClusterApp and for the source nodes
+* CsSrcApp are setup and associated.
+* Beforehand creation attributes of the net devices, channels and application and also the compression dimensions can be set.
+* Additionaly it is possible to hsbr the data rates of the source MySimpleNetDevice and the delay of MySimpleChannel drawn
+* randomly from a gaussian distribution.
+*
+*/
+	class CsClusterSimpleHelper
+{
+  public:
+	CsClusterSimpleHelper();
+
+	/**
+	* Each net device must have a queue to pass packets through.
+	* This method allows one to set the type of the queue that is automatically
+	* created when the device is created and attached to a node.
+	*
+	* \param type the type of queue
+	* \param n1 the name of the attribute to set on the queue
+	* \param v1 the value of the attribute to set on the queue
+	* \param n2 the name of the attribute to set on the queue
+	* \param v2 the value of the attribute to set on the queue
+	* \param n3 the name of the attribute to set on the queue
+	* \param v3 the value of the attribute to set on the queue
+	* \param n4 the name of the attribute to set on the queue
+	* \param v4 the value of the attribute to set on the queue
+	*
+	* Set the type of queue to create and associated to each
+	* SimpleNetDevice created through CsClusterSimpleHelper::Create.
+	*/
+	void SetQueue(std::string type,
+				  std::string n1 = "", const AttributeValue &v1 = EmptyAttributeValue(),
+				  std::string n2 = "", const AttributeValue &v2 = EmptyAttributeValue(),
+				  std::string n3 = "", const AttributeValue &v3 = EmptyAttributeValue(),
+				  std::string n4 = "", const AttributeValue &v4 = EmptyAttributeValue());
+
+	/**
+	* Each net device must have a channel to pass packets through.
+	* This method allows one to set the type of the channel that is automatically
+	* created when the device is created and attached to a node.
+	*
+	* \param type the type of queue
+	* \param n1 the name of the attribute to set on the queue
+	* \param v1 the value of the attribute to set on the queue
+	* \param n2 the name of the attribute to set on the queue
+	* \param v2 the value of the attribute to set on the queue
+	* \param n3 the name of the attribute to set on the queue
+	* \param v3 the value of the attribute to set on the queue
+	* \param n4 the name of the attribute to set on the queue
+	* \param v4 the value of the attribute to set on the queue
+	*
+	* Set the type of channel to create and associated to each
+	* SimpleNetDevice created through CsClusterSimpleHelper::Create.
+	*/
+	// void SetChannel(std::string type,
+	// 				std::string n1 = "", const AttributeValue &v1 = EmptyAttributeValue(),
+	// 				std::string n2 = "", const AttributeValue &v2 = EmptyAttributeValue(),
+	// 				std::string n3 = "", const AttributeValue &v3 = EmptyAttributeValue(),
+	// 				std::string n4 = "", const AttributeValue &v4 = EmptyAttributeValue());
+
+	/**
+	* \param n1 the name of the attribute to set
+	* \param v1 the value of the attribute to set
+	*
+	* Set these attributes on each tx MySimpleNetDevice created for the source nodes
+	* by CsClusterSimpleHelper::Create
+	*/
+	void SetSrcDeviceAttribute(std::string n1, const AttributeValue &v1);
+
+	/**
+	* \param n1 the name of the attribute to set
+	* \param v1 the value of the attribute to set
+	*
+	* Set these attributes on each rx MySimpleNetDevice created for the cluster node
+	* by CsClusterSimpleHelper::Create
+	*/
+	void SetClusterDeviceAttribute(std::string n1, const AttributeValue &v1);
+
+	/**
+	* \param n1 the name of the attribute to set
+	* \param v1 the value of the attribute to set
+	*
+	* Set these attributes on each CsSrcApp created for the source nodes
+	* by CsClusterSimpleHelper::Create
+	*/
+	void SetSrcAppAttribute(std::string n1, const AttributeValue &v1);
+
+	/**
+	* \param n1 the name of the attribute to set
+	* \param v1 the value of the attribute to set
+	*
+	* Set these attributes on each CsClusterApp created for the source nodes
+	* by CsClusterSimpleHelper::Create
+	*/
+	void SetClusterAppAttribute(std::string n1, const AttributeValue &v1);
+
+	/**
+	* \param n1 the name of the attribute to set
+	* \param v1 the value of the attribute to set
+	*
+	* Set these attributes on each MySimpleChannel created
+	* by CsClusterSimpleHelper::Create
+	*/
+	void SetChannelAttribute(std::string n1, const AttributeValue &v1);
+
+	/**
+	* \brief sets the function which creates a seed from an index and a clusterid
+	*
+	*
+	* \param seeder function pointer to seed generator function
+	*/
+	void SetNodeSeeder(CsNodeContainer::SeedCreator seeder);
+
+	/**
+	* \brief creates the cluster with the selected attributes
+	*
+	* The source nodes will have an ID from (1...n+1). 
+	* Seeds are selected from a the default seed function of CsNodeContainer or by an optional function set by SetNodeSeeder;
+	* The input file names are created by concatenating fileBaseName+nodeId. By sure to store your files respectively!
+	*
+	* \param id cluster id to set
+	* \param n NOF source nodes to create
+	* \param fileBaseName base name of input files for all nodes
+	*
+	*/
+	CsNodeContainer Create(CsHeader::T_IdField id, uint32_t n, std::string fileBaseName);
+
+	/**
+	* \brief sets the channel delay for the created MySimpleChannels to be random with a mean and variance
+	*
+	* The delays are chosen from a gaussian distribution. Negativ channel delays are prevented.
+	*
+	* \param mean mean delay
+	* \param var  delay variation
+	* 
+	*
+	*/
+	void SetRandomDelay(Time mean, Time var);
+
+	/**
+	* \brief sets the data rate for the created MySimpleNetDevices to be random with mean a and variance
+	*
+	* The delays are chosen from a gaussian distribution. Negativ data rates are prevented.
+	*
+	* \param mean mean data rate
+	* \param var  data rate variation
+	* 
+	*
+	*/
+	void SetRandomDataRate(DataRate mean, DataRate var);
+
+	/**
+	* \brief sets the compression dimensions for source and cluster nodes
+	*
+	* \param n length of original measurement vector
+	* \param m length of temporally compressed vector
+	* \param  l NOF spatially compressed vectors
+	*
+	*/
+	void SetCompression(uint32_t n, uint32_t m, uint32_t l);
+
+  private:
+	ObjectFactory m_queueFactory;		  //!< Queue factory
+	ObjectFactory m_srcDeviceFactory;	 //!< NetDevice factory
+	ObjectFactory m_clusterDeviceFactory; //!< NetDevice factory
+	ObjectFactory m_channelFactory;		  //!< Channel factory
+	ObjectFactory m_srcAppFactory;		  //!< Application factory
+	ObjectFactory m_clusterAppFactory;	//!< Application factory
+
+	MySimpleNetDeviceHelper m_deviceHelper;
+	bool m_ranDelay, m_ranRate;
+	double m_delayMean, m_delayVar, m_rateMean, m_rateVar; 
+
+	NormalRandomVariable m_gaussRan;
+	CsNodeContainer::SeedCreator m_seeder;
+};
+#endif //CS_CLUSTER__SIMPLE_HELPER_H

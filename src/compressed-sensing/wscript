@@ -24,7 +24,8 @@ def build(bld):
         'model/cs-src-app.cc',
         'model/cs-node.cc',
         'model/cs-cluster-app.cc',
-        'helper/cs-node-container.cc'
+        'helper/cs-node-container.cc',
+        'helper/cs-cluster-simple-helper.cc'
         ]
 
     module_test = bld.create_ns3_module_test_library('compressed-sensing')
@@ -54,6 +55,7 @@ def build(bld):
         'model/cs-node.h',
         'model/cs-cluster-app.h',
         'helper/cs-node-container.h',
+        'helper/cs-cluster-simple-helper.h',
         'util/serial-buffer.h',
         'util/mat-buffer.h',
         'util/node-data-buffer.h',
