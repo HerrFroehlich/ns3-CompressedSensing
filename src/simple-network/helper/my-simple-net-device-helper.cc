@@ -16,8 +16,8 @@ NS_LOG_COMPONENT_DEFINE ("MySimpleNetDeviceHelper");
 MySimpleNetDeviceHelper::MySimpleNetDeviceHelper ()
 {
   m_queueFactory.SetTypeId ("ns3::DropTailQueue");
-  m_deviceFactory.SetTypeId ("ns3::MySimpleNetDevice");
-  m_channelFactory.SetTypeId ("ns3::MySimpleChannel");
+  m_deviceFactory.SetTypeId ("MySimpleNetDevice");
+  m_channelFactory.SetTypeId ("MySimpleChannel");
 }
 
 void 
