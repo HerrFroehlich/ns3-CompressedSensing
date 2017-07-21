@@ -22,7 +22,7 @@ TypeId Reconstructor<T>::GetTypeId(void)
 							.SetGroupName("CompressedSensing")
 							.AddAttribute("RanMatrix", "The underlying random matrix form to create the sensing matrix",
 										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
-										  PointerValue(CreateObject<IdentRandomMatrix>()),
+										  PointerValue(CreateObject<GaussianRandomMatrix>()),
 										  MakePointerAccessor(&Reconstructor::SetRanMat),
 										  //  MakePointerAccessor(&Reconstructor::m_ranMat),
 										  MakePointerChecker<RandomMatrix>())
