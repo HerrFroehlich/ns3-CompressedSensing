@@ -145,9 +145,11 @@ private:
   */
   void StartNewSeq(CsHeader::T_SeqField seq);
 
-  uint32_t m_l,                   /**< NOF of spatial and temporal compressed vectors*/
-      m_outBufSize;               /**< size of output buffer*/
-  Ptr<Compressor<double>> m_comp; /**< compressor*/
+  uint32_t m_l,     /**< NOF of spatial and temporal compressed vectors*/
+      m_outBufSize; /**< size of output buffer*/
+
+  CsHeader::T_SeqField m_nextPackSeq; /**< sequence number of next packet*/
+  Ptr<Compressor<double>> m_comp;     /**< compressor*/
 
   SerialDataBuffer<double> m_outBuf;                               /**< buffer containing output data*/
   MatBuffer<double> m_zData;                                       /**< buffer containg spatially compressed data*/
@@ -158,16 +160,15 @@ private:
   bool m_normalize, /**< normalize random matrix by 1/sqrt(m)?*/
       m_running,
       m_isSetup;
-      
 
-	Time m_timeout; /**< Packet inter-send time*/
-	EventId m_timeoutEvent; /**< timeout event when waiting for new source data*/
+  Time m_timeout;         /**< Packet inter-send time*/
+  EventId m_timeoutEvent; /**< timeout event when waiting for new source data*/
 
   TracedCallback<Ptr<const Packet>> m_rxTrace;                  /**< received a packet*/
   TracedCallback<Ptr<const Packet>, E_DropCause> m_rxDropTrace; /**< callback:  dropping a received packet*/
   TracedCallback<CsHeader::T_IdField> m_compressFailTrace;      /**< trace when compression failed*/
 
-  const static uint32_t N_SRCNODES = CsHeader::MAX_SRCNODES+1; /**< maximum NOF source nodes, +1 since cluster is also source!*/
+  const static uint32_t N_SRCNODES = CsHeader::MAX_SRCNODES + 1; /**< maximum NOF source nodes, +1 since cluster is also source!*/
 };
 
 #endif //CS_CLUSTERAPP_H

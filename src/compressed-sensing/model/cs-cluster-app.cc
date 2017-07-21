@@ -33,6 +33,10 @@ CsClusterApp::GetTypeId(void)
 							.AddTraceSource("Rx", "A new packet is received",
 											MakeTraceSourceAccessor(&CsClusterApp::m_rxTrace),
 											"ns3::Packet::TracedCallback")
+							.AddAttribute("NormSpat", "Normalize the spatial random matrix to 1/sqrt(m)?",
+										  BooleanValue(false),
+										  MakeBooleanAccessor(&CsClusterApp::m_normalize),
+										  MakeBooleanChecker())
 							.AddTraceSource("RxDrop",
 											"Trace source indicating a packet has been dropped by the device during reception",
 											MakeTraceSourceAccessor(&CsClusterApp::m_rxDropTrace),
@@ -45,15 +49,15 @@ CsClusterApp::GetTypeId(void)
 	return tid;
 }
 
-CsClusterApp::CsClusterApp() : m_l(0), m_zData(),
-							   m_normalize(false), m_running(false), m_isSetup(false),
+CsClusterApp::CsClusterApp() : m_l(0), m_outBufSize(0), m_nextPackSeq(0), m_zData(),
+							   m_normalize(true), m_running(false), m_isSetup(false),
 							   m_timeoutEvent(EventId())
 {
 	NS_LOG_FUNCTION(this);
 }
 
-CsClusterApp::CsClusterApp(uint32_t n, uint32_t m, uint32_t l) : CsSrcApp(n, m), m_l(l), m_outBufSize(2 * m * l), m_zData(m, l),
-																 m_normalize(false), m_running(false), m_isSetup(false),
+CsClusterApp::CsClusterApp(uint32_t n, uint32_t m, uint32_t l) : CsSrcApp(n, m), m_l(l), m_outBufSize(2 * m * l), m_nextPackSeq(0), m_zData(m, l),
+																 m_normalize(true), m_running(false), m_isSetup(false),
 																 m_timeoutEvent(EventId())
 {
 	NS_LOG_FUNCTION(this << n << m << l);
@@ -73,10 +77,12 @@ void CsClusterApp::Setup(Ptr<CsNode> node, std::string filename)
 		(*it)->SetReceiveCallback(MakeCallback(&CsClusterApp::Receive, this));
 	}
 
-	m_outBufSize = m_m * m_l;
-
+	/*--------  Setup buffers and comprenssor  --------*/
+	m_outBufSize = m_m * m_l; // size after NC
+	m_outBuf.Resize(m_outBufSize);
 	m_srcDataBuffer.Resize(N_SRCNODES, m_m);
-
+	m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
+	m_zData.Resize(m_l, m_m);
 	m_isSetup = true;
 }
 
@@ -148,7 +154,7 @@ bool CsClusterApp::CompressNext()
 
 	m_comp->CompressSparse(m_srcDataBuffer.ReadAll(),
 						   m_srcDataBuffer.ReadAllMeta(),
-						   zData, m_l * m_m);
+						   zData, zBufSize);
 	//m_comp->Compress(m_srcDataBuffer.ReadAll(),
 	//    zData, m_l * m_m);
 	m_zData.WrMove(zData, zBufSize);
@@ -168,22 +174,22 @@ void CsClusterApp::CreateCsPackets()
 {
 	NS_LOG_FUNCTION(this);
 	/*--------  Create packets from that data  --------*/
-	std::vector<Ptr<Packet>> pktList;
-
 	uint32_t payloadSize = GetMaxPayloadSize();
-	uint32_t packetsNow = 1 + (m_outBufSize / payloadSize); //
+	uint32_t packetsNow = 1 + (m_outBufSize * sizeof(double) / payloadSize); //
+	std::vector<Ptr<Packet>> pktList;
+	pktList.reserve(packetsNow);
 
 	CsHeader header;
 	header.SetClusterId(m_clusterId);
 	header.SetNodeId(m_nodeId);
-	header.SetSeq(m_nextSeq);
 	header.SetDataSize(payloadSize);
 	header.SetSrcInfo(m_srcInfo);
 
 	const uint8_t *byte_ptr = reinterpret_cast<const uint8_t *>(m_outBuf.GetMem());
-	uint32_t remain = m_outBufSize;
+	uint32_t remain = m_outBufSize* sizeof(double); //remaining bytes
 	for (uint32_t i = 0; i < packetsNow - 1; i++) //last packet might be truncated
 	{
+		header.SetSeq(m_nextPackSeq++); // we increase seq for each new packet
 		remain -= payloadSize;
 		Ptr<Packet> p = Create<Packet>(byte_ptr + i * payloadSize, payloadSize);
 		p->AddHeader(header);
@@ -191,6 +197,7 @@ void CsClusterApp::CreateCsPackets()
 	}
 	//last package
 	Ptr<Packet> p = Create<Packet>(byte_ptr + (packetsNow - 1) * payloadSize, remain);
+	header.SetSeq(m_nextPackSeq++); // we increase seq for each new packet
 	p->AddHeader(header);
 	pktList.push_back(p);
 
@@ -198,16 +205,16 @@ void CsClusterApp::CreateCsPackets()
 }
 
 uint32_t
-CsClusterApp::GetMaxPayloadSize() //TODO: for now mxl, might be too large in future, send row by row?pw
+CsClusterApp::GetMaxPayloadSize() //TODO: for now m
 {
-	return m_m * m_l * sizeof(double);
+	return m_m * sizeof(double);
 }
 
 void CsClusterApp::DoNetworkCoding() //TODO: actual NC
 {
 	NS_LOG_FUNCTION(this);
-
-	arma::Col<CsHeader::T_IdField> ids;
+	m_outBuf.Clear();
+	//	arma::Col<CsHeader::T_IdField> ids;
 	// arma::Mat<double> tmp(2 * m_l, m_m);
 
 	// tmp.rows(0, m_l - 1) = m_zData.Read();
