@@ -23,7 +23,7 @@ TypeId Compressor<double>::GetTypeId(void)
 							.SetGroupName("CompressedSensing")
 							.AddAttribute("RanMatrix", "The underlying random matrix form to create the sensing matrix",
 										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
-										  PointerValue(CreateObject<IdentRandomMatrix>()),
+										  PointerValue(CreateObject<GaussianRandomMatrix>()),
 										  MakePointerAccessor(&Compressor::SetRanMat),
 										  MakePointerChecker<RandomMatrix>())
 							.AddAttribute("TransMatrix", "The underlying matrix of a real transformation in which the solution is sparse",
@@ -47,7 +47,7 @@ TypeId Compressor<cx_double>::GetTypeId(void)
 							.SetGroupName("CompressedSensing")
 							.AddAttribute("RanMatrix", "The underlying random matrix form to create the sensing matrix",
 										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
-										  PointerValue(CreateObject<IdentRandomMatrix>()),
+										  PointerValue(CreateObject<GaussianRandomMatrix>()),
 										  MakePointerAccessor(&Compressor::SetRanMat),
 										  MakePointerChecker<RandomMatrix>())
 							.AddAttribute("TransMatrix", "The underlying matrix of a real transformation in which the solution is sparse",
@@ -74,6 +74,11 @@ Compressor<T>::Compressor(uint32_t n, uint32_t m, uint32_t vecLen) : m_seed(1), 
 																	 m_n(n), m_vecLen(vecLen),
 																	 m_bufLenIn(n * vecLen), m_bufLenOut(m * vecLen)
 {
+	if (m_transMat.isValid())
+		m_transMat->SetSize(n);
+
+	if (m_ranMat.isValid())
+		m_ranMat->SetSize(m, n, m_seed);
 }
 
 template <typename T>
@@ -92,7 +97,6 @@ void Compressor<T>::Setup(uint32_t seed, uint32_t n, uint32_t m, uint32_t vecLen
 
 	if (m_ranMat.isValid())
 		m_ranMat->SetSize(m, n, seed);
-
 	if (norm)
 		m_ranMat->NormalizeToM();
 }
@@ -118,7 +122,7 @@ void Compressor<T>::Compress(const arma::Mat<T> &matIn, T *bufferOut, uint32_t b
 	NS_ASSERT(bufferOut); //null pointer check
 
 	klab::TSmartPointer<kl1p::TOperator<T>> op_ptr = m_ranMat * m_transMat;
-	arma::Mat<T> y(bufferOut, m_m, m_vecLen, false);
+	arma::Mat<T> y(bufferOut, m_m, m_vecLen, false, true);
 
 	for (uint32_t i = 0; i < m_vecLen; i++)
 	{
@@ -126,18 +130,19 @@ void Compressor<T>::Compress(const arma::Mat<T> &matIn, T *bufferOut, uint32_t b
 		op_ptr->apply(matIn.col(i), yVec);
 		y.col(i) = yVec;
 	}
-
-	m_completeCb(y);
-}
+	
+	m_completeCb(matIn, y);
+	}
 
 template <typename T>
 template <typename TI>
 void Compressor<T>::CompressSparse(const arma::Mat<T> &data, const arma::Col<TI> &idx, T *bufferOut, uint32_t bufLenOut) const
 {
 	NS_LOG_FUNCTION(this << data << idx << bufferOut << bufLenOut);
-	NS_ASSERT(data.n_cols == idx.n_cols);
+	NS_ASSERT(data.n_rows == idx.n_rows);
+	NS_ASSERT_MSG((data.n_rows <= m_n) && (data.n_cols == m_vecLen), "Size mismatch!");
 
-	arma::Mat<T> sp = arma::zeros<arma::Mat<T>>(m_m, m_n);
+	arma::Mat<T> sp = arma::zeros<arma::Mat<T>>(m_n, m_vecLen);
 	//arma::SpMat<T> sp(m_m, m_n); // contains zeros by default
 	for (uint32_t i = 0; i < idx.n_elem; i++)
 	{
@@ -217,7 +222,7 @@ CompressorTemp<T>::CompressorTemp() : Compressor<T>()
 }
 
 template <typename T>
-CompressorTemp<T>::CompressorTemp(uint32_t n, uint32_t m) : Compressor<T>(m, n, VECLEN)
+CompressorTemp<T>::CompressorTemp(uint32_t n, uint32_t m) : Compressor<T>(n, m, VECLEN)
 {
 }
 
