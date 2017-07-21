@@ -63,7 +63,7 @@ CsHeader::T_SizeField CsHeader::GetDataSize()
 
 void CsHeader::SetSrcInfo(const std::bitset<CsHeader::SRCINFO_BITLEN> &set)
 {
-  NS_ASSERT_MSG(m_nodeId = CLUSTER_NODEID, "Must be a cluster node!");
+  NS_ASSERT_MSG(m_nodeId == CLUSTER_NODEID, "Must be a cluster node!");
   m_srcInfo = set;
 }
 
@@ -139,7 +139,7 @@ void CsHeader::Serialize(Buffer::Iterator start) const
   i.WriteU8(m_nodeId);
   i.WriteHtonU16(m_seq);
   i.WriteHtonU16(m_dataSize);
-  
+
   if (m_nodeId == CLUSTER_NODEID)
   {
     for (uint32_t j = 0; j < SRCINFO_LEN; j++)
