@@ -32,12 +32,12 @@ CsSrcApp::GetTypeId(void)
 							// 			  MakeUintegerAccessor(&CsSrcApp::m_packetSize),
 							// 			  MakeUintegerChecker<uint32_t>(8))
 							.AddAttribute("n", "Length of original measurement vector",
-										  UintegerValue(128),
-										  MakeUintegerAccessor(&CsSrcApp::m_m),
-										  MakeUintegerChecker<uint32_t>())
-							.AddAttribute("m", "Length of compressed vector",
 										  UintegerValue(256),
 										  MakeUintegerAccessor(&CsSrcApp::m_n),
+										  MakeUintegerChecker<uint32_t>())
+							.AddAttribute("m", "Length of compressed vector",
+										  UintegerValue(128),
+										  MakeUintegerAccessor(&CsSrcApp::m_m),
 										  MakeUintegerChecker<uint32_t>())
 							.AddAttribute("TxProb", "Probability to send",
 										  DoubleValue(1.0),
@@ -71,7 +71,7 @@ CsSrcApp::CsSrcApp() : m_yR(0), m_nodeId(0), m_clusterId(0),
 					   //    m_nDevices(0), m_nTxDevices(0),
 					  // m_nMeas(0), // m_nPackets(0),
 					   m_sent(0),
-					   m_normalize(false),
+					   m_normalize(true),
 					   m_running(false),
 					   m_isSetup(false),
 					   //    m_txPackets(0),
@@ -87,7 +87,7 @@ CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yR(m), m_nodeId(0), m_clusterId(0
 											 //  m_nDevices(0), m_nTxDevices(0),
 											// m_nMeas(0), // m_nPackets(0),
 											 m_sent(0),
-											 m_normalize(false),
+											 m_normalize(true),
 											 m_running(false),
 											 m_isSetup(false),
 											 // m_txPackets(0),
@@ -128,6 +128,10 @@ void CsSrcApp::Setup(Ptr<CsNode> node, std::string filename)
 	if (!ifs)
 		NS_LOG_WARN("Only " << ifs.gcount() << " bytes could be read!");
 	ifs.close();
+	// for(uint32_t i = 0; i < bufSize; i++)
+	// {
+	// 	cout << *(buffer+i) << endl;
+	// }
 
 	//write to serial buffer
 	// m_fdata.Resize(flen);
@@ -233,8 +237,6 @@ void CsSrcApp::SendToAll(Ptr<Packet> p)
 
 	Ptr<NetDevice> device;
 
-	//call trace source
-	NS_LOG_INFO(m_node->GetId() << " is about to send\n" << p->ToString());
 	m_txTrace(p);
 	NetDeviceContainer devices = m_node->GetTxDevices();
 	for (auto it = devices.Begin(); it != devices.End(); it++)
@@ -267,7 +269,7 @@ bool CsSrcApp::CompressNext()
 		return false;
 	}
 
-	double xData[m_n];
+	double xData[m_n] = {0};
 	double *yData = new double[m_m];
 	m_fdata.ReadNext(xData, m_n);
 	m_compR->Compress(xData, m_n, yData, m_m);
@@ -305,11 +307,16 @@ void CsSrcApp::CreateCsPackets()
 
 void CsSrcApp::WriteTxPacketList(const std::vector<Ptr<Packet>> &pktList)
 {
-	NS_LOG_FUNCTION(this);
+	// NS_LOG_FUNCTION(this);
+	// if (HasPackets())
+	// 	m_txPackets.insert(m_txPackets.begin() + pktList.size() - 1, pktList.begin(), pktList.end());
+	// else
+	// 	m_txPackets = pktList;
 	if (HasPackets())
-		m_txPackets.insert(m_txPackets.begin() + pktList.size() - 1, pktList.begin(), pktList.end());
+		m_txPackets.insert(m_txPackets.end(), pktList.begin(), pktList.end());
 	else
 		m_txPackets = pktList;
+	
 }
 
 uint32_t CsSrcApp::GetMaxPayloadSize()
@@ -348,8 +355,8 @@ void CsSrcApp::ScheduleTx(Time dt)
 	NS_ASSERT_MSG(HasPackets(), "No packets to schedule!");
 	NS_ASSERT_MSG(m_sendEvent.IsExpired(), "Already sending!");
 
-	Ptr<Packet> pkt = m_txPackets.back();
-	m_txPackets.pop_back();
+	Ptr<Packet> pkt = m_txPackets.front();
+	m_txPackets.erase(m_txPackets.begin());
 
 	//schedule send
 	if (m_ranTx->GetValue() < m_txProb)
