@@ -30,7 +30,7 @@ using namespace ns3;
 * Totaling 48bit=6byte\n
 *
 * For a cluster node the header is extended by the following fields:
-* 256 bit SrcInfo : indicates which source nodes were compressed, 1bit describing one node, the first bit representing the nodeID 0\n
+* 256 bit SrcInfo : indicates which source nodes were compressed, 1bit describing one node, the LSB bit representing the nodeID 0\n
 * Totaling 304bit=38byte\n
 */
 class CsHeader : public Header
