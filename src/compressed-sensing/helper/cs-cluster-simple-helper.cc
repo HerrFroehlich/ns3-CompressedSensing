@@ -136,3 +136,22 @@ void CsClusterSimpleHelper::SetCompression(uint32_t n, uint32_t m, uint32_t l)
 	m_srcAppFactory.Set("m", UintegerValue(m));
 	m_clusterAppFactory.Set("l", UintegerValue(l));
 }
+
+void CsClusterSimpleHelper::NormalizeToM()
+{
+	m_srcAppFactory.Set("Norm",BooleanValue(true));
+	m_clusterAppFactory.Set("Norm",BooleanValue(true));
+	m_clusterAppFactory.Set("NormSpat",BooleanValue(true));
+}
+
+ApplicationContainer CsClusterSimpleHelper::GetFirstApp(CsNodeContainer nodes)
+{
+	ApplicationContainer apps;
+
+	for (auto it = nodes.Begin(); it != nodes.End(); it++)
+	{
+		NS_ASSERT_MSG((*it)->GetNApplications() > 0, "Node has no applications!");
+		apps.Add((*it)->GetApplication(0));
+	}
+	return apps;
+}

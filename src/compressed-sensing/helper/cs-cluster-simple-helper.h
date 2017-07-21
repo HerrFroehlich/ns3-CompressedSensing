@@ -16,6 +16,8 @@
 #include "cs-node-container.h"
 #include "ns3/my-simple-net-device-helper.h"
 #include "ns3/cs-cluster-app.h"
+#include "ns3/application-container.h"
+
 	/**
 * \ingroup util
 * \class CsClusterSimpleHelper
@@ -185,6 +187,22 @@
 	*
 	*/
 	void SetCompression(uint32_t n, uint32_t m, uint32_t l);
+
+	/**
+	* \brief Normalizes the random matrices to 1/sqrt(m)
+	*/
+	void NormalizeToM();
+
+	/**
+	* \brief gets the first application of each node in node container
+	*
+	* Useful for getting the associated applications after calling Create.
+	* This method fails, if one node has no applications;
+	*
+	*
+	* \return ApplicationContainer with associated applications
+	*/
+	static ApplicationContainer GetFirstApp(CsNodeContainer nodes);
 
   private:
 	ObjectFactory m_queueFactory;		  //!< Queue factory
