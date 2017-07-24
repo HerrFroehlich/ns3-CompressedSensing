@@ -12,6 +12,8 @@
 #ifndef TEMPLATE_REGISTRATION_H
 #define TEMPLATE_REGISTRATION_H
 
+typedef std::complex<double> cx_double;
+
 #define OBJECT_TEMPLATE_CLASS_DEFINE(type, param)        \
 	template class type<param>;                          \
 	static struct Object##type##param##RegistrationClass \
@@ -41,7 +43,7 @@ inline std::string GetTypeParamName<double>()
 }
 
 template <>
-inline std::string GetTypeParamName<std::complex<double>>()
+inline std::string GetTypeParamName<cx_double>()
 {
 	return "cx_double";
 }
