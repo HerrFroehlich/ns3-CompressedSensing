@@ -251,7 +251,7 @@ uint32_t NodeDataBufferMeta<T, TM>::GetWrRow() const
 {
 	if (IsEmpty())
 		return 0;
-	return m_rowWrIdx - 1;
+	return m_rowWrIdx;
 }
 
 template <typename T, typename TM>
