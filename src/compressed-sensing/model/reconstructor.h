@@ -9,6 +9,7 @@
 #ifndef RECONSTRUCTOR_H
 #define RECONSTRUCTOR_H
 
+#include <vector>
 #include "ns3/core-module.h"
 #include <armadillo>
 #include <KL1pInclude.h>
@@ -54,6 +55,7 @@ class Reconstructor : public ns3::Object
   public:																 /**< type of node ID*/
 	typedef void (*CompleteTracedCallback)(int64_t time, uint32_t iter); /**< callback signature when completed a reconstruction*/
 	typedef void (*ErrorTracedCallback)(klab::KException e);			 /**< callback signature when reconstruction fails*/
+	typedef std::vector<CsHeader::T_IdField>::const_iterator IdIterator;
 	static TypeId GetTypeId(void);
 	Reconstructor();
 
@@ -81,6 +83,17 @@ class Reconstructor : public ns3::Object
 	*
 	*/
 	void AddSrcNode(T_NodeIdTag nodeId, uint32_t seed);
+	/**
+	* \brief Adds a source node whose measurement data shall be reconstructed
+	*
+	* \param nodeId		8bit node Id
+	* \param seed 		Seed used for constructing the sensing matrix of each node
+	* \param nMeas 		original length of/(NOF) each original measurment (vectors)
+	* \param mMax  		maximum length of/(NOF)  measurments (vectors) used for reconstructing
+	* \param vecLen	    length of each measurement vector (e.g. 1 for temporal reconstruction, x for spatial reconstruction)
+	*
+	*/
+	void AddSrcNode(T_NodeIdTag nodeId, uint32_t seed, uint32_t nMeas, uint32_t mMax, uint32_t vecLen);
 
 	/**
 	* \brief writes from data buffer to a this NodeDataBuffer
@@ -116,9 +129,24 @@ class Reconstructor : public ns3::Object
 	*/
 	void SetTransMat(Ptr<TransMatrix<T>> transMat_ptr);
 
-  protected:
 	/**
-	* \brief sets the default dimension for new in and output buffers, should be used in a Setup member function
+	* \brief get inserted node IDs in a vector
+	*
+	* \return vector with all node IDs
+	*/
+	std::vector<T_NodeIdTag> GetNodeIds();
+
+	/**
+	* \brief gets the dimensions for the given ID
+	*
+	* \param nodeId	node ID	
+	*
+	* \return vector with the [nMeas mMax vecLen]
+	*/
+	std::vector<uint32_t> GetNodeDim(T_NodeIdTag nodeId);
+
+	/**
+	* \brief sets the default dimension for new in and output buffers
 	*
 	* \param nMeas 		original length of/(NOF) each original measurment (vectors)
 	* \param mMax  		maximum length of/(NOF)  measurments (vectors) used for reconstructing
@@ -127,6 +155,30 @@ class Reconstructor : public ns3::Object
 	*/
 	void SetBufferDim(uint32_t nMeas, uint32_t mMax, uint32_t vecLen);
 
+	/**
+	* \brief beginning of iterator over all stored nodeIDs
+	*
+	* \return iterator beginning
+	*/
+	IdIterator IdBegin();
+
+	/**
+	* \brief ending of iterator over all stored nodeIDs
+	*
+	* \return iterator end
+	*/
+	IdIterator IdEnd();
+
+	/**
+	* \brief clones the reconstructor
+	*
+	* abstract method to create clones from subclasses	
+	*
+	* \return pointer to new object
+	*/
+	virtual Ptr<Reconstructor<T>> Clone() = 0;
+
+  protected:
 	/**
 	* \brief resets a node's in buffer if it's full
 	*
@@ -199,25 +251,17 @@ class Reconstructor : public ns3::Object
 	klab::TSmartPointer<kl1p::TOperator<T>> GetOp(T_NodeIdTag nodeId, bool norm = false);
 	// auto GetMatOp(T_NodeIdTag nodeId, bool norm = false);
 
-	/**
-	* \brief Adds a source node whose measurement data shall be reconstructed
-	*
-	* \param nodeId		8bit node Id
-	* \param seed 		Seed used for constructing the sensing matrix of each node
-	* \param nMeas 		original length of/(NOF) each original measurment (vectors)
-	* \param mMax  		maximum length of/(NOF)  measurments (vectors) used for reconstructing
-	* \param vecLen	    length of each measurement vector (e.g. 1 for temporal reconstruction, x for spatial reconstruction)
-	*
-	*/
-	void AddSrcNode(T_NodeIdTag nodeId, uint32_t seed, uint32_t nMeas, uint32_t mMax, uint32_t vecLen);
-
 	uint32_t m_nMeasDef, m_mMaxDef, m_vecLenDef;	/**< default buffer dimensions*/
 	TracedCallback<int64_t, uint32_t> m_completeCb; /**< callback when completed reconstruction, returning time+iterations needed*/
 	TracedCallback<klab::KException> m_errorCb;		/**< callback when reconstruction fails, returning KExeception type*/
 
   private:
-	typedef NodeDataBuffer<T> T_NodeBuffer;				 /**< NodeDataBuffer with elements of type T*/
-	class T_NodeInfo : public SimpleRefCount<T_NodeInfo> /**< Class containing info on each node (seed, matrix sizes, buffer Ptrs)*/
+	typedef NodeDataBuffer<T> T_NodeBuffer; /**< NodeDataBuffer with elements of type T*/
+
+	/**
+	* \brief Class containing info on each node (seed, matrix sizes, buffer pointers)
+	*/
+	class T_NodeInfo : public SimpleRefCount<T_NodeInfo>
 	{
 	  public:
 		T_NodeInfo() : seed(0), nMeas(0), m(0), vecLen(0), mMax(0) {}
@@ -267,10 +311,11 @@ class Reconstructor : public ns3::Object
 	T_NodeInfo &CheckOutInfo(T_NodeIdTag nodeId);
 	const T_NodeInfo &CheckOutInfo(T_NodeIdTag nodeId) const;
 
-	uint32_t m_nNodes;									/**< NOF nodes from which we are gathering data*/
-	std::map<T_NodeIdTag, T_NodeInfo> m_nodeInfoMap;	/**< map for node info<>node ID*/
-	klab::TSmartPointer<RandomMatrix> m_ranMat;			/**< Random matrix form from which sensing matrix is constructed*/
-	klab::TSmartPointer<TransMatrix<T>> m_transMat; /**< Transformation matrix form from which sensing matrix is constructed*/
+	uint32_t m_nNodes;								 /**< NOF nodes from which we are gathering data*/
+	std::vector<T_NodeIdTag> m_nodeIds;							 /**< vector with all node IDs*/
+	std::map<T_NodeIdTag, T_NodeInfo> m_nodeInfoMap; /**< map for node info<>node ID*/
+	klab::TSmartPointer<RandomMatrix> m_ranMat;		 /**< Random matrix form from which sensing matrix is constructed*/
+	klab::TSmartPointer<TransMatrix<T>> m_transMat;  /**< Transformation matrix form from which sensing matrix is constructed*/
 	// klab::TSmartPointer<kl1p::TMultiplicationOperator<T, T> m_multOp; /**< multiplication operator*/
 	mutable T_NodeIdTag m_nodeIdNow, m_nodeIdNowConst; /**< current nodeId*/
 	mutable Ptr<const T_NodeInfo> m_infoNowConst;	  /**< current nodeId for const call*/

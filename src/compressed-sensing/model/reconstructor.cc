@@ -92,6 +92,7 @@ void Reconstructor<T>::AddSrcNode(T_NodeIdTag nodeId, uint32_t seed, uint32_t nM
 
 	T_NodeInfo info(seed, nMeas, 0, vecLen, mMax, nodeBufIn, nodeBufOut);
 	m_nodeInfoMap[nodeId] = info;
+	m_nodeIds.push_back(nodeId);
 	m_nNodes++;
 }
 
@@ -102,6 +103,18 @@ void Reconstructor<T>::SetBufferDim(uint32_t nMeas, uint32_t mMax, uint32_t vecL
 	m_nMeasDef = nMeas;
 	m_mMaxDef = mMax;
 	m_vecLenDef = vecLen;
+}
+
+template <typename T>
+typename Reconstructor<T>::IdIterator Reconstructor<T>::IdBegin()
+{
+	return m_nodeIds.begin();
+}
+
+template <typename T>
+typename Reconstructor<T>::IdIterator Reconstructor<T>::IdEnd()
+{
+	return m_nodeIds.end();
 }
 
 template <typename T>
@@ -142,6 +155,29 @@ template <typename T>
 void Reconstructor<T>::SetTransMat(Ptr<TransMatrix<T>> transMat_ptr)
 {
 	m_transMat = transMat_ptr->Clone();
+}
+
+template <typename T>
+std::vector<T_NodeIdTag> Reconstructor<T>::GetNodeIds()
+{
+	NS_LOG_FUNCTION(this);
+	return m_nodeIds;
+}
+
+template <typename T>
+std::vector<uint32_t> Reconstructor<T>::GetNodeDim(T_NodeIdTag nodeId)
+{
+	NS_LOG_FUNCTION(this << nodeId);
+
+	std::vector<uint32_t> dim;
+	dim.reserve(3);
+
+	T_NodeInfo info = CheckOutInfo(nodeId);
+	dim.push_back(info.nMeas);
+	dim.push_back(info.mMax);
+	dim.push_back(info.vecLen);
+
+	return dim;
 }
 
 template <typename T>
