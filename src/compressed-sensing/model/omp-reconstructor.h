@@ -16,8 +16,9 @@ using namespace kl1p;
 * \ingroup rec
 * \class OMP_Reconstructor
 *
-* \brief base class template for several omp reconstructors
+* \brief class template an OMP reconstructors
 *
+* Reconstructs the nodes data with the OMP algorithm. There is no need that the random matrix is normalized to 1/sqrt(m). 
 * This Template can be used with the following explicit instantiations (see for Attributes) :\n
 * OMP_Reconstructor<double>\n
 * OMP_Reconstructor<cx_double>\n
@@ -62,6 +63,7 @@ class OMP_Reconstructor : public Reconstructor<T>
 	*/
 	void Setup(uint32_t nMeas, uint32_t mMax, uint32_t vecLen, uint32_t k, double tolerance);
 
+	virtual Ptr<Reconstructor<T>> Clone();
   protected:
 	double m_tolerance; /**< tolerance of solution*/
 	uint32_t m_kDef;	/**< sparsity of solution*/
@@ -116,6 +118,7 @@ class OMP_ReconstructorTemp : public OMP_Reconstructor<T>
 	*/
 	uint32_t Write(T_NodeIdTag nodeId, T data);
 
+	virtual Ptr<Reconstructor<T>> Clone();
 };
 
 #endif //OMP_TEMP_RECONSTRUCTOR

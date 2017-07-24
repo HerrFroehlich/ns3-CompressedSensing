@@ -46,8 +46,6 @@ TypeId OMP_Reconstructor<cx_double>::GetTypeId(void)
 	return tid;
 }
 
-
-
 template <typename T>
 int64_t OMP_Reconstructor<T>::Reconstruct(T_NodeIdTag nodeId)
 {
@@ -116,6 +114,14 @@ int64_t OMP_Reconstructor<T>::Reconstruct(T_NodeIdTag nodeId, uint32_t kspars, u
 	return time;
 }
 
+template <typename T>
+Ptr<Reconstructor<T>> OMP_Reconstructor<T>::Clone()
+{
+	Ptr<OMP_Reconstructor<T>> p(this);
+	p = CopyObject(p);
+	return Ptr<Reconstructor<T>> (dynamic_cast<Reconstructor<T> *> (PeekPointer (p)));
+}
+
 // template class OMP_Reconstructor<double>;
 // template class OMP_Reconstructor<cx_double>;
 OBJECT_TEMPLATE_CLASS_DEFINE(OMP_Reconstructor, double);
@@ -144,13 +150,11 @@ TypeId OMP_ReconstructorTemp<cx_double>::GetTypeId(void)
 	return tid;
 }
 
-
 template <typename T>
 OMP_ReconstructorTemp<T>::OMP_ReconstructorTemp()
 {
 	Reconstructor<T>::m_vecLenDef = 1;
 }
-
 
 template <typename T>
 void OMP_ReconstructorTemp<T>::Setup(uint32_t nMeas, uint32_t mMax, uint32_t k, double tolerance)
@@ -174,8 +178,15 @@ uint32_t OMP_ReconstructorTemp<T>::Write(T_NodeIdTag nodeId, T data)
 	return Reconstructor<T>::WriteData(nodeId, &data, 1);
 }
 
+template <typename T>
+Ptr<Reconstructor<T>> OMP_ReconstructorTemp<T>::Clone()
+{
+	Ptr<OMP_Reconstructor<T>> p(this);
+	p = CopyObject(p);
+    return Ptr<Reconstructor<T>> (dynamic_cast<Reconstructor<T> *> (PeekPointer (p)));
+}
+
 // template class OMP_ReconstructorTemp<double>;
 // template class OMP_ReconstructorTemp<cx_double>;
 OBJECT_TEMPLATE_CLASS_DEFINE(OMP_ReconstructorTemp, double);
 OBJECT_TEMPLATE_CLASS_DEFINE(OMP_ReconstructorTemp, cx_double);
-
