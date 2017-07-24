@@ -45,6 +45,8 @@ class CsHeader : public Header
 	const static uint32_t MAX_CLUSTERNODES = 256; 									/**< maximum NOF source nodes*/
 	const static uint32_t SRCINFO_LEN = sizeof(T_IdField) * 32;						/**< length of source info field in byte*/
 	const static uint32_t SRCINFO_BITLEN = SRCINFO_LEN * BYTE_LEN;					/**< length of source info field in bit*/
+
+	typedef std::bitset<SRCINFO_BITLEN> T_SrcInfo;
 	/**
 	* \brief create an empty CsHeader
 	*/
