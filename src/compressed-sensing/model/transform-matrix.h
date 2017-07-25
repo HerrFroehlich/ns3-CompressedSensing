@@ -131,4 +131,48 @@ class FourierTransMatrix : public virtual TransMatrix<cx_double>, public virtual
 	virtual void applyAdjoint(const arma::Col<cx_double> &in, arma::Col<cx_double> &out);
 };
 
+/**
+* \ingroup transmat
+* \class DcTransMatrix
+*
+* \brief matrix inducing a real 1D discrete cosine transformatin
+*
+*/
+
+template <typename T>
+class DcTransMatrix : public virtual TransMatrix<T>, public virtual TDCT1DOperator<T>
+{
+  public:
+	/**
+	* \brief create empty matrix
+	*/
+	DcTransMatrix();
+
+	/**
+	* \brief create a transformation matrix of size MxN
+	*
+	* \param n NOF rows/columms
+	*
+	*/
+	DcTransMatrix(uint32_t n);
+
+	/**
+	* \brief sets the size of the matrix (and thus changing its entries)
+	*
+	* \param n NOF rows/columms
+	*
+	*/
+	virtual void SetSize(uint32_t n);
+
+	/**
+	* \brief clones the object
+	*
+	* \return pointer to a new TransMatrix
+	*/
+	virtual DcTransMatrix *Clone() const;
+
+	/*inherited from TOperator*/
+	virtual void apply(const arma::Col<T> &in, arma::Col<T> &out);
+	virtual void applyAdjoint(const arma::Col<T> &in, arma::Col<T> &out);
+};
 #endif //TRANSFORM_MATRIX_H

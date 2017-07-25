@@ -47,7 +47,7 @@ arma::Mat<T> operator*(const TransMatrix<T> &lvl, const arma::Mat<T> &rvl)
 
 template <typename T>
 arma::Mat<T> operator*(const arma::Mat<T> &lvl, const TransMatrix<T> &rvl)
-{	
+{
 	return lvl * rvl.GetMatrix();
 }
 
@@ -80,18 +80,59 @@ void FourierTransMatrix::SetSize(uint32_t n)
 	}
 }
 
-FourierTransMatrix* FourierTransMatrix::Clone() const 
+FourierTransMatrix *FourierTransMatrix::Clone() const
 {
 	return new FourierTransMatrix(*this);
 }
 
-
 void FourierTransMatrix::apply(const arma::Col<cx_double> &in, arma::Col<cx_double> &out)
-  {
-	  TFourier1DOperator<cx_double>::apply(in, out);
-  }
+{
+	TFourier1DOperator<cx_double>::apply(in, out);
+}
 
 void FourierTransMatrix::applyAdjoint(const arma::Col<cx_double> &in, arma::Col<cx_double> &out)
-  {
-	  TFourier1DOperator<cx_double>::applyAdjoint(in, out);
-  }
+{
+	TFourier1DOperator<cx_double>::applyAdjoint(in, out);
+}
+
+/*--------  DcTransMatrix  --------*/
+template <typename T>
+DcTransMatrix<T>::DcTransMatrix() : TransMatrix<T>(0), TDCT1DOperator<T>(0)
+{
+}
+
+template <typename T>
+DcTransMatrix<T>::DcTransMatrix(uint32_t n) : TransMatrix<T>(n), TDCT1DOperator<T>(n)
+{
+	SetSize(n);
+}
+
+template <typename T>
+void DcTransMatrix<T>::SetSize(uint32_t n)
+{
+	if (n != TransMatrix<T>::GetSize())
+	{
+		TransMatrix<T>::SetSize(n);
+	}
+}
+
+template <typename T>
+DcTransMatrix<T> *DcTransMatrix<T>::Clone() const
+{
+	return new DcTransMatrix<T>(*this);
+}
+
+template <typename T>
+void DcTransMatrix<T>::apply(const arma::Col<T> &in, arma::Col<T> &out)
+{
+	TDCT1DOperator<T>::apply(in, out);
+}
+
+template <typename T>
+void DcTransMatrix<T>::applyAdjoint(const arma::Col<T> &in, arma::Col<T> &out)
+{
+	TDCT1DOperator<T>::applyAdjoint(in, out);
+}
+
+template class DcTransMatrix<double>;
+template class DcTransMatrix<cx_double>;
