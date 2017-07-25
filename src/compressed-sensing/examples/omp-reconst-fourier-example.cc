@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 		break;
 	}
 
-	Ptr<TransMatrix<cx_double>> transMat = CreateObject<FourierTransMatrix>(n);
+	Ptr<TransMatrix<cx_double>> transMat = CreateObject<FourierTransMatrix<cx_double>>(n);
 
 	omp->SetAttribute("Tolerance", DoubleValue(tol));
 	omp->Setup(n, m, k, tol);
