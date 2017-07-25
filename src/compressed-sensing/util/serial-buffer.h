@@ -269,7 +269,7 @@ void SerialDataBuffer<T>::MoveMem(T *&buffer, uint32_t bufSize)
 template <typename T>
 const T *SerialDataBuffer<T>::GetMem() const
 {
-	return const_cast<const T *> (m_data_ptr);
+	return const_cast<const T *>(m_data_ptr);
 }
 
 template <typename T>
@@ -284,7 +284,7 @@ void SerialDataBuffer<T>::WriteNext(T *buffer, uint32_t bufSize)
 {
 	NS_ASSERT_MSG((m_wrIdx + bufSize - 1) < m_dataSize,
 				  "Write index > data size : Trying to write outside of allocated area!");
-	memcpy(m_data_ptr + m_wrIdx, buffer, bufSize);
+	std::copy(buffer, buffer + bufSize, m_data_ptr + m_wrIdx);
 	m_wrIdx += bufSize;
 }
 
