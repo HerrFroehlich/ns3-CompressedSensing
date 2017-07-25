@@ -47,7 +47,7 @@ TypeId Reconstructor<T>::GetTypeId(void)
 											MakeTraceSourceAccessor(&Reconstructor::m_completeCb),
 											"Reconstructor::CompleteTracedCallback")
 							.AddTraceSource("RecError", "Callback when Reconstuction failed with an error",
-											MakeTraceSourceAccessor(&Reconstructor::m_completeCb),
+											MakeTraceSourceAccessor(&Reconstructor::m_errorCb),
 											"Reconstructor::ErrorTracedCallback");
 	return tid;
 }
@@ -118,6 +118,13 @@ typename Reconstructor<T>::IdIterator Reconstructor<T>::IdEnd()
 }
 
 template <typename T>
+bool Reconstructor<T>::HasNode(T_NodeIdTag nodeId)
+{
+	NS_LOG_FUNCTION(this << nodeId);
+	return m_nodeInfoMap.count(nodeId);
+}
+
+template <typename T>
 uint32_t Reconstructor<T>::WriteData(T_NodeIdTag nodeId, const T *buffer, const uint32_t bufSize)
 {
 	NS_LOG_FUNCTION(this << nodeId << buffer << bufSize);
@@ -148,13 +155,25 @@ std::vector<T> Reconstructor<T>::ReadRecData(T_NodeIdTag nodeId) const
 template <typename T>
 void Reconstructor<T>::SetRanMat(Ptr<RandomMatrix> ranMat_ptr)
 {
+	NS_LOG_FUNCTION(this << ranMat_ptr);
 	m_ranMat = ranMat_ptr->Clone();
 }
 
 template <typename T>
 void Reconstructor<T>::SetTransMat(Ptr<TransMatrix<T>> transMat_ptr)
 {
+	NS_LOG_FUNCTION(this << transMat_ptr);
 	m_transMat = transMat_ptr->Clone();
+}
+
+template <typename T>
+void Reconstructor<T>::SetPrecodeEntries(T_NodeIdTag nodeId, const std::vector<bool> &entries)
+{
+	NS_LOG_FUNCTION(this << nodeId);
+
+	T_NodeInfo &info = CheckOutInfo(nodeId);
+
+	info.precode->SetDiag(entries);
 }
 
 template <typename T>
@@ -241,7 +260,23 @@ void Reconstructor<T>::WriteRecBuf(T_NodeIdTag nodeId, const Mat<T> &mat)
 
 	T_NodeInfo info = CheckOutInfo(nodeId);
 
-	info.outBufPtr->WriteAll(mat);
+	if (m_transMat.isValid()) // since the reconstruction only gives the indices of the transform we have to apply it again!
+	{
+		klab::TSmartPointer<kl1p::TOperator<T>> transMat_ptr = GetTransMat(info.nMeas);
+		Mat<T> y;
+		y.set_size(mat.n_rows, mat.n_cols);
+
+		for (size_t i = 0; i < mat.n_cols; i++)
+		{
+			Col<T> yVec;
+			transMat_ptr->apply(mat.col(i), yVec);
+			y.col(i) = yVec;
+		}
+
+		info.outBufPtr->WriteAll(y);
+	}
+	else
+		info.outBufPtr->WriteAll(mat);
 }
 
 template <typename T>
@@ -253,7 +288,8 @@ klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor<T>::GetOp(T_NodeIdTag node
 
 	klab::TSmartPointer<kl1p::TOperator<T>> sensMat_ptr = GetSensMat(info.seed, info.m, info.nMeas, norm);
 	klab::TSmartPointer<kl1p::TOperator<T>> transMat_ptr = GetTransMat(info.nMeas);
-	return sensMat_ptr * transMat_ptr;
+	klab::TSmartPointer<kl1p::TOperator<T>> precode_ptr = info.precode;
+	return sensMat_ptr * precode_ptr * transMat_ptr;
 }
 
 template <typename T>

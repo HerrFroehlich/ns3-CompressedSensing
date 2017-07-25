@@ -20,6 +20,7 @@
 #include "transform-matrix.h"
 #include "cs-header.h"
 #include "ns3/template-registration.h"
+#include "spatial-precoding-matrix.h"
 
 using namespace ns3;
 using namespace arma;
@@ -130,6 +131,14 @@ class Reconstructor : public ns3::Object
 	void SetTransMat(Ptr<TransMatrix<T>> transMat_ptr);
 
 	/**
+	* \brief sets the precoding entries
+	*
+	* \param nodeId	node ID	
+	* \param entires vector with entries, size must match wit sensing matrix's N
+	*/
+	void SetPrecodeEntries(T_NodeIdTag nodeId, const std::vector<bool> &entries);
+
+	/**
 	* \brief get inserted node IDs in a vector
 	*
 	* \return vector with all node IDs
@@ -168,6 +177,15 @@ class Reconstructor : public ns3::Object
 	* \return iterator end
 	*/
 	IdIterator IdEnd();
+
+	/**
+	* \brief checks if node was added
+	*
+	* \param nodeId ID of the ndoe
+	*
+	* \return true if node was added before
+	*/
+	bool HasNode(T_NodeIdTag nodeId);
 
 	/**
 	* \brief clones the reconstructor
@@ -234,6 +252,9 @@ class Reconstructor : public ns3::Object
 	/**
 	* \brief write matrix to reconstruction buffer
 	*
+	* If there is a TransMatrix associated with this reconstructor, the transformation will be applied to mat.
+	* This is since the reconstrruction algorithms will return the atom values of the transformation.
+	*
 	* \param nodeId node ID
 	* \param mat matrix to be written
 	*
@@ -268,16 +289,19 @@ class Reconstructor : public ns3::Object
 		T_NodeInfo(uint32_t s, uint32_t n, uint32_t m, uint32_t vl,
 				   uint32_t mMax, Ptr<T_NodeBuffer> in, Ptr<T_NodeBuffer> out) : seed(s), nMeas(n),
 																				 m(m), vecLen(vl),
-																				 mMax(mMax), inBufPtr(in), outBufPtr(out)
+																				 mMax(mMax), inBufPtr(in),
+																				 outBufPtr(out),
+																				 precode(new SpatialPrecodingMatrix<T>(n))
 		{
 		}
-		uint32_t seed;				// seed of random sensing matrix
-		uint32_t nMeas;				// original number of measurements to reconstruct
-		uint32_t m;					// current compressed data vectors
-		uint32_t vecLen;			// data vector length
-		uint32_t mMax;				// maximum NOF compressed data vectors
-		Ptr<T_NodeBuffer> inBufPtr, /**< input data of each node*/
-			outBufPtr;				/**< output data of each node after reconstruction*/
+		uint32_t seed;											/**< seed of random sensing matrix*/
+		uint32_t nMeas;											/**< original number of measurements to reconstruct*/
+		uint32_t m;												/**< current compressed data vectors*/
+		uint32_t vecLen;										/**<  data vector length*/
+		uint32_t mMax;											/**< maximum NOF compressed data vectors*/
+		Ptr<T_NodeBuffer> inBufPtr,								/**< input data of each node*/
+			outBufPtr;											/**< output data of each node after reconstruction*/
+		klab::TSmartPointer<SpatialPrecodingMatrix<T>> precode; /**< precoding matrix*/
 	};
 
 	/**
@@ -312,7 +336,7 @@ class Reconstructor : public ns3::Object
 	const T_NodeInfo &CheckOutInfo(T_NodeIdTag nodeId) const;
 
 	uint32_t m_nNodes;								 /**< NOF nodes from which we are gathering data*/
-	std::vector<T_NodeIdTag> m_nodeIds;							 /**< vector with all node IDs*/
+	std::vector<T_NodeIdTag> m_nodeIds;				 /**< vector with all node IDs*/
 	std::map<T_NodeIdTag, T_NodeInfo> m_nodeInfoMap; /**< map for node info<>node ID*/
 	klab::TSmartPointer<RandomMatrix> m_ranMat;		 /**< Random matrix form from which sensing matrix is constructed*/
 	klab::TSmartPointer<TransMatrix<T>> m_transMat;  /**< Transformation matrix form from which sensing matrix is constructed*/
