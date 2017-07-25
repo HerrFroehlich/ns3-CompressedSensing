@@ -12,7 +12,6 @@
 #include <KL1pInclude.h>
 #include <armadillo>
 using namespace kl1p;
-typedef std::complex<double> cx_double;
 /**
 * \ingroup compsens
  * \defgroup transmat Transform Matrices
@@ -68,6 +67,17 @@ class TransMatrix : public ns3::Object, public virtual TOperator<T>
 	arma::Mat<T> GetMatrix();
 
 	/**
+	* \brief applies the inverse of the transformation
+	*
+	*
+	* \param in input column vector
+	* \param out output column vector
+	*
+	* \tparam T data type
+	*/
+	// virtual void ApplyInverse(const arma::Col<T> &in, arma::Col<T> &out) = 0;
+
+	/**
 	* \brief clones the object
 	*
 	* \return pointer to a new TransMatrix
@@ -94,8 +104,10 @@ class TransMatrix : public ns3::Object, public virtual TOperator<T>
 *
 * \brief matrix inducing a 1D fourier transformation
 *
+* \tparam T data type
 */
-class FourierTransMatrix : public virtual TransMatrix<cx_double>, public virtual TFourier1DOperator<cx_double>
+template <typename T>
+class FourierTransMatrix : public virtual TransMatrix<T>, public virtual TFourier1DOperator<T>
 {
   public:
 	/**
@@ -126,9 +138,14 @@ class FourierTransMatrix : public virtual TransMatrix<cx_double>, public virtual
 	*/
 	virtual FourierTransMatrix *Clone() const;
 
+	// virtual void ApplyInverse(const arma::Col<T> &in, arma::Col<T> &out);
+
 	/*inherited from TOperator*/
-	virtual void apply(const arma::Col<cx_double> &in, arma::Col<cx_double> &out);
-	virtual void applyAdjoint(const arma::Col<cx_double> &in, arma::Col<cx_double> &out);
+	virtual void apply(const arma::Col<T> &in, arma::Col<T> &out);
+	virtual void applyAdjoint(const arma::Col<T> &in, arma::Col<T> &out);
+
+  private:
+	// kl1p::TInverseFourier1DOperator<T> m_inverse;
 };
 
 /**
@@ -171,8 +188,12 @@ class DcTransMatrix : public virtual TransMatrix<T>, public virtual TDCT1DOperat
 	*/
 	virtual DcTransMatrix *Clone() const;
 
+	// virtual void ApplyInverse(const arma::Col<T> &in, arma::Col<T> &out);
+
 	/*inherited from TOperator*/
 	virtual void apply(const arma::Col<T> &in, arma::Col<T> &out);
 	virtual void applyAdjoint(const arma::Col<T> &in, arma::Col<T> &out);
+  private:
+	// kl1p::TInverseDCT1DOperator<T> m_inverse;
 };
 #endif //TRANSFORM_MATRIX_H

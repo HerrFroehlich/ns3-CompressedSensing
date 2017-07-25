@@ -15,6 +15,7 @@
 #include <KSciInclude.h>
 #include <math.h> //sqrt
 #include "transform-matrix.h"
+#include "ns3/template-registration.h" // for cx_doubles
 using namespace ns3;
 using namespace kl1p;
 /**
