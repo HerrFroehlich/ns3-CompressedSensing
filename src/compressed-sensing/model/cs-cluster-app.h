@@ -52,6 +52,7 @@ public:
 
   /**
 	* \brief setups the application
+  *
 	* MUST be called before starting the application
 	*
 	* \param node Csnode to aggregate application to
@@ -64,6 +65,7 @@ public:
 
   /**
 	* \brief sets the used spatial compressor
+  *
 	*  The NOF measurements used for compression may differ from sequence to sequence, as the source nodes transmit randomly. 
   *  This means the compressor's "n"  does not need to be given as parameter.
   *  Therefore the compressor will be setup later during compression.
@@ -73,6 +75,7 @@ public:
 
   /**
 	* \brief sets the used spatial compressor
+  *
 	*  The NOF measurements used for compression may differ from sequence to sequence, as the source nodes transmit randomly. 
   *  This means the compressor's "n"  does not need to be given as parameter.
   *  Therefore the compressor will be setup later during compression.
@@ -81,10 +84,11 @@ public:
 	* \param m2 NOF compressed vectors
 	* \param norm normalize random matrix by 1/sqrt(m)?
 	*/
-  void SetSpatialCompressor(Ptr<Compressor<double>> comp, uint32_t l, bool norm = false);
+  // void SetSpatialCompressor(Ptr<Compressor<double>> comp, uint32_t l, bool norm = false);
 
   /**
 	* \brief sets the compression given by m2
+  *
 	*  The NOF measurements used for compression may differ from sequence to sequence, as the source nodes transmit randomly. 
   *  This means the compressor's "n"  does not need to be given as parameter.
   *
@@ -111,7 +115,8 @@ private:
 
   /**
   * \brief action on net device receive
-  * The received data will be stored 
+  *
+  * The received data will be stored and processed
   *
   * \param dev pointer to the net device
   * \param p   received packet

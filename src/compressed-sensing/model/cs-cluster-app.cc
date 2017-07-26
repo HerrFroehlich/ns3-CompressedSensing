@@ -23,8 +23,9 @@ CsClusterApp::GetTypeId(void)
 										  MakeTimeAccessor(&CsClusterApp::m_timeout),
 										  MakeTimeChecker(Seconds(0)))
 							.AddAttribute("ComprSpat", "Spatial Compressor",
+										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(CreateObject<Compressor<double>>()),
-										  MakePointerAccessor(&CsClusterApp::m_comp),
+										  MakePointerAccessor(&CsClusterApp::SetSpatialCompressor),
 										  MakePointerChecker<Compressor<double>>())
 							.AddAttribute("l", "NOF of measurement vectors after spatial compression",
 										  UintegerValue(64),
@@ -67,6 +68,7 @@ void CsClusterApp::Setup(Ptr<CsNode> node, std::string filename)
 {
 	NS_LOG_FUNCTION(this << node << filename);
 	NS_ASSERT_MSG(node->IsCluster(), "Must be a cluster node!");
+	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
 	/*--------  initialize temporal compressor  --------*/
 	CsSrcApp::Setup(node, filename);
 
@@ -81,7 +83,11 @@ void CsClusterApp::Setup(Ptr<CsNode> node, std::string filename)
 	m_outBufSize = m_m * m_l; // size after NC
 	m_outBuf.Resize(m_outBufSize);
 	m_srcDataBuffer.Resize(N_SRCNODES, m_m);
+
+	if(!m_comp)
+		m_comp = CreateObject<Compressor<double>>();
 	m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
+
 	m_zData.Resize(m_l, m_m);
 	m_isSetup = true;
 }
@@ -89,25 +95,27 @@ void CsClusterApp::Setup(Ptr<CsNode> node, std::string filename)
 void CsClusterApp::SetSpatialCompressor(Ptr<Compressor<double>> comp)
 {
 	NS_LOG_FUNCTION(this << comp);
+	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
 
-	m_comp = comp;
+	m_comp = CopyObject(comp);
 	m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
 }
 
-void CsClusterApp::SetSpatialCompressor(Ptr<Compressor<double>> comp, uint32_t l, bool norm)
-{
-	NS_LOG_FUNCTION(this << comp << l << norm);
+// void CsClusterApp::SetSpatialCompressor(Ptr<Compressor<double>> comp, uint32_t l, bool norm)
+// {
+// 	NS_LOG_FUNCTION(this << comp << l << norm);
 
-	m_comp = comp;
-	SetSpatialCompressDim(l);
-	m_normalize = norm;
+// 	m_comp = CopyObject(comp);
+// 	SetSpatialCompressDim(l);
+// 	m_normalize = norm;
 
-	m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
-}
+// 	m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
+// }
 
 void CsClusterApp::SetSpatialCompressDim(uint32_t l)
 {
 	NS_LOG_FUNCTION(this << l);
+	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
 
 	m_l = l;
 
@@ -136,9 +144,10 @@ bool CsClusterApp::CompressNext()
 	NS_LOG_FUNCTION(this);
 
 	//prepare source data
-	CsSrcApp::CompressNext();
-
-	m_srcDataBuffer.WriteData(m_yR.GetMem(), m_m, m_node->GetNodeId());
+	if (CsSrcApp::CompressNext())
+	{
+		m_srcDataBuffer.WriteData(m_yR.GetMem(), m_m, m_node->GetNodeId());
+	}
 	m_srcDataBuffer.SortByMeta();
 
 	//setup compressor & compress
@@ -173,6 +182,8 @@ bool CsClusterApp::CompressNext()
 void CsClusterApp::CreateCsPackets()
 {
 	NS_LOG_FUNCTION(this);
+
+	//m_nextPackSeq = 0; //we might to change that
 	/*--------  Create packets from that data  --------*/
 	uint32_t payloadSize = GetMaxPayloadSize();
 	uint32_t packetsNow = 1 + (m_outBufSize * sizeof(double) / payloadSize); //
@@ -186,8 +197,9 @@ void CsClusterApp::CreateCsPackets()
 	header.SetSrcInfo(m_srcInfo);
 
 	const uint8_t *byte_ptr = reinterpret_cast<const uint8_t *>(m_outBuf.GetMem());
-	uint32_t remain = m_outBufSize* sizeof(double); //remaining bytes
-	for (uint32_t i = 0; i < packetsNow - 1; i++) //last packet might be truncated
+
+	uint32_t remain = m_outBufSize * sizeof(double); //remaining bytes
+	for (uint32_t i = 0; i < packetsNow - 1; i++)	//last packet might be truncated
 	{
 		header.SetSeq(m_nextPackSeq++); // we increase seq for each new packet
 		remain -= payloadSize;
@@ -256,7 +268,7 @@ bool CsClusterApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idU
 
 	if (clusterId == m_clusterId) //we receive from a source node of this cluster
 		success = ReceiveSrc(p);
-	else if (nodeId == CsHeader::CLUSTER_NODEID) // we receive from a different cluster nide
+	else if (nodeId == CsHeader::CLUSTER_NODEID) // we receive from a different cluster node
 		success = ReceiveCluster(p);
 	else //  we receive from a source node of a different cluster
 		m_rxDropTrace(p, E_DropCause::SRC_NOT_IN_CLUSTER);
