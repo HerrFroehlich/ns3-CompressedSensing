@@ -28,8 +28,7 @@ using namespace ns3;
 * \ingroup csApps
 * \class CsSrcApp
 *
-* \brief A source app to compress data from a file temporally and transmitting it
-*
+* \brief A source app to compress data from a file temporally and transmitting it.
 * When running the setup this application reads data from a file specified by a file path and stores it locally.
 * Upon starting the application the n data samples are compressed to m with the help of the Compressor class and a given seed.
 * Then packets are formed containing the CsHeader and m samples as payload (so package loss won't corrupt a data vector).
@@ -57,11 +56,11 @@ class CsSrcApp : public Application
 	CsSrcApp(uint32_t n, uint32_t m);
 
 	/**
-	* \brief setups the application to send packets with data from a file
-	* All aggregated devices to the node are considered Tx devices.  
+	* \brief setups the application to send packets with data from a file.
+	*
 	* This function has to be called BEFORE starting the application. 
 	*
-	* \param node Csnode to aggregate application to
+	* \param node CsNode to aggregate application to
 	* \param filename name of file to read from
 	*
 	*/
@@ -69,7 +68,8 @@ class CsSrcApp : public Application
 					   std::string filename);
 
 	/**
-	* \brief sets the used temporal compressor
+	* \brief Sets the used temporal compressor.
+	*
 	*  It is setuped with the previously defined/default seed and sizes 
 	* \param comp  pointer to compressor
 	*/
@@ -77,6 +77,7 @@ class CsSrcApp : public Application
 
 	/**
 	* \brief sets the used temporal compressor
+	*
 	*  It is setuped via the given seed and sizes
 	*
 	* \param comp  pointer to compressor
@@ -85,7 +86,7 @@ class CsSrcApp : public Application
 	* \param m length of compressed vector
 	* \param norm normalize random matrix by 1/sqrt(m)?
 	*/
-	void SetTempCompressor(Ptr<CompressorTemp<double>> comp, uint32_t n, uint32_t m, bool norm = false);
+	// void SetTempCompressor(Ptr<CompressorTemp<double>> comp, uint32_t n, uint32_t m, bool norm = false);
 
 	/**
 	* \brief sets the compression given by n and m

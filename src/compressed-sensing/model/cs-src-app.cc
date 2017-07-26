@@ -48,8 +48,9 @@ CsSrcApp::GetTypeId(void)
 										  MakeBooleanAccessor(&CsSrcApp::m_normalize),
 										  MakeBooleanChecker())
 							.AddAttribute("ComprTemp", "Temporal Compressor",
-										  PointerValue(CreateObject<CompressorTemp<double>>()),
-										  MakePointerAccessor(&CsSrcApp::m_compR),
+										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
+										  PointerValue(),
+										  MakePointerAccessor(&CsSrcApp::SetTempCompressor),
 										  MakePointerChecker<CompressorTemp<double>>())
 							.AddAttribute("RanTx", "The random variable attached to determine when to send.",
 										  TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
@@ -69,7 +70,7 @@ CsSrcApp::CsSrcApp() : m_yR(0), m_nodeId(0), m_clusterId(0),
 					   m_nextSeq(0), m_seed(1),
 					   m_n(0), m_m(0),
 					   //    m_nDevices(0), m_nTxDevices(0),
-					  // m_nMeas(0), // m_nPackets(0),
+					   // m_nMeas(0), // m_nPackets(0),
 					   m_sent(0),
 					   m_normalize(true),
 					   m_running(false),
@@ -85,7 +86,7 @@ CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yR(m), m_nodeId(0), m_clusterId(0
 											 m_nextSeq(0), m_seed(1),
 											 m_n(n), m_m(m),
 											 //  m_nDevices(0), m_nTxDevices(0),
-											// m_nMeas(0), // m_nPackets(0),
+											 // m_nMeas(0), // m_nPackets(0),
 											 m_sent(0),
 											 m_normalize(true),
 											 m_running(false),
@@ -153,6 +154,8 @@ void CsSrcApp::Setup(Ptr<CsNode> node, std::string filename)
 	// }
 
 	//setup compressor
+	if (!m_compR)
+		m_compR = CreateObject<CompressorTemp<double>>();
 	m_compR->Setup(m_seed, m_n, m_m, m_normalize);
 
 	m_isSetup = true;
@@ -161,32 +164,39 @@ void CsSrcApp::Setup(Ptr<CsNode> node, std::string filename)
 void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp<double>> comp)
 {
 	NS_LOG_FUNCTION(this << comp);
+	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
 
-	m_compR = comp;
-	m_compR->Setup(m_seed, m_n, m_m, m_normalize);
+	if (!comp)
+	{
+		m_compR = CopyObject(comp);
+		m_compR->Setup(m_seed, m_n, m_m, m_normalize);
+	}
 }
 
-void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp<double>> comp,  uint32_t n, uint32_t m, bool norm)
-{
-	NS_LOG_FUNCTION(this << comp << n << m << norm);
+// void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp<double>> comp, uint32_t n, uint32_t m, bool norm)
+// {
+// 	NS_LOG_FUNCTION(this << comp << n << m << norm);
 
-	m_compR = comp;
-	m_n = n;
-	m_m = m;
-	m_normalize = norm;
+// 	m_compR = CopyObject(comp);
+// 	m_n = n;
+// 	m_m = m;
+// 	m_normalize = norm;
 
-	m_compR->Setup(m_seed, m_n, m_m, m_normalize);
-}
+// 	m_compR->Setup(m_seed, m_n, m_m, m_normalize);
+// }
 
 void CsSrcApp::SetTempCompressDim(uint32_t n, uint32_t m)
 {
 	NS_LOG_FUNCTION(this << n << m);
+	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
 
 	m_n = n;
 	m_m = m;
 
 	// m_yR.Resize(m);
-	m_compR->Setup(m_seed, m_n, m_m, m_normalize);
+
+	if (!m_compR)
+		m_compR->Setup(m_seed, m_n, m_m, m_normalize);
 }
 
 // void CsSrcApp::SetSeed(uint32_t seed, bool norm)
@@ -199,6 +209,7 @@ void CsSrcApp::SetTempCompressDim(uint32_t n, uint32_t m)
 void CsSrcApp::SetTxProb(double p)
 {
 	NS_LOG_FUNCTION(this << p);
+	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
 
 	m_txProb = p;
 }
@@ -316,7 +327,6 @@ void CsSrcApp::WriteTxPacketList(const std::vector<Ptr<Packet>> &pktList)
 		m_txPackets.insert(m_txPackets.end(), pktList.begin(), pktList.end());
 	else
 		m_txPackets = pktList;
-	
 }
 
 uint32_t CsSrcApp::GetMaxPayloadSize()
@@ -364,4 +374,3 @@ void CsSrcApp::ScheduleTx(Time dt)
 	else if (HasPackets())
 		Simulator::Schedule(dt, &CsSrcApp::ScheduleTx, this, m_interval);
 }
-
