@@ -237,8 +237,7 @@ void SerialDataBuffer<T>::Read(uint32_t index, T *buffer, uint32_t bufSize) cons
 {
 	NS_ASSERT_MSG((index + bufSize) <= m_wrIdx,
 				  "Read index > write index : Trying to read outside of written area!");
-
-	memcpy(buffer, m_data_ptr + index, bufSize);
+	std::copy(m_data_ptr + index, m_data_ptr + index + bufSize, buffer);
 }
 
 template <typename T>
