@@ -10,7 +10,7 @@
 #define SERIALBUFFER_H
 
 #include <stdint.h>
-#include "ns3/object.h"
+#include "ns3/simple-ref-count.h"
 #include "assert.h"
 #include <algorithm> //copy
 /**
@@ -32,7 +32,7 @@
 * \date 30.05.17
 */
 template <typename T>
-class SerialDataBuffer : public Object
+class SerialDataBuffer : public ns3::SimpleRefCount<SerialDataBuffer<T>>
 {
   public:
 	/**
