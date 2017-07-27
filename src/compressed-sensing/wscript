@@ -66,7 +66,8 @@ def build(bld):
         'util/mat-buffer.h',
         'util/node-data-buffer.h',
         'util/node-data-buffer-meta.h',
-        'util/template-registration.h'
+        'util/template-registration.h',
+        'util/data-stream.h'
 ]
 
     if bld.env.ENABLE_EXAMPLES:
