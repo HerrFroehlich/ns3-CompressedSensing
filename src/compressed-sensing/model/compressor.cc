@@ -135,13 +135,6 @@ void Compressor<T>::Compress(const arma::Mat<T> &matIn, T *bufferOut, uint32_t b
 		op_ptr->apply(matIn.col(i), yVec);
 		y.col(i) = yVec;
 	}
-
-	Mat<T> mat;
-	op_ptr->toMatrix(mat);
-	mat.save("./IOdata/_Acomp", arma::csv_ascii);
-	y.save("./IOdata/_ycomp", arma::csv_ascii);
-	matIn.save("./IOdata/_x_comp", arma::csv_ascii);
-
 	m_completeCb(matIn, y);
 }
 
