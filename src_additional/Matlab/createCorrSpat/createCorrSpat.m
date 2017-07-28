@@ -1,6 +1,8 @@
 %% SETTINGS
 fileBase= './inputData/x';
-
+fileBaseMat= './inputData/data';
+writeMatFile = true; % write to a mat file instead of multiple bin files
+m = 128;
 %% DEFINES
 MAX_NODES = 256;
 
@@ -30,10 +32,10 @@ for i=1:nNodes
     
     xi = zeros(nSamp,1);
     
-    xi(1) = rand();
+    xi(1) = randn();
     %create dependent samples
     for j=2:nSamp
-        xi(j) = rand() + corrTemp * xi(j-1); %autoregressive model
+        xi(j) = randn() + corrTemp * xi(j-1); %autoregressive model
     end
     
     X(:,i) = xi;
@@ -67,25 +69,30 @@ colorbar;
 
 Y = zeros(nNodes, m);
 for i=1:nNodes
-%     A = randn(m,n);
-%      Y(i,:) = A*X(:,i);
+    %     A = randn(m,n);
+    %      Y(i,:) = A*X(:,i);
     idx = randperm(nSamp, m); % random subsampling
     x =  X(:,i);
     Y(i,:) = x(idx);
 end
 %% write to file
 mkdir('./inputData');
-for i=1:nNodes
-    fid = fopen([fileBase num2str(i-1)],'w');
-    fwrite(fid, Xc(:,i),'double');
+if(writeMatFile)
+    x = Xc;
+    save(fileBaseMat, 'x', '-v6');
+else
+    for i=1:nNodes
+        fid = fopen([fileBase num2str(i-1)],'w');
+        fwrite(fid, Xc(:,i),'double');
+        fclose(fid);
+    end
+    
+    fid = fopen([fileBase 'INFO'], 'w');
+    fprintf(fid, 'Number of nodes: %d\n', nNodes);
+    fprintf(fid, 'Number of samples: %d\n', nSamp);
+    fprintf(fid, 'Sparsity ratio: %f\n', rho);
+    fprintf(fid, 'Spatial Correlation: %f\n', corrSpat);
+    fprintf(fid, 'Temporal Correlation: %f\n', corrTemp);
     fclose(fid);
 end
-
-fid = fopen([fileBase 'INFO'], 'w');
-fprintf(fid, 'Number of nodes: %d\n', nNodes);
-fprintf(fid, 'Number of samples: %d\n', nSamp);
-fprintf(fid, 'Sparsity ratio: %f\n', rho);
-fprintf(fid, 'Spatial Correlation: %f\n', corrSpat);
-fprintf(fid, 'Temporal Correlation: %f\n', corrTemp);
-fclose(fid);
 
