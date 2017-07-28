@@ -2,9 +2,8 @@
 * \file serial-buffer.h
 *
 * \author Tobias Waurick
-* \date 30.05
+* \date 30.05.17
 *
-* Includes several SerialDataBuffer templates
 */
 #ifndef SERIALBUFFER_H
 #define SERIALBUFFER_H
@@ -24,7 +23,10 @@
 * \class SerialDataBuffer
 *
 * \brief a general buffer class to store and read data
-*		
+*
+* This buffer can write and read data serially.
+* If copied or assigned from another SerialDataBuffer data and the write index are duplicated,
+* but the read index is set to the beginning (0).		
 *
 * \tparam T	the type of stored data
 *
@@ -179,6 +181,20 @@ class SerialDataBuffer : public ns3::Object
 	*/
 	uint32_t GetSize() const;
 
+	SerialDataBuffer<T> &operator=(const SerialDataBuffer<T> &other)
+	{
+		if (m_data_ptr)
+			delete[] m_data_ptr;
+
+		m_dataSize = other.m_dataSize;
+		m_data_ptr = new T[m_dataSize];
+		m_wrIdx = other.m_wrIdx;
+		m_rdIdx = 0;
+		std::copy(std::begin(other.m_data_ptr), std::end(other.m_data_ptr), std::begin(m_data_ptr));
+
+		return *this;
+	};
+
   private:
 	T *m_data_ptr;			  /**< stored data*/
 	uint32_t m_dataSize,	  /**< size of stored data*/
@@ -203,10 +219,11 @@ SerialDataBuffer<T>::SerialDataBuffer(uint32_t dataSize) : m_dataSize(dataSize),
 }
 
 template <typename T>
-SerialDataBuffer<T>::SerialDataBuffer(const SerialDataBuffer &buf)
+SerialDataBuffer<T>::SerialDataBuffer(const SerialDataBuffer &buf) : m_rdIdx(0)
 {
 	m_dataSize = buf.m_dataSize;
 	m_data_ptr = new T[m_dataSize];
+	m_wrIdx = buf.m_wrIdx;
 	std::copy(std::begin(buf.m_data_ptr), std::end(buf.m_data_ptr), std::begin(m_data_ptr));
 }
 
@@ -321,6 +338,7 @@ uint32_t SerialDataBuffer<T>::GetRemaining() const
 {
 	return m_wrIdx - m_rdIdx;
 }
+
 template <typename T>
 uint32_t SerialDataBuffer<T>::GetSize() const
 {
