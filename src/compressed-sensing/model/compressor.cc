@@ -65,14 +65,17 @@ TypeId Compressor<cx_double>::GetTypeId(void)
 template <typename T>
 Compressor<T>::Compressor() : m_seed(1), m_m(0),
 							  m_n(0), m_vecLen(0),
-							  m_bufLenIn(0), m_bufLenOut(0)
+							  m_bufLenIn(0), m_bufLenOut(0),
+							  m_normalize(false)
 {
 }
 
 template <typename T>
 Compressor<T>::Compressor(uint32_t n, uint32_t m, uint32_t vecLen) : m_seed(1), m_m(m),
 																	 m_n(n), m_vecLen(vecLen),
-																	 m_bufLenIn(n * vecLen), m_bufLenOut(m * vecLen)
+																	 m_bufLenIn(n * vecLen), m_bufLenOut(m * vecLen),
+																	 m_normalize(false)
+																	 
 {
 	if (m_transMat.isValid())
 		m_transMat->SetSize(n);
@@ -92,13 +95,6 @@ void Compressor<T>::Setup(uint32_t seed, uint32_t n, uint32_t m, uint32_t vecLen
 	m_bufLenIn = vecLen * n;
 	m_bufLenOut = vecLen * m;
 
-	if (m_transMat.isValid())
-		m_transMat->SetSize(n);
-
-	if (m_ranMat.isValid())
-		m_ranMat->SetSize(m, n, seed);
-	if (norm)
-		m_ranMat->NormalizeToM();
 }
 
 template <typename T>
@@ -121,6 +117,15 @@ void Compressor<T>::Compress(const arma::Mat<T> &matIn, T *bufferOut, uint32_t b
 	NS_ASSERT_MSG((matIn.n_rows == m_n) && (matIn.n_cols == m_vecLen), "Incorrect matrix size!");
 	NS_ASSERT(bufferOut); //null pointer check
 
+	if (m_transMat.isValid())
+		m_transMat->SetSize(m_n);
+
+	if (m_ranMat.isValid())
+		m_ranMat->SetSize(m_m, m_n, m_seed);
+
+	if (m_normalize)
+		m_ranMat->NormalizeToM();
+
 	klab::TSmartPointer<kl1p::TOperator<T>> op_ptr = m_ranMat * m_transMat;
 	arma::Mat<T> y(bufferOut, m_m, m_vecLen, false, true);
 
@@ -130,9 +135,15 @@ void Compressor<T>::Compress(const arma::Mat<T> &matIn, T *bufferOut, uint32_t b
 		op_ptr->apply(matIn.col(i), yVec);
 		y.col(i) = yVec;
 	}
-	
+
+	Mat<T> mat;
+	op_ptr->toMatrix(mat);
+	mat.save("./IOdata/_Acomp", arma::csv_ascii);
+	y.save("./IOdata/_ycomp", arma::csv_ascii);
+	matIn.save("./IOdata/_x_comp", arma::csv_ascii);
+
 	m_completeCb(matIn, y);
-	}
+}
 
 template <typename T>
 template <typename TI>
@@ -170,7 +181,7 @@ template <typename T>
 void Compressor<T>::SetRanMat(Ptr<RandomMatrix> ranMat_ptr)
 {
 	m_ranMat = ranMat_ptr->Clone();
-
+	
 	if (m_ranMat.isValid())
 		m_ranMat->SetSize(m_m, m_n, m_seed);
 }
