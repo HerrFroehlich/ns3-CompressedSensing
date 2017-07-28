@@ -13,21 +13,39 @@ nSamp = input('NOF Samples: ');
 rho = input('Sparsity Ratio: ');
 assert(rho>=0 && rho<=1, 'Sparsity Ratio must be 0...1');
 
-correlation = input('Spatial correlation of nodes: ');
-assert(correlation>=0 && correlation<=1, 'correlation must be 0...1');
+corrTemp = input('Temporal correlation of nodes: ');
+assert(corrTemp>=0 && corrTemp<=1, 'correlation must be 0...1');
 
-%% Create signals
+corrSpat = input('Spatial correlation of nodes: ');
+assert(corrSpat>=0 && corrSpat<=1, 'correlation must be 0...1');
+
+%% Create temporal correlated signals
 k = round(rho * nSamp);
 rng('shuffle'); %set seed based on current time
 
-X = randn(nSamp,nNodes); % create nSamp gaussian samples
+%X = randn(nSamp,nNodes);
+X = zeros(nSamp,nNodes); % create nSamp gaussian samples
+
+for i=1:nNodes
+    
+    xi = zeros(nSamp,1);
+    
+    xi(1) = rand();
+    %create dependent samples
+    for j=2:nSamp
+        xi(j) = rand() + corrTemp * xi(j-1); %autoregressive model
+    end
+    
+    X(:,i) = xi;
+end
+
 
 %% make sparse
 % choose sparse indices randomly
 % for i = 1:nNodes
 %
-% idx = randperm(nSamp, nSamp-k);
-% X(idx,i) = 0;
+%  idx = randperm(nSamp, nSamp-k);
+%  X(idx,:) = 0;
 %
 % end;
 
@@ -37,16 +55,24 @@ X(idx,:) = 0;
 %% Create correlated signals
 
 corrMat = eye(nNodes);
-corrMat(corrMat==0) = correlation;
+corrMat(corrMat==0) = corrSpat;
 
 U = chol(corrMat);
 
 Xc = X*U;
 figure;
-title( 'Resulting Correlation matrix:')
 image(corr(Xc, Xc), 'CDataMapping','scaled');
+title( 'Resulting Correlation matrix:')
 colorbar;
 
+Y = zeros(nNodes, m);
+for i=1:nNodes
+%     A = randn(m,n);
+%      Y(i,:) = A*X(:,i);
+    idx = randperm(nSamp, m); % random subsampling
+    x =  X(:,i);
+    Y(i,:) = x(idx);
+end
 %% write to file
 mkdir('./inputData');
 for i=1:nNodes
@@ -59,6 +85,7 @@ fid = fopen([fileBase 'INFO'], 'w');
 fprintf(fid, 'Number of nodes: %d\n', nNodes);
 fprintf(fid, 'Number of samples: %d\n', nSamp);
 fprintf(fid, 'Sparsity ratio: %f\n', rho);
-fprintf(fid, 'Spatial Correlation: %f\n', correlation);
+fprintf(fid, 'Spatial Correlation: %f\n', corrSpat);
+fprintf(fid, 'Temporal Correlation: %f\n', corrTemp);
 fclose(fid);
 
