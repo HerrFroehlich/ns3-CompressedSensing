@@ -11,7 +11,9 @@
 #include <string>
 #include <vector>
 #include "ns3/simple-ref-count.h"
+#include "ns3/ptr.h"
 #include "serial-buffer.h"
+using namespace ns3;
 
 /**
 * \ingroup util
@@ -25,11 +27,11 @@
 * \tparam type of data stored
 */
 template <typename T>
-class DataStream : public ns3::SimpleRefCount<DataStream<T>>
+class DataStream : public ns3::Object
 {
   public:
-	typedef SerialDataBuffer<T> T_Buffer;					/**< Type of the underlying buffers*/
-	typedef std::vector<T_Buffer>::const_iterator Iterator; /**< Iterator over all buffers*/
+	using T_Buffer = SerialDataBuffer<T>;								  /**< Type of the underlying buffers*/
+	typedef typename std::vector<Ptr<T_Buffer>>::const_iterator Iterator; /**< Iterator over all buffers*/
 
 	/**
 	* \brief creates a DataStream with a name and no elements
@@ -37,7 +39,7 @@ class DataStream : public ns3::SimpleRefCount<DataStream<T>>
 	* \param name name of this DataStream
 	*
 	*/
-	DataStream(std::string name) : m_name(name){};
+	DataStream(std::string name) : m_maxSize(0), m_name(name){};
 
 	/**
 	* \brief Adds a SerialDataBuffer
@@ -48,6 +50,9 @@ class DataStream : public ns3::SimpleRefCount<DataStream<T>>
 	void AddBuffer(Ptr<T_Buffer> buffer)
 	{
 		m_dataStreams.push_back(buffer);
+		uint32_t size = buffer->GetSize();
+		if (size > m_maxSize)
+			m_maxSize = size;
 	};
 
 	/**
@@ -57,7 +62,7 @@ class DataStream : public ns3::SimpleRefCount<DataStream<T>>
 	*
 	* \return pointer to SerialDataBuffer
 	*/
-	Ptr<T_Buffer> GetBuffer(uint32_t idx) const
+	Ptr<T_Buffer> GetBuffer(uint32_t idx)
 	{
 		Ptr<T_Buffer> out = m_dataStreams.at(idx);
 		m_dataStreams.erase(idx);
@@ -73,7 +78,7 @@ class DataStream : public ns3::SimpleRefCount<DataStream<T>>
 	*/
 	Ptr<T_Buffer> PeekBuffer(uint32_t idx) const
 	{
-		return m_dataStreams.at(i);
+		return m_dataStreams.at(idx);
 	};
 
 	/**
@@ -116,7 +121,36 @@ class DataStream : public ns3::SimpleRefCount<DataStream<T>>
 		return m_dataStreams.end();
 	};
 
+	/**
+	* \brief creates serveral empty SerialDataBuffer instances of same size	and appends them to this DataStream
+	*
+	* \param nBuf NOF of SerialDataBuffer
+	* \param bufSize size of each buffer
+	*
+	*/
+	void CreateBuffer(uint32_t nBuf, uint32_t bufSize)
+	{
+		for (size_t i = 0; i < nBuf; i++)
+		{
+			m_dataStreams.push_back(Create<T_Buffer>(bufSize));
+		}
+
+		if (bufSize > m_maxSize)
+			m_maxSize = bufSize;
+	};
+
+	/**
+	* \brief gets the largest size of all stored SerialDataBuffer instances
+	*
+	* \return largest size
+	*/
+	uint32_t GetMaxSize()
+	{
+		return m_maxSize;
+	};
+
   private:
+	uint32_t m_maxSize;						  /**< the largest size of all stored SerialDataBuffer instances */
 	std::string m_name;						  /**< name of the DataStream*/
 	std::vector<Ptr<T_Buffer>> m_dataStreams; /**< stored SerialDataBuffer instances*/
 };
@@ -130,10 +164,10 @@ class DataStream : public ns3::SimpleRefCount<DataStream<T>>
 * \tparam type of data stored
 */
 template <typename T>
-class DataStreamContainer : public ns3::SimpleRefCount
+class DataStreamContainer : public SimpleRefCount<DataStreamContainer<T>>
 {
   public:
-	typedef std::vector<Ptr<DataStream<T>>>::const_iterator Iterator;
+	typedef typename std::vector<Ptr<DataStream<T>>>::const_iterator Iterator;
 
 	/**
 	* \brief creates an empty DataStreamContainer
