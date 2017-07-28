@@ -65,7 +65,7 @@ class DataStream : public ns3::Object
 	Ptr<T_Buffer> GetBuffer(uint32_t idx)
 	{
 		Ptr<T_Buffer> out = m_dataStreams.at(idx);
-		m_dataStreams.erase(idx);
+		m_dataStreams.erase(m_dataStreams.begin()+idx);
 		return out;
 	};
 
