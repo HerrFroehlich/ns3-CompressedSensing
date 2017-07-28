@@ -86,7 +86,7 @@ class DataStream : public ns3::Object
 	*
 	* \return NOF SerialDataBuffer stored
 	*/
-	uint32_t GetN()
+	uint32_t GetN() const
 	{
 		return m_dataStreams.size();
 	};
@@ -96,7 +96,7 @@ class DataStream : public ns3::Object
 	*
 	* \return name of this DataStream
 	*/
-	std::string GetName()
+	std::string GetName() const
 	{
 		return m_name;
 	};
@@ -106,7 +106,7 @@ class DataStream : public ns3::Object
 	*
 	* \return iterator to beginning 
 	*/
-	Iterator Begin()
+	Iterator Begin() const
 	{
 		return m_dataStreams.begin();
 	};
@@ -116,7 +116,7 @@ class DataStream : public ns3::Object
 	*
 	* \return iterator to end
 	*/
-	Iterator End()
+	Iterator End() const
 	{
 		return m_dataStreams.end();
 	};
@@ -144,7 +144,7 @@ class DataStream : public ns3::Object
 	*
 	* \return largest size
 	*/
-	uint32_t GetMaxSize()
+	uint32_t GetMaxSize() const
 	{
 		return m_maxSize;
 	};
