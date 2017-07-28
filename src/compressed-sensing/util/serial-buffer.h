@@ -32,7 +32,7 @@
 * \date 30.05.17
 */
 template <typename T>
-class SerialDataBuffer : public ns3::SimpleRefCount<SerialDataBuffer<T>>
+class SerialDataBuffer : public ns3::Object
 {
   public:
 	/**
