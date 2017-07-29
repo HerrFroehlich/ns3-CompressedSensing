@@ -138,6 +138,14 @@ uint32_t Reconstructor<T>::WriteData(T_NodeIdTag nodeId, const T *buffer, const 
 }
 
 template <typename T>
+uint32_t Reconstructor<T>::WriteData(T_NodeIdTag nodeId, const std::vector<T> &vec)
+{
+	NS_LOG_FUNCTION(this << nodeId << &vec);
+
+	return WriteData(nodeId, vec.data(), vec.size());
+}
+
+template <typename T>
 std::vector<T> Reconstructor<T>::ReadRecData(T_NodeIdTag nodeId) const
 {
 	NS_LOG_FUNCTION(this << nodeId);
@@ -184,7 +192,7 @@ std::vector<T_NodeIdTag> Reconstructor<T>::GetNodeIds()
 }
 
 template <typename T>
-std::vector<uint32_t> Reconstructor<T>::GetNodeDim(T_NodeIdTag nodeId)
+std::vector<uint32_t> Reconstructor<T>::GetBufferDim(T_NodeIdTag nodeId)
 {
 	NS_LOG_FUNCTION(this << nodeId);
 

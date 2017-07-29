@@ -103,8 +103,21 @@ class Reconstructor : public ns3::Object
 	* \param buffer pointer to data
 	* \param bufSize  size of data buffer	
 	*
+	* \return remaining space in buffer
 	*/
 	uint32_t WriteData(T_NodeIdTag nodeId, const T *buffer, const uint32_t bufSize);
+
+	/**
+	* \brief writes from data buffer to a this NodeDataBuffer
+	*
+	* \param nodeId	8bit-ID of the node
+	* \param vec vector containing data	
+	*
+	* \return remaining space in buffer
+	*/
+	uint32_t WriteData(T_NodeIdTag nodeId, const std::vector<T> &vec);
+
+
 
 	/**
 	* \brief reads reconstructed data matrix and returns a vector (matrix ordered column by column)
@@ -146,13 +159,13 @@ class Reconstructor : public ns3::Object
 	std::vector<T_NodeIdTag> GetNodeIds();
 
 	/**
-	* \brief gets the dimensions for the given ID
+	* \brief gets the  buffer dimensions for the given ID
 	*
 	* \param nodeId	node ID	
 	*
 	* \return vector with the [nMeas mMax vecLen]
 	*/
-	std::vector<uint32_t> GetNodeDim(T_NodeIdTag nodeId);
+	std::vector<uint32_t> GetBufferDim(T_NodeIdTag nodeId);
 
 	/**
 	* \brief sets the default dimension for new in and output buffers
