@@ -65,7 +65,7 @@ class DataStream : public ns3::Object
 	Ptr<T_Buffer> GetBuffer(uint32_t idx)
 	{
 		Ptr<T_Buffer> out = m_dataStreams.at(idx);
-		m_dataStreams.erase(m_dataStreams.begin()+idx);
+		m_dataStreams.erase(m_dataStreams.begin() + idx);
 		return out;
 	};
 
@@ -164,7 +164,7 @@ class DataStream : public ns3::Object
 * \tparam type of data stored
 */
 template <typename T>
-class DataStreamContainer : public SimpleRefCount<DataStreamContainer<T>>
+class DataStreamContainer : public Object
 {
   public:
 	typedef typename std::vector<Ptr<DataStream<T>>>::const_iterator Iterator;
@@ -229,8 +229,30 @@ class DataStreamContainer : public SimpleRefCount<DataStreamContainer<T>>
 		return m_dataStreams.end();
 	};
 
+	/**
+	* \brief sets a group name for all DataStream instances
+	*
+	* \param name group name to set
+	*
+	*/
+	void SetGroupName(std::string name)
+	{
+		m_groupName = name;
+	}
+
+	/**
+	* \brief gets the group name for all DataStream instances
+	*
+	* \return group name
+	*/
+	std::string GetGroupName()
+	{
+		return m_groupName;
+	}
+
   private:
 	std::vector<Ptr<DataStream<T>>> m_dataStreams; /**< stored DataStream instances*/
+	std::string m_groupName;					   /**< optional group name for all DataStream instances*/
 };
 
 #endif //DATA_STREAM_H
