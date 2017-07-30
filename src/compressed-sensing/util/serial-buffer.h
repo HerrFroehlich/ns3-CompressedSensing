@@ -9,6 +9,7 @@
 #define SERIALBUFFER_H
 
 #include <stdint.h>
+#include <vector>
 #include "ns3/simple-ref-count.h"
 #include "assert.h"
 #include <algorithm> //copy
@@ -133,12 +134,19 @@ class SerialDataBuffer : public ns3::Object
 	void WriteNext(T data);
 
 	/**
+	* \brief writes vector to this SerialDataBuffer
+	*
+	* \param vec vector containing the data
+	*/
+	void WriteNext(const std::vector<T> &vec);
+
+	/**
 	* \brief writes multiple values at the end of this SerialDataBuffer
 	*
 	* \param buffer	a SerialDataBuffer pointer of the stored type
 	* \param bufSize	size of that SerialDataBuffer
 	*/
-	void WriteNext(T *buffer, uint32_t bufSize);
+	void WriteNext(const T *buffer, uint32_t bufSize);
 
 	/**
 	* \brief determine if the buffer is full
@@ -296,7 +304,13 @@ void SerialDataBuffer<T>::WriteNext(T data)
 }
 
 template <typename T>
-void SerialDataBuffer<T>::WriteNext(T *buffer, uint32_t bufSize)
+void SerialDataBuffer<T>::WriteNext(const std::vector<T> &vec)
+{
+	WriteNext(vec.data(), vec.size());
+}
+
+template <typename T>
+void SerialDataBuffer<T>::WriteNext(const T *buffer, uint32_t bufSize)
 {
 	NS_ASSERT_MSG((m_wrIdx + bufSize - 1) < m_dataSize,
 				  "Write index > data size : Trying to write outside of allocated area!");
