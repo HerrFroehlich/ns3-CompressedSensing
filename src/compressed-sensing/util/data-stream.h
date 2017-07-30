@@ -214,7 +214,7 @@ class DataStreamContainer : public Object
 	*
 	* \return iterator to beginning 
 	*/
-	Iterator Begin()
+	Iterator Begin() const
 	{
 		return m_dataStreams.begin();
 	};
@@ -224,7 +224,7 @@ class DataStreamContainer : public Object
 	*
 	* \return iterator to end
 	*/
-	Iterator End()
+	Iterator End() const
 	{
 		return m_dataStreams.end();
 	};
