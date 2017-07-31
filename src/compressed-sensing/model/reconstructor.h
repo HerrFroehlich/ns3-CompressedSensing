@@ -117,8 +117,6 @@ class Reconstructor : public ns3::Object
 	*/
 	uint32_t WriteData(T_NodeIdTag nodeId, const std::vector<T> &vec);
 
-
-
 	/**
 	* \brief reads reconstructed data matrix and returns a vector (matrix ordered column by column)
 	*
@@ -127,6 +125,15 @@ class Reconstructor : public ns3::Object
 	* \return vector of T containing the reconstructed data matrix
 	*/
 	std::vector<T> ReadRecData(T_NodeIdTag nodeId) const;
+
+	/**
+	* \brief reads reconstructed data matrix and returns a vector (matrix ordered row by row)
+	*
+	* \param nodeId	8bit-ID of the node
+	*
+	* \return vector of T containing the reconstructed data matrix
+	*/
+	std::vector<T> ReadRecDataRow(T_NodeIdTag nodeId) const;
 
 	/**
 	* \brief sets the internal random matrix object

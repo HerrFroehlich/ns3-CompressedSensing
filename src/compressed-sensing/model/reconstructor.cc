@@ -161,6 +161,29 @@ std::vector<T> Reconstructor<T>::ReadRecData(T_NodeIdTag nodeId) const
 }
 
 template <typename T>
+std::vector<T> Reconstructor<T>::ReadRecDataRow(T_NodeIdTag nodeId) const
+{
+	NS_LOG_FUNCTION(this << nodeId);
+
+	const T_NodeInfo &info = CheckOutInfo(nodeId);
+	NS_ASSERT_MSG(!info.outBufPtr->IsEmpty(), "No reconstructed data, run Reconstruct() first!");
+
+	uint32_t bufSize = info.nMeas * info.vecLen;
+	std::vector<T> retVec;
+	retVec.reserve(bufSize);
+	Mat<T> tmp = info.outBufPtr->ReadAll();
+	tmp.save("./IOdata/recSpat", csv_ascii);
+	for (size_t i = 0; i < tmp.n_rows; i++)
+	{
+		Row<T> row = tmp.row(i);
+		std::vector<T> rowVec = conv_to<std::vector<T>>::from(row);
+		retVec.insert(retVec.end(), rowVec.begin(), rowVec.end());
+	}
+
+	return retVec;
+}
+
+template <typename T>
 void Reconstructor<T>::SetRanMat(Ptr<RandomMatrix> ranMat_ptr)
 {
 	NS_LOG_FUNCTION(this << ranMat_ptr);
