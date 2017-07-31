@@ -10,6 +10,7 @@
 
 #include <string>
 #include <vector>
+#include "assert.h"
 #include "ns3/simple-ref-count.h"
 #include "ns3/ptr.h"
 #include "serial-buffer.h"
@@ -64,6 +65,7 @@ class DataStream : public ns3::Object
 	*/
 	Ptr<T_Buffer> GetBuffer(uint32_t idx)
 	{
+		NS_ASSERT_MSG(idx < m_dataStreams.size(), "Index not in range!");
 		Ptr<T_Buffer> out = m_dataStreams.at(idx);
 		m_dataStreams.erase(m_dataStreams.begin() + idx);
 		return out;
@@ -78,6 +80,7 @@ class DataStream : public ns3::Object
 	*/
 	Ptr<T_Buffer> PeekBuffer(uint32_t idx) const
 	{
+		NS_ASSERT_MSG(idx < m_dataStreams.size(), "Index not in range!");
 		return m_dataStreams.at(idx);
 	};
 
@@ -200,11 +203,24 @@ class DataStreamContainer : public Object
 	};
 
 	/**
+	* \brief gets a DataStream at the given index
+	*
+	* \param idx index of the DataStream
+	*
+	* \return DataStream pointer
+	*/
+	Ptr<DataStream<T>> Get(uint32_t idx) const
+	{
+		NS_ASSERT_MSG(idx < m_dataStreams.size(), "Index not in range!");
+		return m_dataStreams.at(idx);
+	};
+
+	/**
 	* \brief Gets the NOF DataStream instances stored
 	*
 	* \return NOF DataStream instances stored
 	*/
-	uint32_t GetN()
+	uint32_t GetN() const
 	{
 		return m_dataStreams.size();
 	};
@@ -245,7 +261,7 @@ class DataStreamContainer : public Object
 	*
 	* \return group name
 	*/
-	std::string GetGroupName()
+	std::string GetGroupName() const
 	{
 		return m_groupName;
 	}
