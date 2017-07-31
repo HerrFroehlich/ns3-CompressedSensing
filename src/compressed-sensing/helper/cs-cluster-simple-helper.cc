@@ -55,15 +55,18 @@ void CsClusterSimpleHelper::SetNodeSeeder(CsNodeContainer::SeedCreator seeder)
 }
 
 CsNodeContainer
-CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t n, std::string fileBaseName)
+CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t n, DataStream<double> &stream)
 {
 	NS_ASSERT_MSG(n <= CsHeader::MAX_SRCNODES, "Too many source nodes!");
+	NS_ASSERT_MSG(n < stream.GetN(), "Not enough stream buffers in this DataStream!");
 
 	/*--------  Create Nodes  --------*/
 	CsNodeContainer nodes;
 	nodes.CreateCluster(id, n, m_seeder);
 
 	Ptr<CsNode> cluster = nodes.Get(0);
+	Ptr<SerialDataBuffer<double>> bufCluster = stream.GetBuffer(CsHeader::CLUSTER_NODEID);//CLUSTER_NODEID=0
+
 	for (uint32_t i = 1; i <= n; i++)
 	{
 		Ptr<CsNode> src = nodes.Get(i);
@@ -103,16 +106,16 @@ CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t n, std::string fi
 
 		/*--------  Create Source Applications  --------*/
 		Ptr<CsSrcApp> srcApp = m_srcAppFactory.Create<CsSrcApp>();
-		std::string filename = fileBaseName + std::to_string(i);
-		srcApp->Setup(src, filename);
+		Ptr<SerialDataBuffer<double>> buf = stream.GetBuffer(0); //always remove the first buffer
+		srcApp->Setup(src, buf);
 		src->AddApplication(srcApp);
 	}
 
 	/*--------  Create Cluster Application  --------*/
 	Ptr<CsClusterApp> app = m_clusterAppFactory.Create<CsClusterApp>();
-	std::string filename = fileBaseName + std::to_string(CsHeader::CLUSTER_NODEID);
-	app->Setup(cluster, filename);
+	app->Setup(cluster, bufCluster); 
 	cluster->AddApplication(app);
+
 	return nodes;
 }
 
@@ -140,9 +143,9 @@ void CsClusterSimpleHelper::SetCompression(uint32_t n, uint32_t m, uint32_t l)
 
 void CsClusterSimpleHelper::NormalizeToM()
 {
-	m_srcAppFactory.Set("Norm",BooleanValue(true));
-	m_clusterAppFactory.Set("Norm",BooleanValue(true));
-	m_clusterAppFactory.Set("NormSpat",BooleanValue(true));
+	m_srcAppFactory.Set("Norm", BooleanValue(true));
+	m_clusterAppFactory.Set("Norm", BooleanValue(true));
+	m_clusterAppFactory.Set("NormSpat", BooleanValue(true));
 }
 
 ApplicationContainer CsClusterSimpleHelper::GetFirstApp(CsNodeContainer nodes)

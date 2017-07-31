@@ -11,12 +11,12 @@
 
 #include<string>
 #include "ns3/random-variable-stream.h"
-#include "cs-node-container.h"
-#include "ns3/cs-header.h"
-#include "cs-node-container.h"
 #include "ns3/my-simple-net-device-helper.h"
 #include "ns3/cs-cluster-app.h"
 #include "ns3/application-container.h"
+#include "ns3/cs-header.h"
+#include "ns3/data-stream.h"
+#include "cs-node-container.h"
 
 	/**
 * \ingroup util
@@ -145,14 +145,16 @@
 	*
 	* The source nodes will have an ID from (1...n+1). 
 	* Seeds are selected from a the default seed function of CsNodeContainer or by an optional function set by SetNodeSeeder;
-	* The input file names are created by concatenating fileBaseName+nodeId. By sure to store your files respectively!
+	* The SerialDataBuffer in the DataStream at index 0 will be used for the cluster node, the one at 1 for the first source node
+	* and so on. The used SerialDataBuffer instances are removed from the DataStream!
+	*
 	*
 	* \param id cluster id to set
 	* \param n NOF source nodes to create
-	* \param fileBaseName base name of input files for all nodes
+	* \param stream DataStream with at least one SerialDataBuffer for each node (n+1)
 	*
 	*/
-	CsNodeContainer Create(CsHeader::T_IdField id, uint32_t n, std::string fileBaseName);
+	CsNodeContainer Create(CsHeader::T_IdField id, uint32_t n, DataStream<double> &stream);
 
 	/**
 	* \brief sets the channel delay for the created MySimpleChannels to be random with a mean and variance
