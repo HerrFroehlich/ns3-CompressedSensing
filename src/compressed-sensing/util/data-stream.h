@@ -85,6 +85,19 @@ class DataStream : public ns3::Object
 	};
 
 	/**
+	* \brief creates a buffer from and fills it with a vectors data
+	*
+	* \param vec data vector
+	*
+	*/
+	void CreateBuffer(std::vector<T> vec)
+	{
+		Ptr<T_Buffer> buf = Create<T_Buffer>(vec.size());
+		buf->WriteNext(vec);
+		AddBuffer(buf);
+	}
+
+	/**
 	* \brief Gets the NOF SerialDataBuffer stored
 	*
 	* \return NOF SerialDataBuffer stored
