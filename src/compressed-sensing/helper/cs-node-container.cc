@@ -93,36 +93,36 @@ void CsNodeContainer::Create(CsNode::NodeType type, uint32_t n, uint32_t systemI
 	}
 }
 
-void CsNodeContainer::CreateCluster(CsHeader::T_IdField id, uint32_t n, SeedCreator seeder)
-{
+// void CsNodeContainer::CreateCluster(CsHeader::T_IdField id, uint32_t n, SeedCreator seeder)
+// {
 
-	for (uint32_t i = 0; i <= n; i++)
-	{
-		Ptr<CsNode> node;
-		if (i == 0)
-		{
-			node = CreateObject<CsNode>(CsNode::NodeType::CLUSTER);
-			node->SetNodeId(CsHeader::CLUSTER_NODEID);
-		}
-		else
-		{
-			node = CreateObject<CsNode>(CsNode::NodeType::SOURCE);
-			if (i == CsHeader::CLUSTER_NODEID)
-				node->SetNodeId(0);
-			else
-				node->SetNodeId(i);
-		}
+// 	for (uint32_t i = 0; i <= n; i++)
+// 	{
+// 		Ptr<CsNode> node;
+// 		if (i == 0)
+// 		{
+// 			node = CreateObject<CsNode>(CsNode::NodeType::CLUSTER);
+// 			node->SetNodeId(CsHeader::CLUSTER_NODEID);
+// 		}
+// 		else
+// 		{
+// 			node = CreateObject<CsNode>(CsNode::NodeType::SOURCE);
+// 			if (i == CsHeader::CLUSTER_NODEID)
+// 				node->SetNodeId(0);
+// 			else
+// 				node->SetNodeId(i);
+// 		}
 
-		uint32_t seed;
-		if (seeder)
-			seed = seeder(i, id);
-		else
-			seed = DefaultSeedCreator(i, id);
-		node->SetSeed(seed);
-		node->SetClusterId(id);
-		m_nodes.push_back(node);
-	}
-}
+// 		uint32_t seed;
+// 		if (seeder)
+// 			seed = seeder(i, id);
+// 		else
+// 			seed = DefaultSeedCreator(i, id);
+// 		node->SetSeed(seed);
+// 		node->SetClusterId(id);
+// 		m_nodes.push_back(node);
+// 	}
+// }
 
 void CsNodeContainer::Add(CsNodeContainer other)
 {
@@ -152,7 +152,7 @@ void CsNodeContainer::Add(std::string nodeName)
 // 	return c;
 // }
 
-uint32_t CsNodeContainer::DefaultSeedCreator(uint32_t number,  CsHeader::T_IdField id)
-{
-	return number + 1 + id;
-}
+// uint32_t CsNodeContainer::DefaultSeedCreator(uint32_t number,  CsHeader::T_IdField id)
+// {
+// 	return number + 1 + id;
+// }

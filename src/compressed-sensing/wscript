@@ -3,15 +3,10 @@ from waflib import Options
 
 # def options(opt):
 #     pass
-
 # def configure(conf):
 #     conf.check_nonfatal(header_name='stdint.h', define_name='HAVE_STDINT_H')
-# def configure(conf):
-#     conf.env.append_value("LINKFLAGS", "-L../src/compressed-sensing/lib/")
-#     if Options.options.build_profile == 'debug':
-#         conf.env.append_value("LINKFLAGS", "-lKLab64_d")
-#     else:
-#         conf.env.append_value("LINKFLAGS", "-lKLab64")
+#def configure(conf):
+#    conf.env.append_value("LINKFLAGS", "-rpath-link=./")
 def build(bld):
     module = bld.create_ns3_module('compressed-sensing', ['simple-network'])
     module.source = [
@@ -27,8 +22,10 @@ def build(bld):
         'model/cs-cluster-app.cc',
         'model/cs-sink-app.cc',
         'model/spatial-precoding-matrix.cc',
+        'model/cs-cluster.cc',
         'helper/cs-node-container.cc',
-        'helper/cs-cluster-simple-helper.cc'
+        'helper/cs-cluster-simple-helper.cc',
+        'util/mat-file-handler.cc'
         ]
 
     module_test = bld.create_ns3_module_test_library('compressed-sensing')
@@ -38,13 +35,15 @@ def build(bld):
     module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KLab")
     module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KSci")
     module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/Armadillo")
+    module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/Matio")
     #module.env.append_value("CXXFLAGS", "-Wno-error")
     module.env.append_value("LINKFLAGS", ["-L../src/compressed-sensing/lib/"])
     if Options.options.build_profile == 'debug':
-    	module.env.append_value("LIB",["dl","KLab64_d"])
+    	module.env.append_value("LIB",["dl","KLab64_d","matio"])
     else:
-	module.env.append_value("LIB",["dl","KLab64"])
+	    module.env.append_value("LIB",["dl","KLab64","matio"])
 
+    
     headers = bld(features='ns3header')
     headers.module = 'compressed-sensing'
     headers.source = [
@@ -60,6 +59,7 @@ def build(bld):
         'model/cs-cluster-app.h',
         'model/cs-sink-app.h',
         'model/spatial-precoding-matrix.h',
+        'model/cs-cluster.h',
         'helper/cs-node-container.h',
         'helper/cs-cluster-simple-helper.h',
         'util/serial-buffer.h',
@@ -67,7 +67,8 @@ def build(bld):
         'util/node-data-buffer.h',
         'util/node-data-buffer-meta.h',
         'util/template-registration.h',
-        'util/data-stream.h'
+        'util/data-stream.h',
+        'util/mat-file-handler.h'
 ]
 
     if bld.env.ENABLE_EXAMPLES:

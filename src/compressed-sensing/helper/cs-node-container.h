@@ -24,7 +24,7 @@ class CsNodeContainer
 	/// CsNode container iterator
 	typedef std::vector<Ptr<CsNode>>::const_iterator Iterator;
 
-	typedef uint32_t (*SeedCreator)(uint32_t, CsHeader::T_IdField); /**< signature for a function with which seeds are created for a given node number*/
+	// typedef uint32_t (*SeedCreator)(uint32_t, CsHeader::T_IdField); /**< signature for a function with which seeds are created for a given node number*/
 
 	/**
    * Create an empty CsNodeContainer.
@@ -245,7 +245,7 @@ class CsNodeContainer
    * \param n The number of Nodes to create
    * \param seeder function with SeedCreator signature, which determines the seed of each node
    */
-	void CreateCluster(CsHeader::T_IdField id, uint32_t n, SeedCreator seeder = 0);
+	// void CreateCluster(CsHeader::T_IdField id, uint32_t n, SeedCreator seeder = 0);
 	/**
    * \brief Append the contents of another CsNodeContainer to the end of
    * this container.
@@ -294,7 +294,7 @@ class CsNodeContainer
 	*
 	* \return seed to associate with node
 	*/
-	uint32_t DefaultSeedCreator(uint32_t number, CsHeader::T_IdField id);
+	// uint32_t DefaultSeedCreator(uint32_t number, CsHeader::T_IdField id);
 
 	std::vector<Ptr<CsNode>> m_nodes; //!< Nodes smart pointers
 };

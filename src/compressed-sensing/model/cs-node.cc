@@ -41,12 +41,16 @@ CsNode::CsNode() : m_type(CsNode::NodeType::NONE), m_seed(1), m_clusterId(0), m_
 CsNode::CsNode(CsNode::NodeType type) : m_type(type), m_seed(1), m_clusterId(0), m_nodeId(0)
 {
 	NS_LOG_FUNCTION(this << type);
+	if(type == NodeType::CLUSTER)
+		m_nodeId = CsHeader::CLUSTER_NODEID;
 
 }
 
 CsNode::CsNode(CsNode::NodeType type, uint32_t systemId) : Node(systemId), m_type(type), m_seed(1), m_clusterId(0), m_nodeId(0)
 {
 	NS_LOG_FUNCTION(this << type << systemId);
+	if(type == NodeType::CLUSTER)
+		m_nodeId = CsHeader::CLUSTER_NODEID;
 }
 uint32_t
 CsNode::AddDevice(Ptr<NetDevice> device)

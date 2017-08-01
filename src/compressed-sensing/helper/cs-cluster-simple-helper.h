@@ -16,6 +16,7 @@
 #include "ns3/application-container.h"
 #include "ns3/cs-header.h"
 #include "ns3/data-stream.h"
+#include "ns3/cs-cluster.h"
 #include "cs-node-container.h"
 
 	/**
@@ -138,7 +139,7 @@
 	*
 	* \param seeder function pointer to seed generator function
 	*/
-	void SetNodeSeeder(CsNodeContainer::SeedCreator seeder);
+	void SetNodeSeeder(CsCluster::SeedCreator seeder);
 
 	/**
 	* \brief creates the cluster with the selected attributes
@@ -153,8 +154,9 @@
 	* \param n NOF source nodes to create
 	* \param stream DataStream with at least one SerialDataBuffer for each node (n+1)
 	*
+	* \return created CsCluster
 	*/
-	CsNodeContainer Create(CsHeader::T_IdField id, uint32_t n, DataStream<double> &stream);
+	CsCluster Create(CsHeader::T_IdField id, uint32_t n, DataStream<double> &stream);
 
 	/**
 	* \brief sets the channel delay for the created MySimpleChannels to be random with a mean and variance
@@ -204,7 +206,7 @@
 	*
 	* \return ApplicationContainer with associated applications
 	*/
-	static ApplicationContainer GetFirstApp(CsNodeContainer nodes);
+	//static ApplicationContainer GetFirstApp(CsNodeContainer nodes);
 
   private:
 	ObjectFactory m_queueFactory;		  //!< Queue factory
@@ -219,6 +221,6 @@
 	double m_delayMean, m_delayVar, m_rateMean, m_rateVar; 
 
 	NormalRandomVariable m_gaussRan;
-	CsNodeContainer::SeedCreator m_seeder;
+	CsCluster::SeedCreator m_seeder;
 };
 #endif //CS_CLUSTER__SIMPLE_HELPER_H

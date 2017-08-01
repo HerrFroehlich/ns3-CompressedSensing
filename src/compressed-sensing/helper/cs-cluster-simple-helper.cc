@@ -49,27 +49,27 @@ void CsClusterSimpleHelper::SetChannelAttribute(std::string n1, const AttributeV
 	m_channelFactory.Set(n1, v1);
 }
 
-void CsClusterSimpleHelper::SetNodeSeeder(CsNodeContainer::SeedCreator seeder)
+void CsClusterSimpleHelper::SetNodeSeeder(CsCluster::SeedCreator seeder)
 {
 	m_seeder = seeder;
 }
 
-CsNodeContainer
-CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t n, DataStream<double> &stream)
+CsCluster CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, DataStream<double> &stream)
 {
-	NS_ASSERT_MSG(n <= CsHeader::MAX_SRCNODES, "Too many source nodes!");
-	NS_ASSERT_MSG(n < stream.GetN(), "Not enough stream buffers in this DataStream!");
+	NS_ASSERT_MSG(nSrc <= CsHeader::MAX_SRCNODES, "Too many source nodes!");
+	NS_ASSERT_MSG(nSrc < stream.GetN(), "Not enough stream buffers in this DataStream!");
 
 	/*--------  Create Nodes  --------*/
-	CsNodeContainer nodes;
-	nodes.CreateCluster(id, n, m_seeder);
+	Ptr<CsNode> clusterNode = CreateObject<CsNode>(CsNode::NodeType::CLUSTER);
+	CsNodeContainer srcNodes;
+	srcNodes.Create(CsNode::NodeType::SOURCE, nSrc);
+	// srcNodes.CreateCluster(id, nSrc, m_seeder);
 
-	Ptr<CsNode> cluster = nodes.Get(0);
 	Ptr<SerialDataBuffer<double>> bufCluster = stream.GetBuffer(CsHeader::CLUSTER_NODEID);//CLUSTER_NODEID=0
 
-	for (uint32_t i = 1; i <= n; i++)
+	for (uint32_t i = 0; i < nSrc; i++)
 	{
-		Ptr<CsNode> src = nodes.Get(i);
+		Ptr<CsNode> src = srcNodes.Get(i);
 
 		/*--------  Create Channel  --------*/
 		if (m_ranDelay)
@@ -98,11 +98,11 @@ CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t n, DataStream<dou
 
 		Ptr<MySimpleNetDevice> clusterdevice = m_clusterDeviceFactory.Create<MySimpleNetDevice>();
 		clusterdevice->SetChannel(channel);
-		clusterdevice->SetNode(cluster);
+		clusterdevice->SetNode(clusterNode);
 		clusterdevice->SetQueue(queue);
 
 		src->AddTxDevice(srcdevice);
-		cluster->AddRxDevice(clusterdevice);
+		clusterNode->AddRxDevice(clusterdevice);
 
 		/*--------  Create Source Applications  --------*/
 		Ptr<CsSrcApp> srcApp = m_srcAppFactory.Create<CsSrcApp>();
@@ -113,10 +113,18 @@ CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t n, DataStream<dou
 
 	/*--------  Create Cluster Application  --------*/
 	Ptr<CsClusterApp> app = m_clusterAppFactory.Create<CsClusterApp>();
-	app->Setup(cluster, bufCluster); 
-	cluster->AddApplication(app);
+	app->Setup(clusterNode, bufCluster); 
+	clusterNode->AddApplication(app);
 
-	return nodes;
+
+	/*--------  Create CsCluster  --------*/
+	UintegerValue n, m, l;
+	app->GetAttribute("n", n);
+	app->GetAttribute("m", m);
+	app->GetAttribute("l", l);
+	CsCluster cluster(clusterNode, srcNodes);
+	cluster.SetCompression(n.Get(), m.Get(), l.Get());
+	return cluster;
 }
 
 void CsClusterSimpleHelper::SetRandomDelay(Time mean, Time var)
@@ -148,14 +156,14 @@ void CsClusterSimpleHelper::NormalizeToM()
 	m_clusterAppFactory.Set("NormSpat", BooleanValue(true));
 }
 
-ApplicationContainer CsClusterSimpleHelper::GetFirstApp(CsNodeContainer nodes)
-{
-	ApplicationContainer apps;
+// ApplicationContainer CsClusterSimpleHelper::GetFirstApp(CsNodeContainer nodes)
+// {
+// 	ApplicationContainer apps;
 
-	for (auto it = nodes.Begin(); it != nodes.End(); it++)
-	{
-		NS_ASSERT_MSG((*it)->GetNApplications() > 0, "Node has no applications!");
-		apps.Add((*it)->GetApplication(0));
-	}
-	return apps;
-}
+// 	for (auto it = nodes.Begin(); it != nodes.End(); it++)
+// 	{
+// 		NS_ASSERT_MSG((*it)->GetNApplications() > 0, "Node has no applications!");
+// 		apps.Add((*it)->GetApplication(0));
+// 	}
+// 	return apps;
+// }

@@ -14,6 +14,7 @@
 #include "ns3/net-device.h"
 #include "ns3/net-device-container.h"
 #include "cs-header.h"
+#include "ns3/data-stream.h"
 using namespace ns3;
 /**
 * \ingroup util
@@ -21,10 +22,17 @@ using namespace ns3;
 *
 * \brief extended ns3::Node with various new properties
 *
-* description:TODO
+* When using the SimpleNetwork module no adressing at all is taking place,
+* nodes are connected with direct point to point links. As a result it is 
+* necessary to destinguish between receiving and transmitting net devices.
+* Therefore CsNode distinguishes between both by aggregating them separetly
+* to it. Furthermore CsNode instances are categorized into source, cluster,
+* and sink nodes. CsNode also stores a seed, which can be used for generating
+* random values/matrices. Inheriting from DataStreamContainer<double>, in addition, 
+* DataStream instances with double values can be inserted into the CsNode.
 *
 */
-class CsNode : public Node
+class CsNode : public Node, public DataStreamContainer<double>
 {
   public:
 	static TypeId GetTypeId(void);
