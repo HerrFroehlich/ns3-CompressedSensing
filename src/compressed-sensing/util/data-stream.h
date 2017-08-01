@@ -180,7 +180,7 @@ class DataStream : public ns3::Object
 * \tparam type of data stored
 */
 template <typename T>
-class DataStreamContainer : public Object
+class DataStreamContainer
 {
   public:
 	typedef typename std::vector<Ptr<DataStream<T>>>::const_iterator Iterator;
@@ -233,7 +233,7 @@ class DataStreamContainer : public Object
 	*
 	* \return NOF DataStream instances stored
 	*/
-	uint32_t GetN() const
+	uint32_t GetNStreams() const
 	{
 		return m_dataStreams.size();
 	};
