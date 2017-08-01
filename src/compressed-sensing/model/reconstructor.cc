@@ -203,8 +203,8 @@ void Reconstructor<T>::SetPrecodeEntries(T_NodeIdTag nodeId, const std::vector<b
 	NS_LOG_FUNCTION(this << nodeId);
 
 	T_NodeInfo &info = CheckOutInfo(nodeId);
-
-	info.precode->SetDiag(entries);
+	std::vector<bool> relevant(entries.begin(), entries.begin() + info.nMeas);
+	info.precode->SetDiag(relevant);
 }
 
 template <typename T>

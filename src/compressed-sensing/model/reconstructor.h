@@ -55,7 +55,7 @@ class Reconstructor : public ns3::Object
 {
   public:																 /**< type of node ID*/
 	typedef void (*CompleteTracedCallback)(int64_t time, uint32_t iter); /**< callback signature when completed a reconstruction*/
-	typedef void (*ErrorTracedCallback)(klab::KException e);			 /**< callback signature when reconstruction fails*/
+	typedef void (*ErrorTracedCallback)(const klab::KException &e);			 /**< callback signature when reconstruction fails*/
 	typedef std::vector<CsHeader::T_IdField>::const_iterator IdIterator;
 	static TypeId GetTypeId(void);
 	Reconstructor();
@@ -294,7 +294,7 @@ class Reconstructor : public ns3::Object
 
 	uint32_t m_nMeasDef, m_mMaxDef, m_vecLenDef;	/**< default buffer dimensions*/
 	TracedCallback<int64_t, uint32_t> m_completeCb; /**< callback when completed reconstruction, returning time+iterations needed*/
-	TracedCallback<klab::KException> m_errorCb;		/**< callback when reconstruction fails, returning KExeception type*/
+	TracedCallback<const klab::KException &> m_errorCb;		/**< callback when reconstruction fails, returning KExeception type*/
 
   private:
 	typedef NodeDataBuffer<T> T_NodeBuffer; /**< NodeDataBuffer with elements of type T*/
