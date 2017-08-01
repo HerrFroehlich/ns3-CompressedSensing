@@ -56,12 +56,10 @@ public:
 	* MUST be called before starting the application
 	*
 	* \param node Csnode to aggregate application to
-	* \param clusterId ID for this cluster node
-	* \param filename name of file to read from
+	* \param input SerialDataBuffer<double> with input data for the node
 	*
-	* \return returnDesc
 	*/
-  virtual void Setup(Ptr<CsNode> node, std::string filename);
+  virtual void Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input);
 
   /**
 	* \brief sets the used spatial compressor

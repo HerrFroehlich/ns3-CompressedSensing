@@ -28,8 +28,9 @@ using namespace ns3;
 * \ingroup csApps
 * \class CsSrcApp
 *
-* \brief A source app to compress data from a file temporally and transmitting it.
-* When running the setup this application reads data from a file specified by a file path and stores it locally.
+* \brief A source app to compress data from a file temporally and transmitting it
+*
+* When running the setup this application reads data from a file specified by a file path and stores it locally.\n
 * Upon starting the application the n data samples are compressed to m with the help of the Compressor class and a given seed.
 * Then packets are formed containing the CsHeader and m samples as payload (so package loss won't corrupt a data vector).
 * Finally the application transmits them using no protocol at all (-> assuming use of classes from the simple-network module) 
@@ -61,11 +62,10 @@ class CsSrcApp : public Application
 	* This function has to be called BEFORE starting the application. 
 	*
 	* \param node CsNode to aggregate application to
-	* \param filename name of file to read from
+	* \param input SerialDataBuffer<double> with input data for the node
 	*
 	*/
-	virtual void Setup(Ptr<CsNode> node,
-					   std::string filename);
+	virtual void Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input);
 
 	/**
 	* \brief Sets the used temporal compressor.
@@ -212,7 +212,7 @@ class CsSrcApp : public Application
 		m_running,
 		m_isSetup;
 
-	SerialDataBuffer<double> m_fdata;	/**< data from file*/
+	Ptr<SerialDataBuffer<double>> m_fdata;	/**< data from file*/
 	Ptr<CompressorTemp<double>> m_compR; /**< compressor for real*/
 	Ptr<RandomVariableStream> m_ranTx;   /**< random variable stream, to determine when to send*/
 	// std::vector<uint32_t> m_isTxDevice;   /**< determine if device is used for sending */

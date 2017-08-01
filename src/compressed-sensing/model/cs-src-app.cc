@@ -97,10 +97,10 @@ CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yR(m), m_nodeId(0), m_clusterId(0
 	NS_LOG_FUNCTION(this << n << m);
 }
 
-void CsSrcApp::Setup(Ptr<CsNode> node, std::string filename)
+void CsSrcApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
 {
 	using namespace std;
-	NS_LOG_FUNCTION(this << node << filename);
+	NS_LOG_FUNCTION(this << node << input);
 	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
 	NS_ASSERT_MSG(node->IsSource() || node->IsCluster(), "Must be a source or cluster node!");
 
@@ -109,49 +109,8 @@ void CsSrcApp::Setup(Ptr<CsNode> node, std::string filename)
 	m_clusterId = node->GetClusterId();
 
 	m_seed = node->GetSeed();
-	/*--------  read data from file  --------*/
 
-	ifstream ifs(filename, ifstream::in | ifstream::binary);
-	NS_ASSERT_MSG(ifs.is_open(), "Cannot open file!");
-
-	uint32_t flen;
-	double *buffer;
-	uint32_t bufSize;
-
-	ifs.seekg(0, ifs.end);
-	flen = ifs.tellg();
-	ifs.seekg(0, ifs.beg);
-
-	bufSize = flen / sizeof(double);
-	buffer = new double[bufSize];
-
-	ifs.read(reinterpret_cast<char *>(buffer), flen);
-	if (!ifs)
-		NS_LOG_WARN("Only " << ifs.gcount() << " bytes could be read!");
-	ifs.close();
-	// for(uint32_t i = 0; i < bufSize; i++)
-	// {
-	// 	cout << *(buffer+i) << endl;
-	// }
-
-	//write to serial buffer
-	// m_fdata.Resize(flen);
-	m_fdata.MoveMem(buffer, bufSize);
-
-	// delete[] buffer;
-	// buffer = 0;
-
-	/*--------  get tx devices from node  --------*/
-	// m_nDevices = node->GetNDevices();
-	// NS_ASSERT_MSG(m_nDevices > 0, "No net devices on this node!");
-	// m_isTxDevice = std::vector<uint32_t>(m_nDevices);
-
-	// //set net device indexes for transmitting (initial: all)
-	// m_nTxDevices = m_nDevices;
-	// for (uint32_t i = 0; i < m_nTxDevices; i++)
-	// {
-	// 	m_isTxDevice[i] = i;
-	// }
+	m_fdata = input;
 
 	//setup compressor
 	if (!m_compR)
@@ -166,7 +125,7 @@ void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp<double>> comp)
 	NS_LOG_FUNCTION(this << comp);
 	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
 
-	if (!comp)
+	if (comp)
 	{
 		m_compR = CopyObject(comp);
 		m_compR->Setup(m_seed, m_n, m_m, m_normalize);
@@ -265,7 +224,7 @@ bool CsSrcApp::CompressNext()
 
 	/*--------  Compress next Y  --------*/
 
-	uint32_t remain = m_fdata.GetRemaining();
+	uint32_t remain = m_fdata->GetRemaining();
 
 	if (!m_compR)
 	{
@@ -282,7 +241,7 @@ bool CsSrcApp::CompressNext()
 
 	double xData[m_n] = {0};
 	double *yData = new double[m_m];
-	m_fdata.ReadNext(xData, m_n);
+	m_fdata->ReadNext(xData, m_n);
 	m_compR->Compress(xData, m_n, yData, m_m);
 
 	m_yR.MoveMem(yData, m_m);

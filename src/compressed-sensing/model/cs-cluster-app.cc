@@ -64,13 +64,13 @@ CsClusterApp::CsClusterApp(uint32_t n, uint32_t m, uint32_t l) : CsSrcApp(n, m),
 	NS_LOG_FUNCTION(this << n << m << l);
 }
 
-void CsClusterApp::Setup(Ptr<CsNode> node, std::string filename)
+void CsClusterApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
 {
-	NS_LOG_FUNCTION(this << node << filename);
+	NS_LOG_FUNCTION(this << node << input);
 	NS_ASSERT_MSG(node->IsCluster(), "Must be a cluster node!");
 	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
 	/*--------  initialize temporal compressor  --------*/
-	CsSrcApp::Setup(node, filename);
+	CsSrcApp::Setup(node, input);
 
 	/*--------  Setup receiving netdevices  --------*/
 	NetDeviceContainer devices = node->GetRxDevices();
@@ -84,7 +84,7 @@ void CsClusterApp::Setup(Ptr<CsNode> node, std::string filename)
 	m_outBuf.Resize(m_outBufSize);
 	m_srcDataBuffer.Resize(N_SRCNODES, m_m);
 
-	if(!m_comp)
+	if (!m_comp)
 		m_comp = CreateObject<Compressor<double>>();
 	m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
 
@@ -96,9 +96,11 @@ void CsClusterApp::SetSpatialCompressor(Ptr<Compressor<double>> comp)
 {
 	NS_LOG_FUNCTION(this << comp);
 	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
-
-	m_comp = CopyObject(comp);
-	m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
+	if (comp)
+	{
+		m_comp = CopyObject(comp);
+		m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
+	}
 }
 
 // void CsClusterApp::SetSpatialCompressor(Ptr<Compressor<double>> comp, uint32_t l, bool norm)
