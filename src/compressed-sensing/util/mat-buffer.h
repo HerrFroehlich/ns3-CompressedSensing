@@ -112,7 +112,7 @@ class MatBuffer : public ns3::Object
 	* \param bufSize size of buffer
 	*
 	*/
-	void WrMove(T *&buffer, uint32_t bufSize);
+	// void WrMove(T *&buffer, uint32_t bufSize);
 
 	/**
 	* \brief reads the buffer matrix
@@ -194,17 +194,18 @@ void MatBuffer<T>::Write(const Mat<T> &mat)
 template <typename T>
 void MatBuffer<T>::Write(const T *buffer, uint32_t bufSize)
 {
+	NS_ASSERT(buffer); // null pointer check
 	NS_ASSERT_MSG(bufSize == nElem(), "NOF elements not matching!");
 	m_dataMat = Mat<T>(buffer, nRows(), nCols());
 }
 
-template <typename T>
-void MatBuffer<T>::WrMove(T *&buffer, uint32_t bufSize)
-{
-	NS_ASSERT_MSG(bufSize == nElem(), "NOF elements not matching!");
-	m_dataMat = Mat<T>(buffer, nRows(), nCols(), false, true);
-	buffer = 0;
-}
+// template <typename T>
+// void MatBuffer<T>::WrMove(T *&buffer, uint32_t bufSize)
+// {
+// 	NS_ASSERT_MSG(bufSize == nElem(), "NOF elements not matching!");
+// 	m_dataMat = Mat<T>(buffer, nRows(), nCols(), false, true);
+// 	buffer = 0;
+// }
 
 template <typename T>
 const Mat<T>& MatBuffer<T>::Read()
@@ -215,6 +216,7 @@ const Mat<T>& MatBuffer<T>::Read()
 template <typename T>
 void MatBuffer<T>::Read(T *buffer, uint32_t bufSize)
 {
+	NS_ASSERT(buffer); // null pointer check
 	NS_ASSERT_MSG(bufSize == nElem(), "NOF elements not matching!");
 	copy(buffer, buffer+bufSize, m_dataMat.m_memPtr());
 }
