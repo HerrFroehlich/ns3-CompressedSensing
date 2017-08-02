@@ -197,7 +197,7 @@ class DataStreamContainer
 	*
 	* \param other The DataStreamContainer<T> to append.
 	*/
-	void Add(DataStreamContainer<T> other)
+	void AddStream(DataStreamContainer<T> other)
 	{
 		for (Iterator i = other.Begin(); i != other.End(); i++)
 		{
@@ -210,7 +210,7 @@ class DataStreamContainer
    *
    * \param stream The Ptr<DataStream<T>> to append.
    */
-	void Add(Ptr<DataStream<T>> stream)
+	void AddStream(Ptr<DataStream<T>> stream)
 	{
 		m_dataStreams.push_back(stream);
 	};
@@ -222,7 +222,7 @@ class DataStreamContainer
 	*
 	* \return DataStream pointer
 	*/
-	Ptr<DataStream<T>> Get(uint32_t idx) const
+	Ptr<DataStream<T>> GetStream(uint32_t idx) const
 	{
 		NS_ASSERT_MSG(idx < m_dataStreams.size(), "Index not in range!");
 		return m_dataStreams.at(idx);
@@ -243,7 +243,7 @@ class DataStreamContainer
 	*
 	* \return iterator to beginning 
 	*/
-	Iterator Begin() const
+	Iterator StreamBegin() const
 	{
 		return m_dataStreams.begin();
 	};
@@ -253,7 +253,7 @@ class DataStreamContainer
 	*
 	* \return iterator to end
 	*/
-	Iterator End() const
+	Iterator StreamEnd() const
 	{
 		return m_dataStreams.end();
 	};
@@ -278,6 +278,16 @@ class DataStreamContainer
 	{
 		return m_groupName;
 	}
+
+	/**
+	* \brief gets a copy of this DataStreamContainer
+	*
+	* \return copy of this DataStreamContainer
+	*/
+	// DataStreamContainer<T> CopyStreams() const
+	// {
+	// 	return DataStreamContainer(*this);
+	// }
 
   private:
 	std::vector<Ptr<DataStream<T>>> m_dataStreams; /**< stored DataStream instances*/
