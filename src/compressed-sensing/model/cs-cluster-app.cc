@@ -161,14 +161,14 @@ bool CsClusterApp::CompressNext()
 	}
 
 	uint32_t zBufSize = m_zData.nElem();
-	double *zData = new double[zBufSize]; //temporal buffer on heap will be moved to m_zData
+	double zData[zBufSize];
 
 	m_comp->CompressSparse(m_srcDataBuffer.ReadAll(),
 						   m_srcDataBuffer.ReadAllMeta(),
 						   zData, zBufSize);
 	//m_comp->Compress(m_srcDataBuffer.ReadAll(),
 	//    zData, m_l * m_m);
-	m_zData.WrMove(zData, zBufSize);
+	m_zData.Write(zData, zBufSize);
 
 	//write info bit field
 	m_srcInfo.reset();
@@ -268,9 +268,9 @@ bool CsClusterApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idU
 	nodeId = header.GetNodeId();
 	clusterId = header.GetClusterId();
 
-	if (clusterId == m_clusterId) //we receive from a source node of this cluster
+	if (clusterId == m_clusterId && nodeId != CsHeader::CLUSTER_NODEID) //we receive from a source node of this cluster
 		success = ReceiveSrc(p);
-	else if (nodeId == CsHeader::CLUSTER_NODEID) // we receive from a different cluster node
+	else if (clusterId != m_clusterId && nodeId == CsHeader::CLUSTER_NODEID) // we receive from a different cluster node
 		success = ReceiveCluster(p);
 	else //  we receive from a source node of a different cluster
 		m_rxDropTrace(p, E_DropCause::SRC_NOT_IN_CLUSTER);
