@@ -5,8 +5,21 @@ from waflib import Options
 #     pass
 # def configure(conf):
 #     conf.check_nonfatal(header_name='stdint.h', define_name='HAVE_STDINT_H')
-#def configure(conf):
-#    conf.env.append_value("LINKFLAGS", "-rpath-link=./")
+def configure(conf):
+    path = conf.path.abspath()
+    #conf.env.append_value("LINKFLAGS", "-rpath-link=./")    
+    conf.env.append_value("CXXFLAGS", "-isystem" + path + "/lib/include/KL1p")
+    conf.env.append_value("CXXFLAGS", "-isystem" + path + "/lib/include/KLab")
+    conf.env.append_value("CXXFLAGS", "-isystem" + path + "/lib/include/KSci")
+    conf.env.append_value("CXXFLAGS", "-isystem" + path + "/lib/include/Armadillo")
+    conf.env.append_value("CXXFLAGS", "-isystem" + path + "/lib/include/Matio")
+    #conf.env.append_value("CXXFLAGS", "-Wno-error")
+    conf.env.append_value("LINKFLAGS", ["-L"+path+"/lib/"])
+    if Options.options.build_profile == 'debug':
+     	conf.env.append_value("LIB",["dl","KLab64_d","matio"])
+    else:
+	    conf.env.append_value("LIB",["dl","KLab64","matio"])
+        
 def build(bld):
     module = bld.create_ns3_module('compressed-sensing', ['simple-network'])
     module.source = [
@@ -31,17 +44,17 @@ def build(bld):
     module_test = bld.create_ns3_module_test_library('compressed-sensing')
     module_test.source = [
         ]
-    module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KL1p")
-    module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KLab")
-    module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KSci")
-    module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/Armadillo")
-    module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/Matio")
-    #module.env.append_value("CXXFLAGS", "-Wno-error")
-    module.env.append_value("LINKFLAGS", ["-L../src/compressed-sensing/lib/"])
-    if Options.options.build_profile == 'debug':
-    	module.env.append_value("LIB",["dl","KLab64_d","matio"])
-    else:
-	    module.env.append_value("LIB",["dl","KLab64","matio"])
+    # module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KL1p")
+    # module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KLab")
+    # module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KSci")
+    # module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/Armadillo")
+    # module.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/Matio")
+    # #module.env.append_value("CXXFLAGS", "-Wno-error")
+    # module.env.append_value("LINKFLAGS", ["-L../src/compressed-sensing/lib/"])
+    # if Options.options.build_profile == 'debug':
+    # 	module.env.append_value("LIB",["dl","KLab64_d","matio"])
+    # else:
+	#     module.env.append_value("LIB",["dl","KLab64","matio"])
 
     
     headers = bld(features='ns3header')

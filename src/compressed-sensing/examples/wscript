@@ -18,32 +18,32 @@ def build(bld):
 
     obj = bld.create_ns3_program('compressed-sensing-example', ['compressed-sensing'])
     obj.source = 'compressed-sensing-example.cc'
-    set_properties(obj)
+   # set_properties(obj)
 
     obj = bld.create_ns3_program('node-buffer-example', ['compressed-sensing'])
     obj.source = 'node-buffer-example.cc'
-    set_properties(obj)
+   # set_properties(obj)
 
     obj = bld.create_ns3_program('node-buffer-meta-example', ['compressed-sensing'])
     obj.source = 'node-buffer-meta-example.cc'
-    set_properties(obj)
+  #  set_properties(obj)
 
     obj = bld.create_ns3_program('random-matrix-example', ['compressed-sensing'])
     obj.source = 'random-matrix-example.cc'
-    set_properties(obj)
+  #  set_properties(obj)
 
     obj = bld.create_ns3_program('omp-reconst-example', ['compressed-sensing'])
     obj.source = 'omp-reconst-example.cc'
-    set_properties(obj)
+  #  set_properties(obj)
     
     obj = bld.create_ns3_program('omp-reconst-fourier-example', ['compressed-sensing'])
     obj.source = 'omp-reconst-fourier-example.cc'
-    set_properties(obj)
+  #  set_properties(obj)
 
     obj = bld.create_ns3_program('omp-cont-example', ['compressed-sensing'])
     obj.source = 'omp-cont-example.cc'
-    set_properties(obj)
+ #   set_properties(obj)
 
     obj = bld.create_ns3_program('single-cs-cluster-example', ['compressed-sensing'])
     obj.source = 'single-cs-cluster-example.cc'
-    set_properties(obj)
+ #   set_properties(obj)
