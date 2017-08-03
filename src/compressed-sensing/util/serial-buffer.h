@@ -61,13 +61,13 @@ class SerialDataBuffer : public ns3::Object
 	SerialDataBuffer(const SerialDataBuffer &buf);
 
 	/**
-	* \brief reates a SerialDataBuffer and moves the memory from the buffer
+	* \brief creates a SerialDataBuffer and copies the memory from the buffer
 	* The buffer pointer will be set to zero after memory has been moved, to avoid delete conflicts.
 	*
 	* \param buf buffer to copy
 	*
 	*/
-	SerialDataBuffer(T *&buffer, uint32_t bufSize);
+	SerialDataBuffer(const T *buffer, uint32_t bufSize);
 
 	/**
 	* \brief destroy the Buffer
@@ -236,9 +236,13 @@ SerialDataBuffer<T>::SerialDataBuffer(const SerialDataBuffer &buf) : m_rdIdx(0)
 }
 
 template <typename T>
-SerialDataBuffer<T>::SerialDataBuffer(T *&buffer, uint32_t bufSize)
+SerialDataBuffer<T>::SerialDataBuffer(const T *buffer, uint32_t bufSize) : m_dataSize(bufSize),
+																		   m_wrIdx(0),
+																		   m_rdIdx(0)
 {
-	MoveMem(buffer, bufSize);
+	m_data_ptr = new T[m_dataSize];
+	std::copy(buffer, buffer + bufSize, m_data_ptr);
+	m_wrIdx = bufSize;
 }
 
 template <typename T>
