@@ -80,6 +80,7 @@ CsSrcApp::CsSrcApp() : m_yR(0), m_nodeId(0), m_clusterId(0),
 
 {
 	NS_LOG_FUNCTION(this);
+	m_stream = Create<DataStream<double>>(STREAMNAME);
 }
 
 CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yR(m), m_nodeId(0), m_clusterId(0),
@@ -95,6 +96,7 @@ CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yR(m), m_nodeId(0), m_clusterId(0
 											 m_sendEvent(EventId())
 {
 	NS_LOG_FUNCTION(this << n << m);
+	m_stream = Create<DataStream<double>>(STREAMNAME);
 }
 
 void CsSrcApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
@@ -116,6 +118,9 @@ void CsSrcApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
 	if (!m_compR)
 		m_compR = CreateObject<CompressorTemp<double>>();
 	m_compR->Setup(m_seed, m_n, m_m, m_normalize);
+
+	//add stream to node
+	m_node->AddStream(m_stream);
 
 	m_isSetup = true;
 }
@@ -243,6 +248,9 @@ bool CsSrcApp::CompressNext()
 	double *yData = new double[m_m];
 	m_fdata->ReadNext(xData, m_n);
 	m_compR->Compress(xData, m_n, yData, m_m);
+
+	// write to stream
+	m_stream->CreateBuffer(yData, m_m);
 
 	m_yR.MoveMem(yData, m_m);
 

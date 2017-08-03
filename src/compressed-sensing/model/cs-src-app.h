@@ -39,7 +39,8 @@ using namespace ns3;
 class CsSrcApp : public Application
 {
   public:
-	typedef double T_PktData; /**< package data type*/
+	typedef double T_PktData;						   /**< package data type*/
+	const std::string STREAMNAME = "ComprTemp"; /**< name of DataStream storing temporal compression results*/
 
 	static TypeId GetTypeId(void);
 
@@ -193,7 +194,7 @@ class CsSrcApp : public Application
 		//	m_packetSize, /**< Packet size in byte*/
 		// m_nMeas,	  /**< NOF measurements to send*/
 		//m_nPackets,   /**< NOF packets to send*/
-		m_sent; /**< NOF packets already sent*/
+		m_sent;			/**< NOF packets already sent*/
 	Ptr<CsNode> m_node; /**< aggretated node*/
   private:
 	/**
@@ -205,18 +206,18 @@ class CsSrcApp : public Application
 	*/
 	void SendPacket(Ptr<Packet> p);
 
-
 	double m_txProb; /**< propability to send a packet*/
 
 	bool m_normalize, /**< normalize random matrix by 1/sqrt(m)?*/
 		m_running,
 		m_isSetup;
 
-	Ptr<SerialDataBuffer<double>> m_fdata;	/**< data from file*/
-	Ptr<CompressorTemp<double>> m_compR; /**< compressor for real*/
-	Ptr<RandomVariableStream> m_ranTx;   /**< random variable stream, to determine when to send*/
+	Ptr<SerialDataBuffer<double>> m_fdata; /**< data from file*/
+	Ptr<CompressorTemp<double>> m_compR;   /**< compressor for real*/
+	Ptr<RandomVariableStream> m_ranTx;	 /**< random variable stream, to determine when to send*/
 	// std::vector<uint32_t> m_isTxDevice;   /**< determine if device is used for sending */
-	std::vector<Ptr<Packet>> m_txPackets; /**< packets to send next, LIFO!*/
+	std::vector<Ptr<Packet>> m_txPackets;  /**< packets to send next*/
+	Ptr<DataStream<double>> m_stream; /**< data stream storing compression results*/
 
 	Time m_interval; /**< Packet inter-send time*/
 	EventId m_sendEvent;
