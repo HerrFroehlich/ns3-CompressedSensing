@@ -63,6 +63,7 @@ CsCluster CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, D
 	Ptr<CsNode> clusterNode = CreateObject<CsNode>(CsNode::NodeType::CLUSTER);
 	CsNodeContainer srcNodes;
 	srcNodes.Create(CsNode::NodeType::SOURCE, nSrc);
+	CsCluster cluster(clusterNode, srcNodes);
 	// srcNodes.CreateCluster(id, nSrc, m_seeder);
 
 	Ptr<SerialDataBuffer<double>> bufCluster = stream.GetBuffer(CsHeader::CLUSTER_NODEID);//CLUSTER_NODEID=0
@@ -122,7 +123,6 @@ CsCluster CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, D
 	app->GetAttribute("n", n);
 	app->GetAttribute("m", m);
 	app->GetAttribute("l", l);
-	CsCluster cluster(clusterNode, srcNodes);
 	cluster.SetCompression(n.Get(), m.Get(), l.Get());
 	return cluster;
 }
