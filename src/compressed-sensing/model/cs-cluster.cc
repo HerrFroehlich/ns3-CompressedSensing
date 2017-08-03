@@ -15,6 +15,9 @@ CsCluster::CsCluster(Ptr<CsNode> cluster) : m_clusterNode(cluster), m_n(0), m_m(
 	uint32_t seed = DefaultSeedCreator(0, GetClusterId());
 
 	m_clusterNode->SetSeed(seed);
+	SetGroupName("Cluster" + std::to_string(GetClusterId()));
+
+	m_allNodes.Add(m_clusterNode);
 }
 
 CsCluster::CsCluster(Ptr<CsNode> cluster, const CsNodeContainer &srcNodes) : m_clusterNode(cluster), m_srcNodes(srcNodes),
@@ -32,6 +35,10 @@ CsCluster::CsCluster(Ptr<CsNode> cluster, const CsNodeContainer &srcNodes) : m_c
 		(*it)->SetClusterId(GetClusterId());
 		(*it)->SetNodeId(nNodes);
 	}
+	SetGroupName("Cluster" + std::to_string(GetClusterId()));
+
+	m_allNodes.Add(m_clusterNode);
+	m_allNodes.Add(m_srcNodes);
 }
 
 void CsCluster::SetClusterNode(Ptr<CsNode> node)
@@ -40,6 +47,9 @@ void CsCluster::SetClusterNode(Ptr<CsNode> node)
 	m_clusterNode = node;
 
 	SetGroupName("Cluster" + std::to_string(node->GetClusterId()));
+
+	m_allNodes = CsNodeContainer(m_clusterNode);
+	m_allNodes.Add(m_srcNodes);
 }
 
 Ptr<CsNode> CsCluster::GetClusterNode() const
@@ -62,6 +72,7 @@ void CsCluster::AddSrc(Ptr<CsNode> node, SeedCreator seeder)
 	node->SetNodeId(m_srcNodes.GetN() + 1);
 
 	m_srcNodes.Add(node);
+	m_allNodes.Add(node);
 }
 
 void CsCluster::AddSrc(const CsNodeContainer &nodes, SeedCreator seeder)
@@ -69,6 +80,7 @@ void CsCluster::AddSrc(const CsNodeContainer &nodes, SeedCreator seeder)
 	uint32_t nNodesBefore = m_srcNodes.GetN();
 	NS_ASSERT_MSG(nNodesBefore + nodes.GetN() <= CsHeader::MAX_SRCNODES, "Too many aggregated source nodes!");
 	m_srcNodes.Add(nodes);
+	m_allNodes.Add(nodes);
 
 	// set cluster ID and seed
 	uint32_t seed;
@@ -96,6 +108,11 @@ uint32_t CsCluster::GetNSrc() const
 	return m_srcNodes.GetN();
 }
 
+uint32_t CsCluster::GetN() const
+{
+	return m_allNodes.GetN();
+}
+
 CsNodeContainer::Iterator CsCluster::SrcBegin() const
 {
 	return m_srcNodes.Begin();
@@ -106,22 +123,25 @@ CsNodeContainer::Iterator CsCluster::SrcEnd() const
 	return m_srcNodes.End();
 }
 
+CsNodeContainer::Iterator CsCluster::Begin() const
+{
+	return m_allNodes.Begin();
+}
+
+CsNodeContainer::Iterator CsCluster::End() const
+{
+	return m_allNodes.End();
+}
+
 ApplicationContainer CsCluster::GetApps() const
 {
 
 	ApplicationContainer apps;
-	uint32_t nApps;
 
-	//get cluster apps
-	nApps = m_clusterNode->GetNApplications();
-	for (uint32_t i = 0; i < nApps; i++)
+	for (auto it = m_allNodes.Begin(); it != m_allNodes.End(); it++)
 	{
-		apps.Add(m_clusterNode->GetApplication(i));
-	}
-
-	for (auto it = m_srcNodes.Begin(); it != m_srcNodes.End(); it++)
-	{
-		nApps = (*it)->GetNApplications();
+		
+	uint32_t nApps = (*it)->GetNApplications();
 		for (uint32_t i = 0; i < nApps; i++)
 		{
 			apps.Add((*it)->GetApplication(i));

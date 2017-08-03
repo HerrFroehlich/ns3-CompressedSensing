@@ -107,6 +107,13 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	uint32_t GetNSrc() const;
 
 	/**
+	* \brief gets the number of nodes attached
+	*
+	* \return NOF source nodes
+	*/
+	uint32_t GetN() const;
+
+	/**
 	* \brief iterator to the source nodes beginning
 	*
 	* \return iterator to the beginning
@@ -119,6 +126,20 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	* \return iterator to the ending
 	*/
 	CsNodeContainer::Iterator SrcEnd() const;
+
+	/**
+	* \brief iterator to the all nodes beginning
+	*
+	* \return iterator to the beginning
+	*/
+	CsNodeContainer::Iterator Begin() const;
+
+	/**
+	* \brief iterator to the all nodes ending
+	*
+	* \return iterator to the ending
+	*/
+	CsNodeContainer::Iterator End() const;
 
 	/**
 	* \brief gets all application of every node
@@ -158,7 +179,7 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	*/
 	uint32_t DefaultSeedCreator(uint32_t number, CsHeader::T_IdField id);
 	Ptr<CsNode> m_clusterNode;
-	CsNodeContainer m_srcNodes;
+	CsNodeContainer m_srcNodes, m_allNodes;
 	uint32_t m_n, m_m, m_l;
 };
 
