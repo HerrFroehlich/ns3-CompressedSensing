@@ -85,19 +85,6 @@ class DataStream : public ns3::Object
 	};
 
 	/**
-	* \brief creates a buffer from and fills it with a vectors data
-	*
-	* \param vec data vector
-	*
-	*/
-	void CreateBuffer(std::vector<T> vec)
-	{
-		Ptr<T_Buffer> buf = Create<T_Buffer>(vec.size());
-		buf->WriteNext(vec);
-		AddBuffer(buf);
-	}
-
-	/**
 	* \brief Gets the NOF SerialDataBuffer stored
 	*
 	* \return NOF SerialDataBuffer stored
@@ -154,6 +141,32 @@ class DataStream : public ns3::Object
 		if (bufSize > m_maxSize)
 			m_maxSize = bufSize;
 	};
+
+	/**
+	* \brief creates a new SerialDataBuffer for this stream and fills it with a vector's data
+	*
+	* \param vec data vector
+	*
+	*/
+	void CreateBuffer(std::vector<T> vec)
+	{
+		Ptr<T_Buffer> buf = Create<T_Buffer>(vec.size());
+		buf->WriteNext(vec);
+		AddBuffer(buf);
+	}
+
+	/**
+	* \brief creates a new SerialDataBuffer for this stream and fills it with the data of a buffer
+	*
+	* \param buffer  pointer to buffer
+	* \param bufSize size of each buffer
+	*
+	*/
+	void CreateBuffer(const T *buffer, uint32_t bufSize)
+	{
+		Ptr<T_Buffer> buf = Create<T_Buffer>(buffer, bufSize);
+		AddBuffer(buf);
+	}
 
 	/**
 	* \brief gets the largest size of all stored SerialDataBuffer instances
