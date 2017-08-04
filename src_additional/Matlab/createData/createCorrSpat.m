@@ -8,8 +8,8 @@
 % Date   : 31.07.17
 
 %% SETTINGS
-fileBase= './inputData/x';
-fileBaseMat= './inputData/data';
+fileBase= './out/x';
+fileBaseMat= './out/data';
 writeMatFile = true; % write to a mat file instead of multiple bin files
 m = 128;
 %% DEFINES
