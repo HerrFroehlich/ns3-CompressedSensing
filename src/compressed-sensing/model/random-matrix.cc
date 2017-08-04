@@ -23,14 +23,13 @@ TypeId RandomMatrix::GetTypeId(void)
 	return tid;
 }
 
-RandomMatrix::RandomMatrix() : m_prevSeed(1), m_mat(), m_stream(0)
+RandomMatrix::RandomMatrix() : m_prevSeed(1), m_mat(), m_stream(0), m_norm(false)
 {
 }
 
 RandomMatrix::RandomMatrix(uint32_t m, uint32_t n) : kl1p::TOperator<double>(m, n),
-													 m_prevSeed(1),
-													 m_mat(m, n),
-													 m_stream(0)
+													 m_prevSeed(1), m_mat(m, n),
+													 m_stream(0), m_norm(false)
 {
 	// m_mat.set_size(m, n);
 }
@@ -77,7 +76,13 @@ arma::Col<uint32_t> RandomMatrix::Dim() const
 
 void RandomMatrix::NormalizeToM()
 {
-	m_mat = (1 / sqrt(nRows())) * m_mat;
+	m_norm = true;
+}
+
+void RandomMatrix::DoNorm()
+{
+	if (m_norm)
+		m_mat = (1 / sqrt(nRows())) * m_mat;
 }
 
 void RandomMatrix::apply(const arma::Col<double> &in, arma::Col<double> &out)
@@ -174,22 +179,28 @@ void IdentRandomMatrix::Generate(uint32_t seed, bool force)
 		RngSeedManager::SetSeed(seed);
 		uint32_t n = nCols(),
 				 m = nRows();
-		arma::mat ident = arma::eye<arma::mat>(n, n);
-		Ptr<T_RanVar> ranvar = CreateObject<T_RanVar>();
-		ranvar->SetAttribute("Min", DoubleValue(0));
-		ranvar->SetAttribute("Max", DoubleValue(n - 1));
-		ranvar->SetStream(m_stream);
 
 		if (n > 1)
 		{
-			//Fisher-Yates-Shuffle
-			for (uint32_t i = 0; i < n - 2; i++)
+
+			m_mat = arma::zeros<arma::mat>(m, n);
+			Ptr<T_RanVar> ranvar = CreateObject<T_RanVar>();
+			ranvar->SetAttribute("Min", DoubleValue(0));
+			ranvar->SetAttribute("Max", DoubleValue(1));
+			ranvar->SetStream(m_stream);
+
+			uint32_t j = 0;
+			for (uint32_t i = 0; i < n; i++)
 			{
-				ranvar->SetAttribute("Min", DoubleValue(i));
-				uint32_t j = ranvar->GetInteger();
-				ident.swap_rows(i, j);
+				double p = (double)(m - j) / (double)(n - i);
+				if (ranvar->GetValue() < p)
+				{
+					m_mat(j, i) = 1;
+					j++;
+					if (j == i)
+						break;
+				}
 			}
-			m_mat = ident.rows(0, m - 1);
 		}
 		else if (n == 1)
 		{
@@ -197,6 +208,8 @@ void IdentRandomMatrix::Generate(uint32_t seed, bool force)
 		}
 		m_prevSeed = seed;
 		RngSeedManager::SetSeed(seedOld);
+
+		DoNorm();
 	}
 }
 
@@ -257,6 +270,8 @@ void GaussianRandomMatrix::Generate(uint32_t seed, bool force)
 
 		m_prevSeed = seed;
 		RngSeedManager::SetSeed(seedOld);
+
+		DoNorm();
 	}
 }
 
@@ -314,6 +329,8 @@ void BernRandomMatrix::Generate(uint32_t seed, bool force)
 
 		m_prevSeed = seed;
 		RngSeedManager::SetSeed(seedOld);
+
+		DoNorm();
 	}
 }
 

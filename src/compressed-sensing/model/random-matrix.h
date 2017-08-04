@@ -102,11 +102,6 @@ public:
   arma::Col<uint32_t> Dim() const;
 
   /**
-  * \brief normalizes the matrix by 1/sqrt(m)
-  */
-  void NormalizeToM();
-
-  /**
   * \brief clones the matrix
   *
   * \return pointer to a new matrix
@@ -114,10 +109,11 @@ public:
   virtual RandomMatrix *Clone() const = 0;
 
   /**
-  * \brief cast to complex operator pointer
-  *
-  * \return complex operator pointe
-  */ /**
+  * \brief normalizes the matrix by 1/sqrt(m)
+  */
+  void NormalizeToM();
+
+  /**
   * \brief cast to complex operator pointer
   *
   * \return complex operator pointer
@@ -151,9 +147,18 @@ public:
   friend std::ostream &operator<<(std::ostream &os, const RandomMatrix &obj);
 
 protected:
+  /**
+  * \brief does a normalization to 1/sqrt(m) if NormalizeToM()  ẃas calles
+  *
+  * This function should be called in ther Generate function of a sub class
+  *
+  */
+  void DoNorm();
+
   uint32_t m_prevSeed; /**< seed used previously*/
   arma::mat m_mat;     /**< underlying matrix*/
   int64_t m_stream;    /**< stream number*/
+  bool m_norm;         /**< normalize to 1/srqt(m)?*/
 };
 
 klab::TSmartPointer<kl1p::TOperator<double>> operator*(const klab::TSmartPointer<RandomMatrix>, const klab::TSmartPointer<TransMatrix<double>>);
@@ -170,7 +175,6 @@ klab::TSmartPointer<kl1p::TOperator<cx_double>> operator*(const klab::TSmartPoin
 class IdentRandomMatrix : public RandomMatrix
 {
 public:
-
   static TypeId GetTypeId();
   /**
   * \brief create a empty matrix
@@ -189,6 +193,10 @@ public:
 
   /**
   * \brief Generate random entries for a given seed (if it is different than the previous one, or if forced to)
+  *
+  * To draw m rows a iteration from 0:n-1 is done.
+  * At each iteration the i-th row is choosen with the probability  \f$ p = \frac{(m-j)}{n-i} \f$,
+  * where j is the number of rows already choosen. 
   *
   * \param seed seed to use
   * \param force force generation
@@ -217,7 +225,6 @@ private:
 class GaussianRandomMatrix : public RandomMatrix
 {
 public:
-
   static TypeId GetTypeId();
   /**
   * \brief create a empty matrix
@@ -281,7 +288,6 @@ private:
 class BernRandomMatrix : public RandomMatrix
 {
 public:
-
   static TypeId GetTypeId();
   /**
   * \brief create a empty matrix
