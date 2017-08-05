@@ -22,7 +22,7 @@ function varargout = labDataViewer(varargin)
 
 % Edit the above text to modify the response to help labDataViewer
 
-% Last Modified by GUIDE v2.5 10-Jul-2017 16:01:00
+% Last Modified by GUIDE v2.5 12-Jul-2017 07:18:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -62,6 +62,8 @@ handles.id = 1;
 handles.filename = 'temp';
 handles.type = 'double';
 handles.data = [];
+handles.epoch = [];
+handles.dataSize = 0;
 % Update handles structure
 guidata(hObject, handles);
 
@@ -86,6 +88,8 @@ dir = uigetdir('./');
 if(dir ~= 0)
     handles.dir = dir;
     % Update handles structure
+    handles = ReadFile(handles);
+    Replot(handles);
     guidata(hObject, handles);
 end
 
@@ -165,11 +169,62 @@ function handles = ReadFile(handles)
 
 filename = handles.filename;
 id = handles.id;
-path = [handles.dir '\' num2str(id) '\' filename];
+path = [handles.dir '/' num2str(id) '/' filename];
 fid = fopen(path);
 handles.data = fread(fid, handles.type);
 fclose(fid);
-
+handles.dataSize = numel(handles.data);
+%read epoch
+path = [handles.dir '/' num2str(id) '/epoch'];
+fid = fopen(path);
+handles.epoch = fread(fid, 'uint16');
+fclose(fid);
+% set slider
+handles.slider1.Max = handles.dataSize;
+handles.slider1.Value = handles.dataSize;
 
 function Replot(handles)
-plot(handles.axes1, handles.data);
+
+max = uint32(handles.slider1.Value);
+if handles.togglebutton1.Value == 1
+    plot(handles.axes1, handles.epoch(1:max), handles.data(1:max),'.','MarkerSize',1);
+%     hold(handles.axes1,'on');
+%     diff = setdiff(handles.epoch(1:max)',1:max);
+%     val = zeros(1, numel(diff));
+%     stem(handles.axes1, diff, val, 'rx');
+%     
+%     hold(handles.axes1,'off');
+else
+    plot(handles.axes1, handles.data(1:max));
+end
+
+
+% --- Executes on button press in togglebutton1.
+function togglebutton1_Callback(hObject, eventdata, handles)
+% hObject    handle to togglebutton1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of togglebutton1
+Replot(handles);
+
+% --- Executes on slider movement.
+function slider1_Callback(hObject, eventdata, handles)
+% hObject    handle to slider1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+Replot(handles);
+
+% --- Executes during object creation, after setting all properties.
+function slider1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to slider1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
