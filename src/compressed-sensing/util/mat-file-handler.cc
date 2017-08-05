@@ -217,7 +217,7 @@ matvar_t *MatFileHandler::CreateStructMatField(Ptr<DataStream<double>> stream)
 			 nBuf = stream->GetN();
 	size_t dims[2] = {maxSize, nBuf};
 
-	double data[maxSize * nBuf];
+	double *data = new double[maxSize * nBuf];
 	uint32_t writeIdx = 0;
 	for (auto it = stream->Begin(); it != stream->End(); it++)
 	{
@@ -228,7 +228,8 @@ matvar_t *MatFileHandler::CreateStructMatField(Ptr<DataStream<double>> stream)
 		writeIdx += maxSize;
 	}
 	std::string name = stream->GetName();
-	matvar = Mat_VarCreate(name.c_str(), MAT_C_DOUBLE, MAT_T_DOUBLE, 2, dims, &data, 0);
+	matvar = Mat_VarCreate(name.c_str(), MAT_C_DOUBLE, MAT_T_DOUBLE, 2, dims, data, 0);
+	delete[] data;
 	NS_ASSERT_MSG(matvar, "Could not create variable " + name + "!");
 
 	return matvar;
