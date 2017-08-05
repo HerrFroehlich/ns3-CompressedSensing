@@ -197,7 +197,7 @@ void IdentRandomMatrix::Generate(uint32_t seed, bool force)
 				{
 					m_mat(j, i) = 1;
 					j++;
-					if (j == i)
+					if (j == m)
 						break;
 				}
 			}
