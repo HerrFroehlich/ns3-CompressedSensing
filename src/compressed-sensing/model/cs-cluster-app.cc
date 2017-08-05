@@ -57,7 +57,7 @@ CsClusterApp::CsClusterApp() : m_l(0), m_outBufSize(0), m_nextPackSeq(0), m_zDat
 	NS_LOG_FUNCTION(this);
 }
 
-CsClusterApp::CsClusterApp(uint32_t n, uint32_t m, uint32_t l) : CsSrcApp(n, m), m_l(l), m_outBufSize(2 * m * l), m_nextPackSeq(0), m_zData(m, l),
+CsClusterApp::CsClusterApp(uint32_t n, uint32_t m, uint32_t l) : CsSrcApp(n, m), m_l(l), m_outBufSize(m * l), m_nextPackSeq(0), m_zData(m, l),
 																 m_normalize(true), m_running(false), m_isSetup(false),
 																 m_timeoutEvent(EventId())
 {
@@ -188,7 +188,7 @@ void CsClusterApp::CreateCsPackets()
 	//m_nextPackSeq = 0; //we might to change that
 	/*--------  Create packets from that data  --------*/
 	uint32_t payloadSize = GetMaxPayloadSize();
-	uint32_t packetsNow = 1 + (m_outBufSize * sizeof(double) / payloadSize); //
+	uint32_t packetsNow = 1 + ((m_outBufSize * sizeof(double) - 1) / payloadSize); //ROUND UP
 	std::vector<Ptr<Packet>> pktList;
 	pktList.reserve(packetsNow);
 
@@ -336,5 +336,6 @@ void CsClusterApp::StartNewSeq(CsHeader::T_SeqField seq)
 			ScheduleTx(MilliSeconds(0.0));
 		}
 	}
+	m_srcDataBuffer.Reset();
 	m_nextSeq = seq;
 }
