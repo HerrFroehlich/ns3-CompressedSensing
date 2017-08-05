@@ -140,8 +140,8 @@ ApplicationContainer CsCluster::GetApps() const
 
 	for (auto it = m_allNodes.Begin(); it != m_allNodes.End(); it++)
 	{
-		
-	uint32_t nApps = (*it)->GetNApplications();
+
+		uint32_t nApps = (*it)->GetNApplications();
 		for (uint32_t i = 0; i < nApps; i++)
 		{
 			apps.Add((*it)->GetApplication(i));
@@ -169,4 +169,39 @@ std::vector<uint32_t> CsCluster::GetCompression() const
 	param.at(1) = m_m;
 	param.at(2) = m_l;
 	return param;
+}
+uint32_t CsCluster::GetCompression(CsCluster::E_COMPR_DIMS dim) const
+{
+	uint32_t ret = 0;
+	switch (dim)
+	{
+	case E_COMPR_DIMS::n:
+		ret = m_n;
+		break;
+	case E_COMPR_DIMS::m:
+		ret = m_m;
+		break;
+	case E_COMPR_DIMS::l:
+		ret = m_l;
+		break;
+	default:
+		break;
+	}
+	return ret;
+}
+
+uint32_t CsCluster::GetClusterSeed() const
+{
+	return m_clusterNode->GetSeed();
+}
+
+std::vector<uint32_t> CsCluster::GetSeeds() const
+{
+	std::vector<uint32_t> seeds;
+	seeds.reserve(GetN());
+	for (auto it = Begin(); it != End(); it++)
+	{
+		seeds.push_back((*it)->GetSeed());
+	}
+	return seeds;
 }

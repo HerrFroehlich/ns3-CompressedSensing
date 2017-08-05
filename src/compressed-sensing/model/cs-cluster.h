@@ -20,6 +20,12 @@ class CsCluster : public Object, public DataStreamContainer<double>
 {
   public:
 	typedef uint32_t (*SeedCreator)(uint32_t, CsHeader::T_IdField); /**< signature for a function with which seeds are created for a given node number*/
+	enum E_COMPR_DIMS /**< compression dimensions*/
+	{
+		n, /**< number of samples in  measurement vector per sequence for source nodes*/
+		m, /**< number of samples in  measurement vector after temporal compression for source nodes*/
+		l /**< number of measurement vectors after spatial compression for cluster node*/
+	};
 
 	static TypeId GetTypeId();
 	/**
@@ -142,7 +148,7 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	CsNodeContainer::Iterator End() const;
 
 	/**
-	* \brief gets all application of every node
+	* \brief gets all applications of every node
 	*
 	*
 	* \return ApplicationContainer with associated applications
@@ -165,6 +171,27 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	* \return vector with  stored compression parameters: [n m l]
 	*/
 	std::vector<uint32_t> GetCompression() const;
+
+	/**
+	* \brief gets a compression parameters
+	*
+	* \return dim  compression parameters defined in E_COMPR_DIMS
+	*/
+	uint32_t GetCompression(E_COMPR_DIMS dim) const;
+
+	/**
+	* \brief gets the seed of the cluster node
+	*
+	* \return seed of the cluster node
+	*/
+	uint32_t GetClusterSeed() const;
+
+	/**
+	* \brief gets seeds of all nodes
+	*
+	* \return vector with seeds of all nodes
+	*/
+	std::vector<uint32_t> GetSeeds() const;
 
   private:
 	/**
