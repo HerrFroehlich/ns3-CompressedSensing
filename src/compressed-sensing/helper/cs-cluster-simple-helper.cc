@@ -145,6 +145,7 @@ void CsClusterSimpleHelper::SetCompression(uint32_t n, uint32_t m, uint32_t l)
 {
 	m_srcAppFactory.Set("n", UintegerValue(n));
 	m_srcAppFactory.Set("m", UintegerValue(m));
+	m_clusterAppFactory.Set("n", UintegerValue(n));
 	m_clusterAppFactory.Set("l", UintegerValue(l));
 	m_clusterAppFactory.Set("m", UintegerValue(m));
 }
