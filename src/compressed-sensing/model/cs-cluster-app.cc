@@ -31,6 +31,10 @@ CsClusterApp::GetTypeId(void)
 										  UintegerValue(64),
 										  MakeUintegerAccessor(&CsClusterApp::m_l),
 										  MakeUintegerChecker<uint32_t>())
+							.AddAttribute("nNodes", "NOF source nodes (including cluster node)",
+										  UintegerValue(MAX_N_SRCNODES),
+										  MakeUintegerAccessor(&CsClusterApp::m_nNodes),
+										  MakeUintegerChecker<CsHeader::T_IdField>())
 							.AddTraceSource("Rx", "A new packet is received",
 											MakeTraceSourceAccessor(&CsClusterApp::m_rxTrace),
 											"ns3::Packet::TracedCallback")
@@ -82,11 +86,11 @@ void CsClusterApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
 	/*--------  Setup buffers and comprenssor  --------*/
 	m_outBufSize = m_m * m_l; // size after NC
 	m_outBuf.Resize(m_outBufSize);
-	m_srcDataBuffer.Resize(N_SRCNODES, m_m);
+	m_srcDataBuffer.Resize(m_nNodes, m_m);
 
 	if (!m_comp)
 		m_comp = CreateObject<Compressor<double>>();
-	m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
+	m_comp->Setup(m_seed, m_nNodes, m_l, m_m, m_normalize);
 
 	m_zData.Resize(m_l, m_m);
 	m_isSetup = true;
@@ -99,7 +103,7 @@ void CsClusterApp::SetSpatialCompressor(Ptr<Compressor<double>> comp)
 	if (comp)
 	{
 		m_comp = CopyObject(comp);
-		m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
+		m_comp->Setup(m_seed, m_nNodes, m_l, m_m, m_normalize);
 	}
 }
 
@@ -111,19 +115,21 @@ void CsClusterApp::SetSpatialCompressor(Ptr<Compressor<double>> comp)
 // 	SetSpatialCompressDim(l);
 // 	m_normalize = norm;
 
-// 	m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
+// 	m_comp->Setup(m_seed, m_nNodes, m_l, m_m, m_normalize);
 // }
 
-void CsClusterApp::SetSpatialCompressDim(uint32_t l)
+void CsClusterApp::SetSpatialCompressDim(uint32_t nNodes, uint32_t l)
 {
 	NS_LOG_FUNCTION(this << l);
 	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
+	NS_ASSERT_MSG(nNodes <= MAX_N_SRCNODES , "Too many nodes!");
 
 	m_l = l;
+	m_nNodes = nNodes;
 
 	m_zData.Resize(m_l, m_m);
 	// m_yR.Resize(m);
-	m_comp->Setup(m_seed, N_SRCNODES, m_l, m_m, m_normalize);
+	m_comp->Setup(m_seed, m_nNodes, m_l, m_m, m_normalize);
 }
 void CsClusterApp::StartApplication()
 {

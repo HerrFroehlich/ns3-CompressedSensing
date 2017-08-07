@@ -66,7 +66,7 @@ CsCluster CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, D
 	CsCluster cluster(clusterNode, srcNodes);
 	// srcNodes.CreateCluster(id, nSrc, m_seeder);
 
-	Ptr<SerialDataBuffer<double>> bufCluster = stream.GetBuffer(CsHeader::CLUSTER_NODEID);//CLUSTER_NODEID=0
+	Ptr<SerialDataBuffer<double>> bufCluster = stream.GetBuffer(CsHeader::CLUSTER_NODEID); //CLUSTER_NODEID=0
 
 	for (uint32_t i = 0; i < nSrc; i++)
 	{
@@ -114,9 +114,9 @@ CsCluster CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, D
 
 	/*--------  Create Cluster Application  --------*/
 	Ptr<CsClusterApp> app = m_clusterAppFactory.Create<CsClusterApp>();
-	app->Setup(clusterNode, bufCluster); 
+	app->SetAttribute("nNodes", UintegerValue(nSrc + 1));
+	app->Setup(clusterNode, bufCluster);
 	clusterNode->AddApplication(app);
-
 
 	/*--------  Create CsCluster  --------*/
 	UintegerValue n, m, l;

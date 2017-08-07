@@ -85,14 +85,14 @@ public:
   // void SetSpatialCompressor(Ptr<Compressor<double>> comp, uint32_t l, bool norm = false);
 
   /**
-	* \brief sets the compression given by m2
+	* \brief sets the compression given by l
   *
 	*  The NOF measurements used for compression may differ from sequence to sequence, as the source nodes transmit randomly. 
-  *  This means the compressor's "n"  does not need to be given as parameter.
   *
+  * \param nNodes NOF nodes in cluster
 	* \param l NOF compressed vectors
 	*/
-  void SetSpatialCompressDim(uint32_t l);
+  void SetSpatialCompressDim(uint32_t nNodes, uint32_t l);
 
   //inherited from Application
   virtual void StartApplication();
@@ -149,6 +149,7 @@ private:
   void StartNewSeq(CsHeader::T_SeqField seq);
 
   uint32_t m_l,     /**< NOF of spatial and temporal compressed vectors*/
+      m_nNodes,     /**< NOF nodes in Cluster*/
       m_outBufSize; /**< size of output buffer*/
 
   CsHeader::T_SeqField m_nextPackSeq; /**< sequence number of next packet*/
@@ -171,7 +172,7 @@ private:
   TracedCallback<Ptr<const Packet>, E_DropCause> m_rxDropTrace; /**< callback:  dropping a received packet*/
   TracedCallback<CsHeader::T_IdField> m_compressFailTrace;      /**< trace when compression failed*/
 
-  const static uint32_t N_SRCNODES = CsHeader::MAX_SRCNODES + 1; /**< maximum NOF source nodes, +1 since cluster is also source!*/
+  const static uint32_t MAX_N_SRCNODES = CsHeader::MAX_SRCNODES + 1; /**< maximum NOF source nodes, +1 since cluster is also source!*/
 };
 
 #endif //CS_CLUSTERAPP_H
