@@ -63,7 +63,7 @@ class SpatialPrecodingMatrix : public Object, public kl1p::TOperator<T>
 	* \returns size of matrix
 	*
 	*/
-	uint32_t  GetSize();
+	uint32_t GetSize();
 
 	/**
 	* \brief Sets one diagonal entry
@@ -82,6 +82,19 @@ class SpatialPrecodingMatrix : public Object, public kl1p::TOperator<T>
 	*/
 	void SetDiag(std::vector<bool> vec);
 
+	/**
+	* \brief cast to  different operator pointer
+	*
+	* \return new operator pointer
+	*/
+	template<typename Tnew>
+	operator klab::TSmartPointer<kl1p::TOperator<Tnew>>() const
+	{
+		klab::TSmartPointer<SpatialPrecodingMatrix<Tnew>> out = new SpatialPrecodingMatrix<Tnew>(m_n);
+		out->SetDiag(m_diag);
+		return out;
+	};
+
 	/*inherited from TOperator*/
 	virtual void apply(const arma::Col<T> &in, arma::Col<T> &out);
 	virtual void applyAdjoint(const arma::Col<T> &in, arma::Col<T> &out);
@@ -89,7 +102,6 @@ class SpatialPrecodingMatrix : public Object, public kl1p::TOperator<T>
 	virtual void columnAdjoint(klab::UInt32 i, arma::Col<T> &out);
 	virtual void toMatrix(arma::Mat<T> &out);
 	virtual void toMatrixAdjoint(arma::Mat<T> &out);
-
 
   private:
 	uint32_t m_n;
