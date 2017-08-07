@@ -1,5 +1,5 @@
 /**
-* \file reconstructor.cc
+* \file Reconstructor.cc
 *
 * \author Tobias Waurick
 * \date 07.06.17
@@ -10,389 +10,531 @@
 #include "assert.h"
 #include <iostream>
 NS_LOG_COMPONENT_DEFINE("Reconstructor");
+NS_OBJECT_ENSURE_REGISTERED(Reconstructor);
+NS_OBJECT_ENSURE_REGISTERED(RecMatrixReal);
+NS_OBJECT_ENSURE_REGISTERED(RecMatrixCx);
 
-template <typename T>
-TypeId Reconstructor<T>::GetTypeId(void)
+const std::string Reconstructor::STREAMNAME = "RecSeq";
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+Reconstructor::Reconstructor() : m_runNmb(0), m_cxTransTemp(false), m_cxTransSpat(false), m_nClusters(0)
 {
-	// std::string name = TypeNameGet<Reconstructor<T>>();
-	std::string name = GetTypeParamName<T>();
-	static TypeId tid = TypeId(("Reconstructor<" + name + ">").c_str())
-							.SetParent<Object>()
-							//.AddConstructor<Reconstructor>()
-							.SetGroupName("CompressedSensing")
-							.AddAttribute("RanMatrix", "The underlying random matrix form to create the sensing matrix",
-										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
-										  PointerValue(CreateObject<GaussianRandomMatrix>()),
-										  MakePointerAccessor(&Reconstructor::SetRanMat),
-										  //  MakePointerAccessor(&Reconstructor::m_ranMat),
-										  MakePointerChecker<RandomMatrix>())
-							.AddAttribute("TransMatrix", "The underlying matrix of a real transformation in which the solution is sparse",
-										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
-										  PointerValue(),
-										  MakePointerAccessor(&Reconstructor::SetTransMat),
-										  MakePointerChecker<TransMatrix<T>>())
-							// .AddAttribute("nMeas", "Default NOF measurement vectors to reconstruct",
-							// 			  UintegerValue(0),
-							// 			  MakeUintegerAccessor(&Reconstructor::m_nMeasDef),
-							// 			  MakeUintegerChecker<uint32_t>())
-							// .AddAttribute("mMax", "Default maximum NOF measurement vectors used for reconstruction",
-							// 			  UintegerValue(0),
-							// 			  MakeUintegerAccessor(&Reconstructor::m_mMaxDef),
-							// 			  MakeUintegerChecker<uint32_t>())
-							// .AddAttribute("vecLen", "Default length of each measurement vector",
-							// 			  UintegerValue(0),
-							// 			  MakeUintegerAccessor(&Reconstructor::m_vecLenDef),
-							// 			  MakeUintegerChecker<uint32_t>())
-							.AddTraceSource("RecComplete", "Callback when Reconstuction completed",
-											MakeTraceSourceAccessor(&Reconstructor::m_completeCb),
-											"Reconstructor::CompleteTracedCallback")
-							.AddTraceSource("RecError", "Callback when Reconstuction failed with an error",
-											MakeTraceSourceAccessor(&Reconstructor::m_errorCb),
-											"Reconstructor::ErrorTracedCallback");
-	return tid;
+
+	NS_LOG_FUNCTION(this);
 }
 
-template <typename T>
-Reconstructor<T>::Reconstructor() : m_nMeasDef(0),
-									m_mMaxDef(0),
-									m_vecLenDef(0),
-									m_nodeIdNow(0),
-									m_nodeIdNowConst(0)
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
+void Reconstructor::AddCluster(Ptr<CsCluster> cluster)
 {
+	NS_LOG_FUNCTION(this << cluster);
+
+	uint32_t id = cluster->GetClusterId();
+	NS_ASSERT_MSG(!m_clusterInfoMap.count(id), "Cluster with that ID was already added!");
+
+	m_clusterInfoMap.emplace(id, cluster);
+
+	m_nClusters++;
 }
 
-template <typename T>
-int64_t Reconstructor<T>::ReconstructAll()
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+uint32_t Reconstructor::WriteData(CsHeader::T_IdField clusterId, const double *buffer, const uint32_t bufSize)
 {
-	int64_t time = 0;
-	for (auto const &entry : m_nodeInfoMap)
-	{
-		time += Reconstruct(entry.first);
-	}
-	return time;
-}
+	NS_LOG_FUNCTION(this << clusterId << buffer << bufSize);
 
-template <typename T>
-void Reconstructor<T>::AddSrcNode(T_NodeIdTag nodeId, uint32_t seed)
-{
-	AddSrcNode(nodeId, seed, m_nMeasDef, m_mMaxDef, m_vecLenDef);
-}
-
-template <typename T>
-void Reconstructor<T>::AddSrcNode(T_NodeIdTag nodeId, uint32_t seed, uint32_t nMeas, uint32_t mMax, uint32_t vecLen)
-{
-	NS_LOG_FUNCTION(this << nodeId << seed << nMeas << mMax << vecLen);
-	NS_ASSERT_MSG(!m_nodeInfoMap.count(nodeId), "Node was already added!");
-	NS_ASSERT_MSG(nMeas && mMax && vecLen, "Dimensions must be >0 !");
-
-	//create input input buffer
-	Ptr<T_NodeBuffer> nodeBufIn = ns3::CreateObject<T_NodeBuffer>(mMax, vecLen);
-	Ptr<T_NodeBuffer> nodeBufOut = ns3::CreateObject<T_NodeBuffer>(nMeas, vecLen);
-
-	T_NodeInfo info(seed, nMeas, 0, vecLen, mMax, nodeBufIn, nodeBufOut);
-	m_nodeInfoMap[nodeId] = info;
-	m_nodeIds.push_back(nodeId);
-	m_nNodes++;
-}
-
-template <typename T>
-void Reconstructor<T>::SetBufferDim(uint32_t nMeas, uint32_t mMax, uint32_t vecLen)
-{
-	NS_LOG_FUNCTION(this << nMeas << mMax << vecLen);
-	m_nMeasDef = nMeas;
-	m_mMaxDef = mMax;
-	m_vecLenDef = vecLen;
-}
-
-template <typename T>
-typename Reconstructor<T>::IdIterator Reconstructor<T>::IdBegin()
-{
-	return m_nodeIds.begin();
-}
-
-template <typename T>
-typename Reconstructor<T>::IdIterator Reconstructor<T>::IdEnd()
-{
-	return m_nodeIds.end();
-}
-
-template <typename T>
-bool Reconstructor<T>::HasNode(T_NodeIdTag nodeId)
-{
-	NS_LOG_FUNCTION(this << nodeId);
-	return m_nodeInfoMap.count(nodeId);
-}
-
-template <typename T>
-uint32_t Reconstructor<T>::WriteData(T_NodeIdTag nodeId, const T *buffer, const uint32_t bufSize)
-{
-	NS_LOG_FUNCTION(this << nodeId << buffer << bufSize);
-
-	T_NodeInfo &info = CheckOutInfo(nodeId);
-	Ptr<T_NodeBuffer> nodeBuf = info.inBufPtr;
+	ClusterInfo info = m_clusterInfoMap.at(clusterId);
+	Ptr<T_InBuffer> nodeBuf = info.inBuf;
 	uint32_t space = nodeBuf->WriteData(buffer, bufSize);
-	info.m = nodeBuf->GetWrRow();
 
 	return space;
 }
 
-template <typename T>
-uint32_t Reconstructor<T>::WriteData(T_NodeIdTag nodeId, const std::vector<T> &vec)
-{
-	NS_LOG_FUNCTION(this << nodeId << &vec);
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
-	return WriteData(nodeId, vec.data(), vec.size());
+uint32_t Reconstructor::WriteData(CsHeader::T_IdField clusterId, const std::vector<double> &vec)
+{
+	NS_LOG_FUNCTION(this << clusterId << &vec);
+
+	return WriteData(clusterId, vec.data(), vec.size());
 }
 
-template <typename T>
-std::vector<T> Reconstructor<T>::ReadRecData(T_NodeIdTag nodeId) const
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void Reconstructor::SetPrecodeEntries(CsHeader::T_IdField clusterId, const std::vector<bool> &entries)
 {
-	NS_LOG_FUNCTION(this << nodeId);
+	NS_LOG_FUNCTION(this << clusterId << &entries);
 
-	const T_NodeInfo &info = CheckOutInfo(nodeId);
-	NS_ASSERT_MSG(!info.outBufPtr->IsEmpty(), "No reconstructed data, run Reconstruct() first!");
-
-	uint32_t bufSize = info.nMeas * info.vecLen;
-	std::vector<T> retVec(bufSize);
-	info.outBufPtr->ReadBuf(retVec.data(), bufSize);
-
-	return retVec;
-}
-
-template <typename T>
-std::vector<T> Reconstructor<T>::ReadRecDataRow(T_NodeIdTag nodeId) const
-{
-	NS_LOG_FUNCTION(this << nodeId);
-
-	const T_NodeInfo &info = CheckOutInfo(nodeId);
-	NS_ASSERT_MSG(!info.outBufPtr->IsEmpty(), "No reconstructed data, run Reconstruct() first!");
-
-	uint32_t bufSize = info.nMeas * info.vecLen;
-	std::vector<T> retVec;
-	retVec.reserve(bufSize);
-	Mat<T> tmp = info.outBufPtr->ReadAll();
-	tmp.save("./IOdata/recSpat", csv_ascii);
-	for (size_t i = 0; i < tmp.n_rows; i++)
-	{
-		Row<T> row = tmp.row(i);
-		std::vector<T> rowVec = conv_to<std::vector<T>>::from(row);
-		retVec.insert(retVec.end(), rowVec.begin(), rowVec.end());
-	}
-
-	return retVec;
-}
-
-template <typename T>
-void Reconstructor<T>::SetRanMat(Ptr<RandomMatrix> ranMat_ptr)
-{
-	NS_LOG_FUNCTION(this << ranMat_ptr);
-	m_ranMat = ranMat_ptr->Clone();
-}
-
-template <typename T>
-void Reconstructor<T>::SetTransMat(Ptr<TransMatrix<T>> transMat_ptr)
-{
-	NS_LOG_FUNCTION(this << transMat_ptr);
-	m_transMat = transMat_ptr->Clone();
-}
-
-template <typename T>
-void Reconstructor<T>::SetPrecodeEntries(T_NodeIdTag nodeId, const std::vector<bool> &entries)
-{
-	NS_LOG_FUNCTION(this << nodeId);
-
-	T_NodeInfo &info = CheckOutInfo(nodeId);
-	std::vector<bool> relevant(entries.begin(), entries.begin() + info.nMeas);
+	ClusterInfo info = m_clusterInfoMap.at(clusterId);
+	std::vector<bool> relevant(entries.begin(), entries.begin() + info.nNodes);
 	info.precode->SetDiag(relevant);
 }
 
-template <typename T>
-std::vector<T_NodeIdTag> Reconstructor<T>::GetNodeIds()
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void Reconstructor::Reset()
 {
 	NS_LOG_FUNCTION(this);
-	return m_nodeIds;
-}
-
-template <typename T>
-std::vector<uint32_t> Reconstructor<T>::GetBufferDim(T_NodeIdTag nodeId)
-{
-	NS_LOG_FUNCTION(this << nodeId);
-
-	std::vector<uint32_t> dim;
-	dim.reserve(3);
-
-	T_NodeInfo info = CheckOutInfo(nodeId);
-	dim.push_back(info.nMeas);
-	dim.push_back(info.mMax);
-	dim.push_back(info.vecLen);
-
-	return dim;
-}
-
-template <typename T>
-void Reconstructor<T>::ResetFullBuf(T_NodeIdTag nodeId)
-{
-	NS_LOG_FUNCTION(this << nodeId);
-
-	T_NodeInfo &info = CheckOutInfo(nodeId);
-	if (info.m == info.mMax)
-		info.inBufPtr->Reset();
-}
-
-template <typename T>
-uint32_t Reconstructor<T>::GetNofMeas(T_NodeIdTag nodeId) const
-{
-	NS_LOG_FUNCTION(this << nodeId);
-
-	T_NodeInfo info = CheckOutInfo(nodeId);
-	return info.m;
-}
-
-template <typename T>
-uint32_t Reconstructor<T>::GetVecLen(T_NodeIdTag nodeId) const
-{
-	NS_LOG_FUNCTION(this << nodeId);
-
-	T_NodeInfo info = CheckOutInfo(nodeId);
-	return info.vecLen;
-}
-
-template <typename T>
-uint32_t Reconstructor<T>::GetN(T_NodeIdTag nodeId) const
-{
-	NS_LOG_FUNCTION(this << nodeId);
-
-	T_NodeInfo info = CheckOutInfo(nodeId);
-	return info.nMeas;
-}
-
-template <typename T>
-uint32_t Reconstructor<T>::GetNofNodes() const
-{
-	NS_LOG_FUNCTION(this);
-	return m_nNodes;
-}
-
-template <typename T>
-Mat<T> Reconstructor<T>::GetBufMat(T_NodeIdTag nodeId) const
-{
-	NS_LOG_FUNCTION(this << nodeId);
-
-	const T_NodeInfo &info = CheckOutInfo(nodeId);
-
-	return info.inBufPtr->ReadAll();
-}
-
-template <typename T>
-void Reconstructor<T>::WriteRecBuf(T_NodeIdTag nodeId, const Mat<T> &mat)
-{
-	NS_LOG_FUNCTION(this << nodeId << mat);
-
-	T_NodeInfo info = CheckOutInfo(nodeId);
-
-	if (m_transMat.isValid()) // since the reconstruction only gives the indices of the transform we have to apply it again!
+	m_runNmb++;
+	for (auto &entry : m_clusterInfoMap)
 	{
-		klab::TSmartPointer<kl1p::TOperator<T>> transMat_ptr = GetTransMat(info.nMeas);
-		Mat<T> y;
-		y.set_size(mat.n_rows, mat.n_cols);
+		ClusterInfo info = entry.second;
+		info.AddNewStreams(m_runNmb);
+		info.inBuf->Reset();
+	}
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void Reconstructor::SetAlgorithmTemp(Ptr<CsAlgorithm> algo)
+{
+	NS_LOG_FUNCTION(this << algo);
+	NS_ASSERT_MSG(algo, "Invalid CsAlgorithm!"); //null pointer check
+	m_algoTemp = algo;
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void Reconstructor::SetAlgorithmSpat(Ptr<CsAlgorithm> algo)
+{
+	NS_LOG_FUNCTION(this << algo);
+	NS_ASSERT_MSG(algo, "Invalid CsAlgorithm!"); //null pointer check
+	m_algoSpat = algo;
+}
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+Ptr<CsAlgorithm> Reconstructor::GetAlgorithmTemp() const
+{
+	return m_algoTemp;
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+Ptr<CsAlgorithm> Reconstructor::GetAlgorithmSpat() const
+{
+	return m_algoSpat;
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void Reconstructor::SetRecMatSpat(Ptr<RecMatrixReal> recMat)
+{
+	NS_ASSERT_MSG(recMat->ranMatrix, "Needs a valid random matrix!");
+
+	m_cxTransSpat = false;
+
+	m_ranMatSpat = recMat->ranMatrix->Clone();
+	if (recMat->transMatrix)
+		m_transMatSpat = recMat->transMatrix->Clone();
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void Reconstructor::SetRecMatSpat(Ptr<RecMatrixCx> recMat)
+{
+	NS_ASSERT_MSG(recMat->ranMatrix, "Needs a valid random matrix!");
+
+	m_cxTransSpat = true;
+
+	m_ranMatSpat = recMat->ranMatrix->Clone();
+	if (recMat->transMatrix)
+		m_transMatSpatCx = recMat->transMatrix->Clone();
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void Reconstructor::SetRecMatTemp(Ptr<RecMatrixReal> recMat)
+{
+	NS_ASSERT_MSG(recMat->ranMatrix, "Needs a valid random matrix!");
+
+	m_cxTransTemp = false;
+
+	m_ranMatTemp = recMat->ranMatrix->Clone();
+	if (recMat->transMatrix)
+		m_transMatTemp = recMat->transMatrix->Clone();
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void Reconstructor::SetRecMatTemp(Ptr<RecMatrixCx> recMat)
+{
+	NS_ASSERT_MSG(recMat->ranMatrix, "Needs a valid random matrix!");
+
+	m_cxTransTemp = true;
+
+	m_ranMatTemp = recMat->ranMatrix->Clone();
+	if (recMat->transMatrix)
+		m_transMatTempCx = recMat->transMatrix->Clone();
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+/**
+* \private
+* \copydoc klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor::Reconstructor::GetASpat(const Reconstructor::ClusterInfo &info)
+*/
+template <>
+klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor::GetASpat(const Reconstructor::ClusterInfo &info)
+{
+	NS_LOG_FUNCTION(this << &info);
+
+	//get phi
+	m_ranMatSpat->SetSize(info.l, info.nNodes, info.clSeed);
+	klab::TSmartPointer<kl1p::TOperator<double>> Phi = m_ranMatSpat;
+
+	//get B
+	klab::TSmartPointer<kl1p::TOperator<double>> B = info.precode;
+
+	//Get psi if valied
+	if (m_transMatSpat.isValid())
+	{
+		m_transMatSpat->SetSize(info.nNodes);
+		klab::TSmartPointer<kl1p::TOperator<double>> Psi = m_transMatSpat;
+		return Phi * B * Psi;
+	}
+	return Phi * B;
+}
+//template klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor::GetASpat(const Reconstructor::ClusterInfo &);
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+/**
+* \private
+* \copydoc klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor::Reconstructor::GetASpat(const Reconstructor::ClusterInfo &info)
+*/
+template <>
+klab::TSmartPointer<kl1p::TOperator<cx_double>> Reconstructor::GetASpat(const Reconstructor::ClusterInfo &info)
+{
+	NS_LOG_FUNCTION(this << &info);
+
+	//get phi
+	m_ranMatSpat->SetSize(info.l, info.nNodes, info.clSeed);
+	klab::TSmartPointer<kl1p::TOperator<cx_double>> Phi = klab::TSmartPointer<kl1p::TOperator<cx_double>>(*m_ranMatSpat);
+
+	//get B
+	klab::TSmartPointer<kl1p::TOperator<cx_double>> B = klab::TSmartPointer<kl1p::TOperator<cx_double>>(*info.precode);
+
+	//Get psi if valied
+	if (m_transMatSpat.isValid())
+	{
+		m_transMatSpatCx->SetSize(info.nNodes);
+		klab::TSmartPointer<kl1p::TOperator<cx_double>> Psi = m_transMatSpatCx;
+		return Phi * B * Psi;
+	}
+	return Phi * B;
+}
+//template klab::TSmartPointer<kl1p::TOperator<cx_double>> Reconstructor::GetASpat(const Reconstructor::ClusterInfo &);
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+/**
+* \private
+* \copydoc klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor::Reconstructor::GetATemp(const Reconstructor::ClusterInfo &info)
+*/
+template <>
+klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor::GetATemp(uint32_t seed, uint32_t m, uint32_t n)
+{
+	NS_LOG_FUNCTION(this << seed << m << n);
+
+	//get phi
+	m_ranMatTemp->SetSize(m, n, seed);
+	klab::TSmartPointer<kl1p::TOperator<double>> Phi = m_ranMatTemp;
+
+	//Get psi if valied
+	if (m_transMatTemp.isValid())
+	{
+		m_transMatTemp->SetSize(n);
+		klab::TSmartPointer<kl1p::TOperator<double>> Psi = m_transMatTemp;
+		return Phi * Psi;
+	}
+	return Phi;
+}
+//template klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor::GetATemp(uint32_t seed, uint32_t m, uint32_t n);
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+/**
+* \private
+* \copydoc klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor::Reconstructor::GetATemp(const Reconstructor::ClusterInfo &info)
+*/
+template <>
+klab::TSmartPointer<kl1p::TOperator<cx_double>> Reconstructor::GetATemp(uint32_t seed, uint32_t m, uint32_t n)
+{
+	NS_LOG_FUNCTION(this << seed << m << n);
+
+	//get phi
+	m_ranMatTemp->SetSize(m, n, seed);
+	klab::TSmartPointer<kl1p::TOperator<cx_double>> Phi = klab::TSmartPointer<kl1p::TOperator<cx_double>>(*m_ranMatTemp);
+
+	//Get psi if valid
+	if (m_transMatTemp.isValid())
+	{
+		m_transMatTemp->SetSize(n);
+		klab::TSmartPointer<kl1p::TOperator<cx_double>> Psi = m_transMatTempCx;
+		return Phi * Psi;
+	}
+	return Phi;
+}
+//template klab::TSmartPointer<kl1p::TOperator<cx_double>> Reconstructor::GetATemp(uint32_t seed, uint32_t m, uint32_t n);
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+/**
+* \private
+* \copydoc Reconstructor::WriteStream(Ptr<DataStream<double>> stream, const Mat<T> &mat)
+*/
+template <>
+void Reconstructor::WriteStream(Ptr<DataStream<double>> stream, const Mat<double> &mat)
+{
+	stream->CreateBuffer(mat.memptr(), mat.n_elem);
+}
+//template void Reconstructor::WriteStream(Ptr<DataStream<double>>, const Mat<double> &mat);
+
+/**
+* \private
+* \copydoc Reconstructor::WriteStream(Ptr<DataStream<double>> stream, const Mat<T> &mat)
+*/
+template <>
+void Reconstructor::WriteStream(Ptr<DataStream<double>> stream, const Mat<cx_double> &mat)
+{
+	Mat<double> matReal = real(mat);
+	stream->CreateBuffer(matReal.memptr(), matReal.n_elem);
+}
+//template void Reconstructor::WriteStream(Ptr<DataStream<double>>, const Mat<cx_double> &mat);
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+/**
+* \private
+* \copydoc Reconstructor::WriteRecSpat(const ClusterInfo &, const Mat<T> &)
+*/
+template <>
+void Reconstructor::WriteRecSpat(const ClusterInfo &info, const Mat<double> &mat)
+{
+
+	if (m_transMatSpat.isValid() && !m_cxTransSpat) // since the reconstruction only gives the indices of the transform we have to apply it again!
+	{
+		m_transMatSpat->SetSize(info.nNodes);
+		Mat<double> res;
+		res.set_size(mat.n_rows, mat.n_cols);
 
 		for (size_t i = 0; i < mat.n_cols; i++)
 		{
-			Col<T> yVec;
-			transMat_ptr->apply(mat.col(i), yVec);
-			y.col(i) = yVec;
+			Col<double> xVec;
+			m_transMatSpat->apply(mat.col(i), xVec);
+			res.col(i) = xVec;
 		}
 
-		info.outBufPtr->WriteAll(y);
+		info.spatRecBuf->Write(res);
+		WriteStream<double>(info.clStream, res);
 	}
 	else
-		info.outBufPtr->WriteAll(mat);
+	{
+		info.spatRecBuf->Write(mat);
+		WriteStream<double>(info.clStream, mat);
+	}
 }
+//template void Reconstructor::WriteRecSpat(const ClusterInfo &, const Mat<double> &);
 
-template <typename T>
-klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor<T>::GetOp(T_NodeIdTag nodeId, bool norm)
-{
-	NS_LOG_FUNCTION(this << nodeId << norm);
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
-	T_NodeInfo info = CheckOutInfo(nodeId);
-
-	klab::TSmartPointer<kl1p::TOperator<T>> sensMat_ptr = GetSensMat(info.seed, info.m, info.nMeas, norm);
-	klab::TSmartPointer<kl1p::TOperator<T>> transMat_ptr = GetTransMat(info.nMeas);
-	klab::TSmartPointer<kl1p::TOperator<T>> precode_ptr = info.precode;
-	return sensMat_ptr * precode_ptr * transMat_ptr;
-}
-
-template <typename T>
-klab::TSmartPointer<kl1p::TOperator<T>> Reconstructor<T>::GetTransMat(uint32_t n)
-{
-	NS_LOG_FUNCTION(this << n);
-	if (m_transMat.isValid())
-		m_transMat->SetSize(n);
-	return m_transMat;
-}
-
+/**
+* \private
+* \copydoc Reconstructor::WriteRecSpat(const ClusterInfo &, const Mat<T> &)
+*/
 template <>
-klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor<double>::GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm)
+void Reconstructor::WriteRecSpat(const ClusterInfo &info, const Mat<cx_double> &mat)
 {
-	NS_LOG_FUNCTION(this << seed << m << n << norm);
-	if (m_ranMat.isValid())
-	{
-		m_ranMat->SetSize(m, n, seed);
-		// m_ranMat->Generate(seed,true);
-		if (norm)
-			m_ranMat->NormalizeToM();
-	}
-	return m_ranMat;
-}
 
+	if (m_transMatSpat.isValid() && m_cxTransSpat) // since the reconstruction only gives the indices of the transform we have to apply it again!
+	{
+		m_transMatSpatCx->SetSize(info.nNodes);
+		Mat<cx_double> res;
+		res.set_size(mat.n_rows, mat.n_cols);
+
+		for (size_t i = 0; i < mat.n_cols; i++)
+		{
+			Col<cx_double> xVec;
+			m_transMatSpatCx->apply(mat.col(i), xVec);
+			res.col(i) = xVec;
+		}
+
+		info.spatRecBuf->Write(real(res));
+		WriteStream<cx_double>(info.clStream, res);
+	}
+	else
+	{
+		info.spatRecBuf->Write(real(mat));
+		WriteStream<cx_double>(info.clStream, mat);
+	}
+}
+//template void Reconstructor::WriteRecSpat(const ClusterInfo &, const Mat<cx_double> &); /**< \copydoc template < T> Reconstructor::WriteRecSpat(const ClusterInfo &, const Mat<T> &)*/
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+/**
+* \private
+* \copydoc Reconstructor::WriteRecTemp(Ptr<DataStream<double>>, const Mat<T> &)
+*/
 template <>
-klab::TSmartPointer<kl1p::TOperator<cx_double>> Reconstructor<cx_double>::GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm)
+void Reconstructor::WriteRecTemp(Ptr<DataStream<double>> stream, const Mat<double> &mat)
 {
-	if (m_ranMat.isValid())
+	if (m_transMatTemp.isValid() && !m_cxTransTemp) // since the reconstruction only gives the indices of the transform we have to apply it again!
 	{
-		m_ranMat->SetSize(m, n, seed);
-		// m_ranMat->Generate(seed,true);
-		if (norm)
-			m_ranMat->NormalizeToM();
+		Mat<double> res;
+		res.set_size(mat.n_rows, mat.n_cols);
+		for (size_t i = 0; i < mat.n_cols; i++)
+		{
+			Col<double> xVec;
+			m_transMatTemp->apply(mat.col(i), xVec);
+			res.col(i) = xVec;
+		}
+		WriteStream<double>(stream, res);
 	}
-	return klab::TSmartPointer<kl1p::TOperator<cx_double>>(*m_ranMat);
+	else
+		WriteStream<double>(stream, mat);
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+/**
+* \private
+* \copydoc Reconstructor::WriteRecTemp(Ptr<DataStream<double>>, const Mat<T> &)
+*/
+template <>
+void Reconstructor::WriteRecTemp(Ptr<DataStream<double>> stream, const Mat<cx_double> &mat)
+{
+	if (m_transMatTempCx.isValid() && m_cxTransTemp) // since the reconstruction only gives the indices of the transform we have to apply it again!
+	{
+		Mat<cx_double> res;
+		res.set_size(mat.n_rows, mat.n_cols);
+		for (size_t i = 0; i < mat.n_cols; i++)
+		{
+			Col<cx_double> xVec;
+			m_transMatTempCx->apply(mat.col(i), xVec);
+			res.col(i) = xVec;
+		}
+		WriteStream<cx_double>(stream, res);
+	}
+	else
+		WriteStream<cx_double>(stream, mat);
+}
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 template <typename T>
-typename Reconstructor<T>::T_NodeInfo &Reconstructor<T>::CheckOutInfo(T_NodeIdTag nodeId)
+void Reconstructor::ReconstructSpat()
 {
-	NS_LOG_FUNCTION(this << nodeId);
-	typedef std::map<T_NodeIdTag, T_NodeInfo> T_InfoMap;
-
-	if ((nodeId != m_nodeIdNow) || !m_infoNow) // check out new when new nodeId or nothing checked out before
+	NS_LOG_FUNCTION(this);
+	/*for now we reconstructe each cluster separetly,
+	* later we will do that jointly*/
+	for (auto const &entry : m_clusterInfoMap)
 	{
-		NS_ASSERT_MSG(m_nodeInfoMap.count(nodeId), "Node ID unknown!");
-		typename T_InfoMap::iterator it = m_nodeInfoMap.find(nodeId);
-		m_infoNow = &((*it).second);
-		m_nodeIdNow = nodeId;
-	}
-	return *(m_infoNow);
-}
+		ClusterInfo info = entry.second;
 
+		klab::TSmartPointer<kl1p::TOperator<T>> A = GetASpat<T>(info);
+		Mat<double> Z = info.inBuf->ReadAll();
+
+		Mat<T> Y = m_algoSpat->Run(Z, A);
+
+		WriteRecSpat<T>(info, Y);
+	}
+}
+template void Reconstructor::Reconstructor::ReconstructSpat();			/**< \copydoc Reconstructor:ReconstructSpat()*/
+template void Reconstructor::Reconstructor::ReconstructSpat<cx_double>(); /**< \copydoc Reconstructor:ReconstructSpat()*/
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+/**
+* \private
+* \copydoc template<T> Reconstructor::ReconstructTemp
+*/
 template <typename T>
-const typename Reconstructor<T>::T_NodeInfo &Reconstructor<T>::CheckOutInfo(T_NodeIdTag nodeId) const
+void Reconstructor::ReconstructTemp(const Reconstructor::ClusterInfo &info)
 {
-	NS_LOG_FUNCTION(this << nodeId);
-	typedef std::map<T_NodeIdTag, T_NodeInfo> T_InfoMap;
+	NS_LOG_FUNCTION(this << &info);
 
-	if ((nodeId != m_nodeIdNowConst) || !m_infoNowConst) // check out new when new nodeId or nothing checked out before
+	Ptr<CsCluster> cluster = info.cluster;
+	const Mat<double> &Y = info.spatRecBuf->Read();
+
+	std::vector<uint32_t> seeds = cluster->GetSeeds();
+	for (uint32_t i = 0; i < info.nNodes; i++)
 	{
-		NS_ASSERT_MSG(m_nodeInfoMap.count(nodeId), "Node ID unknown!");
-		typename T_InfoMap::const_iterator it = m_nodeInfoMap.find(nodeId);
-		m_infoNowConst = &((*it).second);
-		m_nodeIdNowConst = nodeId;
+		uint32_t seed = seeds.at(i);
+		klab::TSmartPointer<kl1p::TOperator<T>> A = GetATemp<T>(seed, info.m, info.n);
+
+		Mat<double> yi = Y.row(i).t();
+		Mat<T> xi = m_algoTemp->Run(yi, A);
+
+		Ptr<DataStream<double>> stream = info.streams.at(i);
+		WriteRecTemp(stream, xi);
 	}
-	return *(m_infoNowConst);
+}
+template void Reconstructor::Reconstructor::ReconstructTemp(const Reconstructor::ClusterInfo &);
+template void Reconstructor::ReconstructTemp<cx_double>(const Reconstructor::ClusterInfo &);
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void Reconstructor::ReconstructAll()
+{
+	NS_LOG_FUNCTION(this);
+
+	if (m_cxTransSpat)
+		ReconstructSpat<cx_double>();
+	else
+		ReconstructSpat();
+
+	if (m_cxTransTemp)
+	{
+		for (auto const &entry : m_clusterInfoMap)
+		{
+			ReconstructTemp<cx_double>(entry.second);
+		}
+	}
+	else
+	{
+		for (auto const &entry : m_clusterInfoMap)
+		{
+			ReconstructTemp(entry.second);
+		}
+	}
 }
 
-// template class Reconstructor<double>;
-// template class Reconstructor<cx_double>;
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
-OBJECT_TEMPLATE_CLASS_DEFINE(Reconstructor, double);
-OBJECT_TEMPLATE_CLASS_DEFINE(Reconstructor, cx_double);
+TypeId Reconstructor::GetTypeId(void)
+{
+	// void (*setRealSpat)(const RecMatrix<double> &) = &Reconstructor::SetRecMatSpat;
+	// void (*setCxSpat)(const RecMatrixCx &) = &Reconstructor::SetRecMatSpat;
+	static TypeId tid = TypeId("Reconstructor")
+							.SetParent<Object>()
+							.AddConstructor<Reconstructor>()
+							.SetGroupName("CompressedSensing")
+							.AddAttribute("AlgoTemp", "The CsAlgorithm used to reconstruct temporally.",
+										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
+										  PointerValue(CreateObject<CsAlgorithm_OMP>()),
+										  MakePointerAccessor(&Reconstructor::SetAlgorithmTemp, &Reconstructor::GetAlgorithmTemp),
+										  MakePointerChecker<CsAlgorithm>())
+							.AddAttribute("AlgoSpat", "The CsAlgorithm used to reconstruct spatially",
+										  PointerValue(CreateObject<CsAlgorithm_OMP>()),
+										  MakePointerAccessor(&Reconstructor::SetAlgorithmSpat, &Reconstructor::GetAlgorithmSpat),
+										  MakePointerChecker<CsAlgorithm>())
+							.AddAttribute("RecMatSpat", "RecMatrix  for spatial reconstruction",
+										  PointerValue(Create<RecMatrixReal, Ptr<RandomMatrix>>(CreateObject<GaussianRandomMatrix>())),
+										  MakePointerAccessor(static_cast<void (Reconstructor::*)(Ptr<RecMatrixReal>)>(&Reconstructor::SetRecMatSpat)),
+										  MakePointerChecker<RecMatrixReal>())
+							.AddAttribute("RecMatTemp", "RecMatrix  for temporal reconstruction",
+										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
+										  PointerValue(Create<RecMatrixReal, Ptr<RandomMatrix>>(CreateObject<IdentRandomMatrix>())),
+										  MakePointerAccessor(static_cast<void (Reconstructor::*)(Ptr<RecMatrixReal>)>(&Reconstructor::SetRecMatTemp)),
+										  MakePointerChecker<RecMatrixReal>())
+							.AddAttribute("RecMatSpatCx", "Complex RecMatrix  for spatial reconstruction",
+										  TypeId::ATTR_SET,
+										  PointerValue(Create<RecMatrixCx>(CreateObject<GaussianRandomMatrix>())),
+										  MakePointerAccessor(static_cast<void (Reconstructor::*)(Ptr<RecMatrixCx>)>(&Reconstructor::SetRecMatSpat)),
+										  MakePointerChecker<RecMatrixCx>())
+							.AddAttribute("RecMatTempCx", "Complex RecMatrix  for temporal reconstruction",
+										  TypeId::ATTR_SET,
+										  PointerValue(Create<RecMatrixCx>(CreateObject<IdentRandomMatrix>())),
+										  MakePointerAccessor(static_cast<void (Reconstructor::*)(Ptr<RecMatrixCx>)>(&Reconstructor::SetRecMatTemp)),
+										  MakePointerChecker<RecMatrixCx>());
+	return tid;
+}

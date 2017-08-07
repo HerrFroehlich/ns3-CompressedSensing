@@ -24,8 +24,7 @@ def build(bld):
     module = bld.create_ns3_module('compressed-sensing', ['simple-network'])
     module.source = [
         'model/reconstructor.cc',
-        'model/omp-reconstructor.cc',
-        'model/bp-reconstructor.cc',
+        'model/cs-algorithm.cc',
     	'model/random-matrix.cc',
         'model/transform-matrix.cc',
         'model/compressor.cc',
@@ -61,8 +60,7 @@ def build(bld):
     headers.module = 'compressed-sensing'
     headers.source = [
         'model/reconstructor.h',
-        'model/omp-reconstructor.h',
-        'model/bp-reconstructor.h',
+        'model/cs-algorithm.h',
     	'model/random-matrix.h',
     	'model/transform-matrix.h',
         'model/compressor.h',

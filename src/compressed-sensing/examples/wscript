@@ -3,47 +3,26 @@ from waflib import Options
 
 def build(bld):
 
-    def set_properties(obj):
-        obj.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KL1p")
-        obj.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KLab")
-        obj.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/KSci")
-        obj.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/Armadillo")
-        obj.env.append_value("CXXFLAGS", "-isystem../src/compressed-sensing/lib/include/Matio")
-        #obj.env.append_value("CXXFLAGS", "-Wno-error")
-        obj.env.append_value("LINKFLAGS", "-L../src/compressed-sensing/lib/")
-        if Options.options.build_profile == 'debug':
-            obj.env.append_value("LIB",["dl","KLab64_d","matio"])
-        else:
-            obj.env.append_value("LIB",["dl","KLab64","matio"])
-
     obj = bld.create_ns3_program('compressed-sensing-example', ['compressed-sensing'])
     obj.source = 'compressed-sensing-example.cc'
-   # set_properties(obj)
 
     obj = bld.create_ns3_program('node-buffer-example', ['compressed-sensing'])
     obj.source = 'node-buffer-example.cc'
-   # set_properties(obj)
 
     obj = bld.create_ns3_program('node-buffer-meta-example', ['compressed-sensing'])
     obj.source = 'node-buffer-meta-example.cc'
-  #  set_properties(obj)
 
     obj = bld.create_ns3_program('random-matrix-example', ['compressed-sensing'])
     obj.source = 'random-matrix-example.cc'
-  #  set_properties(obj)
 
-    obj = bld.create_ns3_program('omp-reconst-example', ['compressed-sensing'])
-    obj.source = 'omp-reconst-example.cc'
-  #  set_properties(obj)
+   # obj = bld.create_ns3_program('omp-reconst-example', ['compressed-sensing'])
+   # obj.source = 'omp-reconst-example.cc'
     
-    obj = bld.create_ns3_program('omp-reconst-fourier-example', ['compressed-sensing'])
-    obj.source = 'omp-reconst-fourier-example.cc'
-  #  set_properties(obj)
+   # obj = bld.create_ns3_program('omp-reconst-fourier-example', ['compressed-sensing'])
+   # obj.source = 'omp-reconst-fourier-example.cc'
 
     obj = bld.create_ns3_program('omp-cont-example', ['compressed-sensing'])
     obj.source = 'omp-cont-example.cc'
- #   set_properties(obj)
 
     obj = bld.create_ns3_program('single-cs-cluster-example', ['compressed-sensing'])
     obj.source = 'single-cs-cluster-example.cc'
- #   set_properties(obj)

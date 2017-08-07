@@ -170,9 +170,7 @@ class CsSinkApp : public Application
 
 	Ptr<CsNode> m_node; /**< aggretated sink node*/
 
-	Ptr<Reconstructor<double>> m_recSpat,									/**< spatial reconstructor*/
-		m_recTemp;															/**< temporal reconstructor, just for getting the explicit type*/
-	std::map<CsHeader::T_IdField, Ptr<Reconstructor<double>>> m_recTempMap; /**<temporal reconstructor for each added cluster*/
+	Ptr<Reconstructor> m_reconst; /**<  reconstructor*/
 
 	CsHeader::T_SeqField m_seqCount;						 /**< measurment sequence counter*/
 	uint32_t m_recAttempt;									 /**< reconstruction attempt of current measurement sequence*/

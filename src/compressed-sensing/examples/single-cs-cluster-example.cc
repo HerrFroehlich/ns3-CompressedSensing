@@ -17,8 +17,7 @@
 #include "ns3/network-module.h"
 #include "ns3/cs-cluster-simple-helper.h"
 #include "ns3/cs-sink-app.h"
-#include "ns3/omp-reconstructor.h"
-#include "ns3/bp-reconstructor.h"
+#include "ns3/reconstructor.h"
 #include "ns3/mat-file-handler.h"
 
 using namespace ns3;
@@ -59,11 +58,11 @@ transmittingCb(Ptr<const Packet> p)
 	cout << endl;
 }
 
-static void
-recErrorCb(const klab::KException &e)
-{
-	NS_LOG_ERROR("Reconstruction failed with error " << e.what());
-}
+// static void
+// recErrorCb(const klab::KException &e)
+// {
+// 	NS_LOG_ERROR("Reconstruction failed with error " << e.what());
+// }
 
 int main(int argc, char *argv[])
 {
@@ -176,7 +175,7 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext(confPath + "Rx", MakeCallback(&receiveCb));
 
 	//sink node
-	CsNode sink;
+	Ptr<CsNode> sink = CreateObject<CsNode>();
 	/*********  create netdevices and channels  **********/
 	NS_LOG_INFO("Connect to sink...");
 
@@ -192,40 +191,57 @@ int main(int argc, char *argv[])
 
 	Ptr<CsNode> clusterNode = cluster.GetClusterNode();
 	clusterNode->AddTxDevice(devA);
-	sink.AddDevice(devB);
+	sink->AddDevice(devB);
 
 	devA->SetNode(clusterNode);
 	devA->SetChannel(channel);
-	devB->SetNode(&sink);
+	devB->SetNode(sink);
 	devB->SetChannel(channel);
 	/*********  Install the applications  **********/
 
 	NS_LOG_INFO("Adding Applications...");
 
 	Ptr<CsSinkApp> sinkApp = CreateObject<CsSinkApp>();
+	sink->AddApplication(sinkApp);
 
-	Ptr<Reconstructor<double>> recTemp = CreateObject<OMP_ReconstructorTemp<double>>();
+	// Ptr<Reconstructor<double>> recTemp = CreateObject<OMP_ReconstructorTemp<double>>();
+	// Ptr<TransMatrix<double>>transMat = CreateObject<DcTransMatrix<double>>();
+	// recTemp->SetTransMat(transMat);
+	// Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
+	// recTemp->SetRanMat(ranMat);
+	// //recTemp->SetAttribute("k", UintegerValue(k));
+	// recTemp->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
+	// sinkApp->SetAttribute("RecTemp", PointerValue(recTemp));
+
+	// Ptr<Reconstructor<double>> recSpat = CreateObject<OMP_Reconstructor<double>>();
+	// recSpat->SetTransMat(transMat);
+	// //recSpat->SetAttribute("k", UintegerValue(k));
+	// recSpat->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
+	// sinkApp->SetAttribute("RecSpat", PointerValue(recSpat));
+	
+	Ptr<Reconstructor> rec = CreateObject<Reconstructor>();
 	Ptr<TransMatrix<double>>transMat = CreateObject<DcTransMatrix<double>>();
-	recTemp->SetTransMat(transMat);
 	Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
-	recTemp->SetRanMat(ranMat);
-	//recTemp->SetAttribute("k", UintegerValue(k));
-	recTemp->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
-	sinkApp->SetAttribute("RecTemp", PointerValue(recTemp));
+	rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
+	ranMat = CreateObject<GaussianRandomMatrix>();
+	rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
+	sinkApp->SetAttribute("Reconst", PointerValue(rec));
+ 
+    Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/k", UintegerValue(nSrcNodes+1));
+	// recTemp->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
 
-	Ptr<Reconstructor<double>> recSpat = CreateObject<OMP_Reconstructor<double>>();
-	recSpat->SetTransMat(transMat);
-	//recSpat->SetAttribute("k", UintegerValue(k));
-	recSpat->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
-	sinkApp->SetAttribute("RecSpat", PointerValue(recSpat));
-	if(!seq)
+	// Ptr<Reconstructor<double>> recSpat = CreateObject<OMP_Reconstructor<double>>();
+	// recSpat->SetTransMat(transMat);
+	// //recSpat->SetAttribute("k", UintegerValue(k));
+
+	if (!seq)
 		sinkApp->SetAttribute("MinPackets", UintegerValue(l));
 	else
 		sinkApp->SetAttribute("MinPackets", UintegerValue(l/2));
 
 	sinkApp->TraceConnectWithoutContext("Rx", MakeCallback(&receiveCb));
 	sinkApp->AddCluster(&cluster);
-	sinkApp->Setup(&sink, matFilePath);
+	sinkApp->Setup(sink, matFilePath);
 
 	/*********  Running the Simulation  **********/
 

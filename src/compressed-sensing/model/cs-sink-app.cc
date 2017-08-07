@@ -7,8 +7,6 @@
 */
 
 #include "cs-sink-app.h"
-#include "omp-reconstructor.h"
-#include "bp-reconstructor.h"
 #include "ns3/log.h"
 #include "assert.h"
 
@@ -26,22 +24,14 @@ TypeId CsSinkApp::GetTypeId(void)
 										  TimeValue(Seconds(10)),
 										  MakeTimeAccessor(&CsSinkApp::m_timeout),
 										  MakeTimeChecker(Seconds(0)))
-							.AddAttribute("RecSpat", "Spatial reconstructor",
-										  PointerValue(CreateObject<OMP_Reconstructor<double>>()),
-										  MakePointerAccessor(&CsSinkApp::m_recSpat),
-										  MakePointerChecker<Reconstructor<double>>())
-							.AddAttribute("RecTemp", "Temporal reconstructor",
-										  PointerValue(CreateObject<OMP_ReconstructorTemp<double>>()),
-										  MakePointerAccessor(&CsSinkApp::m_recTemp),
-										  MakePointerChecker<Reconstructor<double>>())
-							// .AddAttribute("FileNameBase", "Base filename for output files",
-							// 			  StringValue("xRec"),
-							// 			  MakeStringAccessor(&CsSinkApp::m_filebase),
-							// 			  MakeStringChecker())
+							.AddAttribute("Reconst", "Reconstructor",
+										  PointerValue(CreateObject<Reconstructor>()),
+										  MakePointerAccessor(&CsSinkApp::m_reconst),
+										  MakePointerChecker<Reconstructor>())
 							.AddAttribute("MinPackets", "Minmum NOF received Packets to start reconstructing",
-											UintegerValue(0),
-											MakeUintegerAccessor(&CsSinkApp::m_minPackets),
-											MakeUintegerChecker<uint32_t>())
+										  UintegerValue(0),
+										  MakeUintegerAccessor(&CsSinkApp::m_minPackets),
+										  MakeUintegerChecker<uint32_t>())
 							.AddTraceSource("Rx", "A new packet is received",
 											MakeTraceSourceAccessor(&CsSinkApp::m_rxTrace),
 											"ns3::Packet::TracedCallback")
@@ -76,7 +66,7 @@ void CsSinkApp::Setup(Ptr<CsNode> node, std::string dir)
 		(*it)->SetReceiveCallback(MakeCallback(&CsSinkApp::Receive, this));
 	}
 	m_isSetup = true;
-	StartNewSeq();
+	//StartNewSeq();
 }
 
 void CsSinkApp::AddCluster(Ptr<CsCluster> cluster)
@@ -85,34 +75,14 @@ void CsSinkApp::AddCluster(Ptr<CsCluster> cluster)
 
 	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
 	NS_ASSERT_MSG(cluster->GetNSrc(), "Not enough source nodes in this cluster!");
-	NS_ASSERT_MSG(m_recSpat && m_recTemp, "Non-valid reconstructors! Have you added them or called CreateObject?");
 
-	std::vector<uint32_t> param = cluster->GetCompression();
-	uint32_t n = param.at(0),
-			 m = param.at(1),
-			 l = param.at(2);
+	NS_ASSERT_MSG(m_reconst, "Non-valid reconstructor! Have you added it or called CreateObject?");
+
+	m_reconst->AddCluster(cluster);
 
 	Ptr<CsNode> clusterNode = cluster->GetClusterNode();
-
 	CsHeader::T_IdField clusterId = clusterNode->GetClusterId();
-	NS_ASSERT_MSG(!m_recSpat->HasNode(clusterId), "Cluster ID already added! ");
-
-	uint32_t seed = clusterNode->GetSeed();
-	m_recSpat->AddSrcNode(clusterId, seed, cluster->GetNSrc() + 1, l, m);
-
-	// add unique temporal reconstructor
-	Ptr<Reconstructor<double>> recTemp = m_recTemp->Clone();
-	recTemp->SetBufferDim(n, m, 1);
-	;
-	for (auto it = cluster->Begin(); it != cluster->End(); it++)
-	{
-		uint32_t seed = (*it)->GetSeed();
-		CsHeader::T_IdField id = (*it)->GetNodeId();
-		recTemp->AddSrcNode(id, seed);
-	}
-	m_recTempMap.emplace(clusterId, recTemp);
-
-	m_clusters.emplace(clusterId, cluster);
+	uint32_t l = cluster->GetCompression(CsCluster::E_COMPR_DIMS::l);
 
 	//add sequence checker
 	// SeqChecker check(l);
@@ -147,11 +117,11 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 		m_rxDropTrace(p, E_DropCause::NOT_A_CLUSTER);
 		return false;
 	}
-	else if (!m_recSpat->HasNode(clusterId))
-	{
-		m_rxDropTrace(p, E_DropCause::UNKNOWN_CLUSTER);
-		return false;
-	}
+	// else if (!m_recSpat->HasNode(clusterId))
+	// {
+	// 	m_rxDropTrace(p, E_DropCause::UNKNOWN_CLUSTER);
+	// 	return false;
+	// }
 
 	CsHeader::T_SeqField seq = header.GetSeq();
 
@@ -166,7 +136,7 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 	// }
 
 	BufferPacketData(p, check.GetSeqDiff());
-	if(++m_rxPackets >= m_minPackets)
+	if (++m_rxPackets >= m_minPackets)
 		ReconstructNext(newSeq);
 	return true;
 }
@@ -188,17 +158,17 @@ void CsSinkApp::BufferPacketData(Ptr<const Packet> packet, uint32_t diff)
 	double *data = new double[size]();
 	p->CopyData(reinterpret_cast<uint8_t *>(data), size * sizeof(double));
 
-	if (diff > 1) // we have to fill with zeros if we have a difference greater one
-	{
-		std::vector<uint32_t> dim = m_recSpat->GetBufferDim(id);
-		uint32_t m = dim.at(2);
+	// if (diff > 1) // we have to fill with zeros if we have a difference greater one
+	// {
+	// 	std::vector<uint32_t> dim = m_recSpat->GetBufferDim(id);
+	// 	uint32_t m = dim.at(2);
 
-		double *zeroFill = new double[m * diff](); //zero initialized
-		m_recSpat->WriteData(id, zeroFill, m * diff);
-		delete[] zeroFill;
-	}
+	// 	double *zeroFill = new double[m * diff](); //zero initialized
+	// 	m_recSpat->WriteData(id, zeroFill, m * diff);
+	// 	delete[] zeroFill;
+	// }
 
-	m_recSpat->WriteData(id, data, size);
+	m_reconst->WriteData(id, data, size);
 	delete[] data;
 
 	//set precoding
@@ -210,104 +180,25 @@ void CsSinkApp::BufferPacketData(Ptr<const Packet> packet, uint32_t diff)
 	{
 		precode.push_back(bitset[i]);
 	}
-	m_recSpat->SetPrecodeEntries(id, precode);
+	m_reconst->SetPrecodeEntries(id, precode);
 }
 
 void CsSinkApp::ReconstructNext(bool newSeq)
 {
 	NS_LOG_FUNCTION(this);
-	if(newSeq)
+	if (newSeq)
 		StartNewSeq();
 
-	NS_LOG_INFO("Reconstructing measurement seqence " << m_seqCount << ", " << m_recAttempt+1 << ". attempt");
+	NS_LOG_INFO("Reconstructing measurement seqence " << m_seqCount << ", " << m_recAttempt + 1 << ". attempt");
 
-	//spatial
-	NS_LOG_INFO("Reconstructing  spatially");
-	m_recSpat->ReconstructAll();
-	//temporal
-	NS_LOG_INFO("Reconstructing  temporally");
-	for (auto it = m_recSpat->IdBegin(); it != m_recSpat->IdEnd(); it++) // iterate over cluster ids
-	{
-		CsHeader::T_IdField clusterId = *it;
-		Ptr<Reconstructor<double>> recTemp = m_recTempMap.at(clusterId);
+	m_reconst->ReconstructAll();
 
-		//write data to each source node
-		std::vector<double> data = m_recSpat->ReadRecDataRow(clusterId);
-
-		//write to data stream
-		Ptr<CsCluster> cluster = m_clusters.at(clusterId);
-		Ptr<DataStream<double>> lastStream = *(cluster->StreamEnd() - 1); // how do we know this is the stream we need?
-		lastStream->CreateBuffer(data);
-		//cluster->AddStream(spatStream);
-
-		auto dataIt = data.begin();
-		for (auto it = recTemp->IdBegin(); it != recTemp->IdEnd(); it++) // iterate over src ids
-		{
-			CsHeader::T_IdField srcId = *it;
-			std::vector<uint32_t> bufdim = recTemp->GetBufferDim(srcId);
-			uint32_t bufSize = bufdim.at(1) * bufdim.at(2);
-
-			std::vector<double> srcData(dataIt, dataIt + bufSize);
-
-			// /*
-			// * Solution for non-dense Y: Solver problems with 0 entries:
-			// * Add a very low mean!
-			// */
-			// for (auto it = srcData.begin(); it != srcData.end(); it++)
-			// {
-			// 	*(it) += 1e-15;
-			// }
-
-			recTemp->WriteData(srcId, srcData);
-			dataIt += bufSize;
-		}
-
-		recTemp->ReconstructAll();
-
-		//write to data stream
-		// std::vector<double> dataAll;
-		// Ptr<DataStream<double>> lastStream = *(cluster->StreamEnd() - 1);
-		// lastStream->CreateBuffer(data);
-		//Ptr<DataStream<double>> lastStream;
-		Ptr<CsNode> clusterNode = cluster->GetClusterNode();
-		CsHeader::T_IdField id = clusterNode->GetNodeId();
-
-		std::vector<double> clusterData = recTemp->ReadRecData(id);
-		lastStream = *(clusterNode->StreamEnd() - 1);
-		lastStream->CreateBuffer(clusterData);
-		for (auto it = cluster->SrcBegin(); it != cluster->SrcEnd(); it++) // iterate over src ids
-		{
-			Ptr<CsNode> node = *it;
-			CsHeader::T_IdField srcId = node->GetNodeId();
-
-			std::vector<double> data = recTemp->ReadRecData(srcId);
-			// dataAll.insert(dataAll.end(), data.begin(), data.end());
-			// Ptr<SerialDataBuffer<double>> buf = Create<SerialDataBuffer<double>>(data.size());
-			// buf->WriteNext(data);
-			// lastStream->AddBuffer(buf);
-			Ptr<DataStream<double>> lastStream = *(node->StreamEnd() - 1);
-			lastStream->CreateBuffer(data);
-		}
-		// Ptr<SerialDataBuffer<double>> buf = Create<SerialDataBuffer<double>>(dataAll.size());
-		// buf->WriteNext(dataAll);
-	}
 	m_recAttempt++;
 }
 
 void CsSinkApp::StartNewSeq()
 {
 	m_recAttempt = 0;
-	//create new data streams
-	for (auto it = m_recSpat->IdBegin(); it != m_recSpat->IdEnd(); it++) // iterate over cluster ids
-	{
-		Ptr<DataStream<double>> stream = Create<DataStream<double>>("RecSeq" + std::to_string(m_seqCount));
-		Ptr<CsCluster> cluster = m_clusters.at(*it);
-		cluster->AddStream(stream);
-		// add new data streams to each node;
-		for (auto it = cluster->Begin(); it != cluster->End(); it++)
-		{
-			(*it)->AddStream(CopyObject(stream));
-		}
-	}
+	m_reconst->Reset();
 	m_seqCount++;
 }

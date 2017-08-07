@@ -12,26 +12,57 @@
 #include <vector>
 #include "ns3/core-module.h"
 #include <armadillo>
-#include <KL1pInclude.h>
 #include <stdint.h>
 #include <map>
 #include "ns3/node-data-buffer.h"
+#include "ns3/mat-buffer.h"
 #include "random-matrix.h"
 #include "transform-matrix.h"
 #include "cs-header.h"
+#include "cs-cluster.h"
 #include "ns3/template-registration.h"
 #include "spatial-precoding-matrix.h"
+#include "cs-algorithm.h"
 
 using namespace ns3;
 using namespace arma;
-typedef std::complex<double> cx_double;
-typedef CsHeader::T_IdField T_NodeIdTag;
 /**
 * \ingroup compsens
  * \defgroup rec Reconstructors
  *
  * Various classes for reconstructing spatial dependent, compressed data with compressed sensing algorithms
  */
+/**
+* \ingroup rec
+* \class RecMatrix
+* \brief A container for a RandomMatrix and optional TransMatrix, used jointly for reconstruction
+*
+* \tparam T type of transformation (either double or arma::cx_double)
+*/
+class RecMatrixReal : public Object
+{
+  public:
+	RecMatrixReal();
+	RecMatrixReal(Ptr<RandomMatrix> ran) : ranMatrix(ran){};
+	RecMatrixReal(Ptr<RandomMatrix> ran, Ptr<TransMatrix<double>> trans) : ranMatrix(ran), transMatrix(trans){};
+
+	Ptr<RandomMatrix> ranMatrix;
+	Ptr<TransMatrix<double>> transMatrix;
+};
+class RecMatrixCx : public Object
+{
+  public:
+	RecMatrixCx();
+	RecMatrixCx(Ptr<RandomMatrix> ran) : ranMatrix(ran){};
+	RecMatrixCx(Ptr<RandomMatrix> ran, Ptr<TransMatrix<cx_double>> trans) : ranMatrix(ran), transMatrix(trans){};
+
+	Ptr<RandomMatrix> ranMatrix;
+	Ptr<TransMatrix<cx_double>> transMatrix;
+};
+// typedef RecMatrix<double> RecMatrixReal;
+// typedef RecMatrix<cx_double> RecMatrixCx;
+
+
 /**
 * \ingroup rec
 * \class Reconstructor
@@ -45,325 +76,335 @@ typedef CsHeader::T_IdField T_NodeIdTag;
 * Reconstructor<double>\n
 * Reconstructor<cx_double>\n
 *
-* \tparam T type of internal data (either double or arma::cx_double)
 *
-* \author Tobias Waurick
-* \date 03.06.17
 */
-template <typename T = double>
 class Reconstructor : public ns3::Object
 {
-  public:																 /**< type of node ID*/
-	typedef void (*CompleteTracedCallback)(int64_t time, uint32_t iter); /**< callback signature when completed a reconstruction*/
-	typedef void (*ErrorTracedCallback)(const klab::KException &e);			 /**< callback signature when reconstruction fails*/
-	typedef std::vector<CsHeader::T_IdField>::const_iterator IdIterator;
+  public:
+	static const std::string STREAMNAME; /**< name base of DataStream storing reconstruction*/
+
 	static TypeId GetTypeId(void);
 	Reconstructor();
-
-	/**
-	* \brief starts the reconstruction for one node
-	*
-	* \param nodeId ID of node to reconstruct
-	* 
-	* \return time in ms needed for reconstruction
-	*/
-	virtual int64_t Reconstruct(T_NodeIdTag nodeId) = 0;
 
 	/**
 	* \brief starts the reconstruction for all nodes
 	*
 	* \return time in ms needed for reconstruction
 	*/
-	int64_t ReconstructAll();
+	void ReconstructAll();
 
 	/**
-	* \brief Adds a source node whose measurement data shall be reconstructed, default sizes are used for the buffer
+	* \brief Adds a cluster whose node's measurement data shall be reconstructed
 	*
-	* \param nodeId 8bit node Id
-	* \param seed 	Seed used for constructing the sensing matrix of each node
-	*
-	*/
-	void AddSrcNode(T_NodeIdTag nodeId, uint32_t seed);
-	/**
-	* \brief Adds a source node whose measurement data shall be reconstructed
-	*
-	* \param nodeId		8bit node Id
-	* \param seed 		Seed used for constructing the sensing matrix of each node
-	* \param nMeas 		original length of/(NOF) each original measurment (vectors)
-	* \param mMax  		maximum length of/(NOF)  measurments (vectors) used for reconstructing
-	* \param vecLen	    length of each measurement vector (e.g. 1 for temporal reconstruction, x for spatial reconstruction)
+	* \param cluster pointer to a CsCluster
 	*
 	*/
-	void AddSrcNode(T_NodeIdTag nodeId, uint32_t seed, uint32_t nMeas, uint32_t mMax, uint32_t vecLen);
+	void AddCluster(Ptr<CsCluster> cluster);
 
 	/**
-	* \brief writes from data buffer to a this NodeDataBuffer
+	* \brief writes from data buffer to a cluster's NodeDataBuffer
 	*
-	* \param nodeId	8bit-ID of the node
+	* \param clusterId	8bit-ID of the cluster
 	* \param buffer pointer to data
 	* \param bufSize  size of data buffer	
 	*
-	* \return remaining space in buffer
+	* \return remaining space in NodeDataBuffer
 	*/
-	uint32_t WriteData(T_NodeIdTag nodeId, const T *buffer, const uint32_t bufSize);
+	uint32_t WriteData(CsHeader::T_IdField clusterId, const double *buffer, const uint32_t bufSize);
 
 	/**
-	* \brief writes from data buffer to a this NodeDataBuffer
+	* \brief writes from data buffer to this NodeDataBuffer
 	*
-	* \param nodeId	8bit-ID of the node
+	* \param clusterId	8bit-ID  of the cluster
 	* \param vec vector containing data	
 	*
 	* \return remaining space in buffer
 	*/
-	uint32_t WriteData(T_NodeIdTag nodeId, const std::vector<T> &vec);
-
-	/**
-	* \brief reads reconstructed data matrix and returns a vector (matrix ordered column by column)
-	*
-	* \param nodeId	8bit-ID of the node
-	*
-	* \return vector of T containing the reconstructed data matrix
-	*/
-	std::vector<T> ReadRecData(T_NodeIdTag nodeId) const;
-
-	/**
-	* \brief reads reconstructed data matrix and returns a vector (matrix ordered row by row)
-	*
-	* \param nodeId	8bit-ID of the node
-	*
-	* \return vector of T containing the reconstructed data matrix
-	*/
-	std::vector<T> ReadRecDataRow(T_NodeIdTag nodeId) const;
-
-	/**
-	* \brief sets the internal random matrix object
-	*
-	* \param ranMat_ptr pointer to a RandomMatrix object
-	*
-	*/
-	void SetRanMat(Ptr<RandomMatrix> ranMat_ptr);
-	/**
-	* \brief sets the internal transformation object
-	*
-	* \param trans Mat_ptr pointer to a TransMatrix object
-	*
-	*/
-	void SetTransMat(Ptr<TransMatrix<T>> transMat_ptr);
+	uint32_t WriteData(CsHeader::T_IdField clusterId, const std::vector<double> &vec);
 
 	/**
 	* \brief sets the precoding entries
 	*
-	* \param nodeId	node ID	
-	* \param entires vector with entries, size must match wit sensing matrix's N
+	* The vector entries may be of any size, but only
+	* as much as the NOF nodes in the cluster of its values
+	* will be used. 
+	*
+	* \param clusterId	cluster ID	
+	* \param entries vector with entries
 	*/
-	void SetPrecodeEntries(T_NodeIdTag nodeId, const std::vector<bool> &entries);
+	void SetPrecodeEntries(CsHeader::T_IdField clusterId, const std::vector<bool> &entries);
 
 	/**
-	* \brief get inserted node IDs in a vector
+	* \brief resets the reconstructor
 	*
-	* \return vector with all node IDs
-	*/
-	std::vector<T_NodeIdTag> GetNodeIds();
-
-	/**
-	* \brief gets the  buffer dimensions for the given ID
-	*
-	* \param nodeId	node ID	
-	*
-	* \return vector with the [nMeas mMax vecLen]
-	*/
-	std::vector<uint32_t> GetBufferDim(T_NodeIdTag nodeId);
-
-	/**
-	* \brief sets the default dimension for new in and output buffers
-	*
-	* \param nMeas 		original length of/(NOF) each original measurment (vectors)
-	* \param mMax  		maximum length of/(NOF)  measurments (vectors) used for reconstructing
-	* \param vecLen	    length of each measurement vector (e.g. 1 for temporal reconstruction, x for spatial reconstruction)
+	* Increments the run number and adds new DataStream instances to all nodes and clusters.
 	*
 	*/
-	void SetBufferDim(uint32_t nMeas, uint32_t mMax, uint32_t vecLen);
+	void Reset();
 
 	/**
-	* \brief beginning of iterator over all stored nodeIDs
+	* \brief sets the temporal reconstruction algorithm
 	*
-	* \return iterator beginning
-	*/
-	IdIterator IdBegin();
-
-	/**
-	* \brief ending of iterator over all stored nodeIDs
-	*
-	* \return iterator end
-	*/
-	IdIterator IdEnd();
-
-	/**
-	* \brief checks if node was added
-	*
-	* \param nodeId ID of the ndoe
-	*
-	* \return true if node was added before
-	*/
-	bool HasNode(T_NodeIdTag nodeId);
-
-	/**
-	* \brief clones the reconstructor
-	*
-	* abstract method to create clones from subclasses	
-	*
-	* \return pointer to new object
-	*/
-	virtual Ptr<Reconstructor<T>> Clone() = 0;
-
-  protected:
-	/**
-	* \brief resets a node's in buffer if it's full
-	*
-	* \param nodeId ID of node
+	* \param algo pointer to CsAlgorithm object
 	*
 	*/
-	void ResetFullBuf(T_NodeIdTag nodeId);
+	void SetAlgorithmTemp(Ptr<CsAlgorithm> algo);
 
 	/**
-	* \brief gets the NOF buffered measurement vectors for a node
+	* \brief sets the spatial reconstruction algorithm
 	*
-	* \param nodeId 8bitNodeId
-	*
-	* \return NOF  measurement vectors
-	*/
-	uint32_t GetNofMeas(T_NodeIdTag nodeId) const;
-
-	/**
-	* \brief gets the length of a measurement vectors for a node
-	*
-	* \param nodeId 8bitNodeId
-	*
-	* \return size of measurement vectors
-	*/
-	uint32_t GetVecLen(T_NodeIdTag nodeId) const;
-
-	/**
-	* \brief gets the NOF measurement vectors to be reconstructed for a node
-	*
-	* \param nodeId 8bitNodeId
-	*
-	* \return NOF  measurement vectors (out)
-	*/
-	uint32_t GetN(T_NodeIdTag nodeId) const;
-
-	/**
-	* \brief gets the NOF nodes added
-	*
-	*
-	* \return NOF  node
-	*/
-	uint32_t GetNofNodes() const;
-
-	/**
-	* \brief gets the buffered data of a node as a matrix
-	*
-	* \param nodeId node ID
-	*
-	* \return Mat<T> the buffered data
-	*/
-	Mat<T> GetBufMat(T_NodeIdTag nodeId) const;
-
-	/**
-	* \brief write matrix to reconstruction buffer
-	*
-	* If there is a TransMatrix associated with this reconstructor, the transformation will be applied to mat.
-	* This is since the reconstrruction algorithms will return the atom values of the transformation.
-	*
-	* \param nodeId node ID
-	* \param mat matrix to be written
+	* \param algo pointer to CsAlgorithm object
 	*
 	*/
-	void WriteRecBuf(T_NodeIdTag nodeId, const Mat<T> &mat);
+	void SetAlgorithmSpat(Ptr<CsAlgorithm> algo);
 
 	/**
-	* \brief gets the operator used for reconstructing, which is created by multiplying the sensing matrix with a transformation
+	* \brief gets the temporal reconstruction algorithm
 	*
-	* \param nodeId node ID
-	* \param norm	Normalize sensing matrix?
+	* \return pointer to CsAlgorithm object
 	*
-	* \return multiplication operator
-	// */
-	klab::TSmartPointer<kl1p::TOperator<T>> GetOp(T_NodeIdTag nodeId, bool norm = false);
-	// auto GetMatOp(T_NodeIdTag nodeId, bool norm = false);
+	*/
+	Ptr<CsAlgorithm> GetAlgorithmTemp() const;
 
-	uint32_t m_nMeasDef, m_mMaxDef, m_vecLenDef;	/**< default buffer dimensions*/
-	TracedCallback<int64_t, uint32_t> m_completeCb; /**< callback when completed reconstruction, returning time+iterations needed*/
-	TracedCallback<const klab::KException &> m_errorCb;		/**< callback when reconstruction fails, returning KExeception type*/
+	/**
+	* \brief gets the spatial reconstruction algorithm
+	*
+	* \return pointer to CsAlgorithm object
+	*
+	*/
+	Ptr<CsAlgorithm> GetAlgorithmSpat() const;
+	/**
+	* \brief sets the internal RandomMatrix and real TransMatrix from a RecMatrix container for spatial reconstruction
+	*
+	* When this function was called the spatial solver will work with real values.
+	* The instances pointed too will be cloned, so changes on them after
+	* setting them will have no effect!
+	*
+	* \param recMat recMatrix container
+	* \tparam T type of transformation (either double or arma::cx_double)
+	*
+	*/
+	void SetRecMatSpat(Ptr<RecMatrixReal> recMat);
+	
+	/**
+	* \brief sets the internal RandomMatrix and complex TransMatrix from a RecMatrix container for spatial reconstruction
+	*
+	* When this function was called the spatial solver will work with complex values.
+	* The instances pointed too will be cloned, so changes on them after
+	* setting them will have no effect!
+	*
+	* \param recMat recMatrix container
+	* \tparam T type of transformation (either double or arma::cx_double)
+	*
+	*/
+	void SetRecMatSpat(Ptr<RecMatrixCx> recMat);
+
+	/**
+	* \brief sets the internal RandomMatrix and real TransMatrix from a RecMatrix container for temporal reconstruction
+	*
+	* When this function was called the spatial solver will work with real values.
+	* The instances pointed too will be cloned, so changes on them after
+	* setting them will have no effect!
+	*
+	* \param recMat recMatrix container
+	* \tparam T type of transformation (either double or arma::cx_double)
+	*
+	*/
+	void SetRecMatTemp(Ptr<RecMatrixReal>  recMat);
+
+	/**
+	* \brief sets the internal RandomMatrix and complex TransMatrix from a RecMatrix container for temporal reconstruction
+	*
+	* When this function was called the spatial solver will work with complex values.
+	* The instances pointed too will be cloned, so changes on them after
+	* setting them will have no effect!
+	*
+	* \param recMat recMatrix container
+	* \tparam T type of transformation (either double or arma::cx_double)
+	*
+	*/
+	void SetRecMatTemp(Ptr<RecMatrixCx> recMat);
 
   private:
-	typedef NodeDataBuffer<T> T_NodeBuffer; /**< NodeDataBuffer with elements of type T*/
+	//internal typedefs
+	typedef NodeDataBuffer<double> T_InBuffer; /**< input NodeDataBuffer with doubles*/
+
 
 	/**
-	* \brief Class containing info on each node (seed, matrix sizes, buffer pointers)
+	* \brief Class containing info on each cluster
+	*
+	* When initialised new DataStream instances are added to the cluster and all its nodes.
+	*
 	*/
-	class T_NodeInfo : public SimpleRefCount<T_NodeInfo>
+	class ClusterInfo : public SimpleRefCount<ClusterInfo>
 	{
+
 	  public:
-		T_NodeInfo() : seed(0), nMeas(0), m(0), vecLen(0), mMax(0) {}
-		T_NodeInfo(uint32_t s, uint32_t n, uint32_t m, uint32_t vl,
-				   uint32_t mMax, Ptr<T_NodeBuffer> in, Ptr<T_NodeBuffer> out) : seed(s), nMeas(n),
-																				 m(m), vecLen(vl),
-																				 mMax(mMax), inBufPtr(in),
-																				 outBufPtr(out),
-																				 precode(new SpatialPrecodingMatrix<T>(n))
+		ClusterInfo(Ptr<CsCluster> cl) : cluster(cl),
+															n(cl->GetCompression(CsCluster::E_COMPR_DIMS::n)),
+															m(cl->GetCompression(CsCluster::E_COMPR_DIMS::m)),
+															l(cl->GetCompression(CsCluster::E_COMPR_DIMS::l)),
+															nNodes(cl->GetN()),
+															clSeed(cl->GetClusterSeed()),
+															inBuf(CreateObject<T_InBuffer>(l, m)),
+															spatRecBuf(CreateObject<MatBuffer<double>>(nNodes, m)),
+															precode(new SpatialPrecodingMatrix<double>(nNodes))
 		{
-		}
-		uint32_t seed;											/**< seed of random sensing matrix*/
-		uint32_t nMeas;											/**< original number of measurements to reconstruct*/
-		uint32_t m;												/**< current compressed data vectors*/
-		uint32_t vecLen;										/**<  data vector length*/
-		uint32_t mMax;											/**< maximum NOF compressed data vectors*/
-		Ptr<T_NodeBuffer> inBufPtr,								/**< input data of each node*/
-			outBufPtr;											/**< output data of each node after reconstruction*/
-		klab::TSmartPointer<SpatialPrecodingMatrix<T>> precode; /**< precoding matrix*/
+			AddNewStreams(0);
+		};
+
+		/**
+		* \brief Adds new DataStream instances  to the cluster and all its nodes.
+		*
+		*/
+		void AddNewStreams(uint32_t run)
+		{
+			streams.clear();
+			streams.reserve(nNodes);
+			clStream = Create<DataStream<double>>(Reconstructor::STREAMNAME + std::to_string(run));
+			cluster->AddStream(clStream);
+			for (auto it = cluster->Begin(); it != cluster->End(); it++)
+			{
+				Ptr<DataStream<double>> stream = Create<DataStream<double>>(Reconstructor::STREAMNAME + std::to_string(run));
+				streams.push_back(stream);
+				(*it)->AddStream(stream);
+			}
+		};
+
+		//variables
+		Ptr<CsCluster> cluster;										 /**< pointer to a cluster*/
+		uint32_t n, m, l,											 /**< compression dimensions getters*/
+			nNodes,													 /**< NOF nodes in this cluster*/
+			clSeed;													 /**< seed of the cluster node*/
+		Ptr<T_InBuffer> inBuf;										 /**< input data of each node*/
+		Ptr<MatBuffer<double>> spatRecBuf;							 /**< data of cluster after spatial reconstruction*/
+		Ptr<DataStream<double>> clStream;							 /**< cluster stream, where spatial reconstruction results are written to*/
+		std::vector<Ptr<DataStream<double>>> streams;				 /**< node streams, ordered by node id, where temporal reconstruction results are written to*/
+		klab::TSmartPointer<SpatialPrecodingMatrix<double>> precode; /**< precoding matrix*/
 	};
 
 	/**
-	* \brief gets the sparse sensing MXN matrix constructed out of the meta data for the given node ID
+	* \brief gets the matrix operator used for reconstructing for the spatial case
 	*
-	* \param seed
-	* \param m NOF rows
-  	* \param n NOF columns
-	* \param norm	Normalize sensing matrix?
+	* returns \f$A = \Phi B \Psi \f$, where\n
+	* \f$\Phi\f$ is the random sensing matrix of the cluster\n
+	* \f$B\f$ is the diagonal precoding matrix \n
+	* \f$\Psi\f$ is the transformation matrix
 	*
-	* \return sparse sensing matrix, may be NULL
+	* \param info ClusterInfo info of the cluster
+	*
+	* \return operator used for reconstructing
 	*/
-	klab::TSmartPointer<kl1p::TOperator<T>> GetSensMat(uint32_t seed, uint32_t m, uint32_t n, bool norm);
+	template <typename T = double>
+	klab::TSmartPointer<kl1p::TOperator<T>> GetASpat(const ClusterInfo &info);
 
 	/**
-	* \brief Gets the NxN transformation matrix		
-	* 
-	* n	size of matrix
+	* \brief gets the matrix operator used for reconstructing for the temporal case
 	*
-	* \return the transformation matrix	, may be NULL
+	* returns \f$A = \Phi \Psi \f$, where\n
+	* \f$\Phi\f$ is the random sensing matrix of the cluster\n
+	* \f$\Psi\f$ is the transformation matrix
+	*
+	* \param seed seed to use to draw \f$\Phi\f$
+	* \param m NOF rows of A
+  	* \param n NOF columns of A
+	*
+	* \return operator used for reconstructing
 	*/
-	klab::TSmartPointer<kl1p::TOperator<T>> GetTransMat(uint32_t n);
+	template <typename T = double>
+	klab::TSmartPointer<kl1p::TOperator<T>> GetATemp(uint32_t seed, uint32_t m, uint32_t n);
 
 	/**
-	* \brief checks out node info to avoid redundent look ups		
+	* \brief write matrix to spatial reconstruction buffer
 	*
-	* \param nodeId	node ID	
+	* If there is a TransMatrix associated with this reconstructor, the transformation will be applied to mat.
+	* This is since the reconstruction algorithms will return the atom values of the transformation.
+	* It also writes to the current output DataStream of the cluster.
+	* This method is also needed since the reconstruction may be done in
+	* the complex domain, so the results are also complex but the in and output
+	* of the nodes is always real. Thus in the complex case only the real part
+	* of the matrix is stored.
 	*
-	* \return reference to current info structure
+	* \param info info on cluster
+	* \param mat matrix to be written
+	*
 	*/
-	T_NodeInfo &CheckOutInfo(T_NodeIdTag nodeId);
-	const T_NodeInfo &CheckOutInfo(T_NodeIdTag nodeId) const;
+	template <typename T = double>
+	void WriteRecSpat(const ClusterInfo &info, const Mat<T> &mat);
 
-	uint32_t m_nNodes;								 /**< NOF nodes from which we are gathering data*/
-	std::vector<T_NodeIdTag> m_nodeIds;				 /**< vector with all node IDs*/
-	std::map<T_NodeIdTag, T_NodeInfo> m_nodeInfoMap; /**< map for node info<>node ID*/
-	klab::TSmartPointer<RandomMatrix> m_ranMat;		 /**< Random matrix form from which sensing matrix is constructed*/
-	klab::TSmartPointer<TransMatrix<T>> m_transMat;  /**< Transformation matrix form from which sensing matrix is constructed*/
-	// klab::TSmartPointer<kl1p::TMultiplicationOperator<T, T> m_multOp; /**< multiplication operator*/
-	mutable T_NodeIdTag m_nodeIdNow, m_nodeIdNowConst; /**< current nodeId*/
-	mutable Ptr<const T_NodeInfo> m_infoNowConst;	  /**< current nodeId for const call*/
-	mutable Ptr<T_NodeInfo> m_infoNow;				   /**< current selected info structure*/
+
+	/**
+	* \brief write matrix to node stream
+	*
+	* If there is a TransMatrix associated with this reconstructor, the transformation will be applied to mat.
+	* This is since the reconstruction algorithms will return the atom values of the transformation.
+	* This method is also needed since the reconstruction may be done in
+	* the complex domain, so the results are also complex but the in and output
+	* of the nodes is always real. Thus in the complex case only the real part
+	* of the matrix is stored.
+	*
+	* \param info info on cluster
+	* \param mat matrix to be written
+	*
+	*/
+	template <typename T = double>
+	void WriteRecTemp(Ptr<DataStream<double>> stream, const Mat<T> &mat);
+
+	/**
+	* \brief writes a matrix to a DataStream<double> instance
+	*
+	* The matrix will be stored in a single SerialDataBuffer column by column.
+	* This method is needed since the reconstruction may be done in
+	* the complex domain, so the results are also complex but the in and output
+	* of the nodes is always real. Thus in the complex case only the real part
+	* of the matrix is stored.
+	*
+	* \param stream pointer to DataStream to write to
+	* \param mat	matrix which will be stored	
+	*
+	*/
+	template <typename T = double>
+	void WriteStream(Ptr<DataStream<double>> stream, const Mat<T> &mat);
+
+	/**
+	* \brief reconstruct the spatially compressed cluster data for all added clusters
+	*
+	* The reconstructed data will be written as a DataStream to each cluster
+	* FOR NOW RECONSTRUCTS EACH CLUSTER SEPARETLY!
+	*
+	* \return time in ms needed for reconstruction
+	*/
+	template <typename T = double>
+	void ReconstructSpat();
+
+	/**
+	* \brief reconstruct the temporally compressed source node of one cluster
+	*
+	* The reconstructed data will be written as a DataStream to each node
+	*
+	* \param clInfo ClusterInfo: info about cluster whose source nodes shall be reconstructed
+	* \return time in ms needed for reconstruction
+	*/
+	template <typename T = double>
+	void ReconstructTemp(const ClusterInfo &info);
+
+	//internal
+	uint32_t m_runNmb;				   /**< run number is increased for each input reset*/
+	bool m_cxTransTemp, m_cxTransSpat; /**< is transformation complex?*/
+
+	//clusters
+	uint32_t m_nClusters;										 /**< NOF clusters from which we are gathering data*/
+	std::map<CsHeader::T_IdField, ClusterInfo> m_clusterInfoMap; /**< map for cluster info */
+
+	//algorithms
+	Ptr<CsAlgorithm> m_algoSpat, /**< spatial reconstruction algorithm*/
+		m_algoTemp;
+
+	//operators
+	klab::TSmartPointer<RandomMatrix> m_ranMatSpat, m_ranMatTemp;					/**< Random matrix form from which sensing matrix is constructed*/
+	klab::TSmartPointer<TransMatrix<double>> m_transMatSpat, m_transMatTemp;		/**< Transformation matrix form from which sensing matrix is constructed*/
+	klab::TSmartPointer<TransMatrix<cx_double>> m_transMatSpatCx, m_transMatTempCx; /**< Transformation matrix form from which sensing matrix is constructed, complex*/
+
 };
 
 #endif //RECONSTRUCTOR_H
