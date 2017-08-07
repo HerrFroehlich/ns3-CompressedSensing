@@ -5,51 +5,68 @@
 #define DEFAULT_N 256
 #define DEFAULT_M 128
 #define DEFAULT_L 32
-#define DEFALUT_DIR "./IOdata"
+#define DEFAULT_FILE "./IOdata/data.mat"
+// #define DEFAULT_FILEOUT "./IOdata/dataOut.mat"
+#define DEFAULT_SRCMAT_NAME "X"
+#define DEFAULT_K_NAME "k"
+#define CLUSTER_ID 0
 
 #define TXPROB_MODIFIER 1.1
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/cs-cluster-simple-helper.h"
-#include "ns3/simple-sink-app.h"
+#include "ns3/cs-sink-app.h"
+#include "ns3/omp-reconstructor.h"
+#include "ns3/bp-reconstructor.h"
+#include "ns3/mat-file-handler.h"
 
 using namespace ns3;
 using namespace std;
 
 NS_LOG_COMPONENT_DEFINE("SingleCsCluster");
 
-std::string dir = "./IOdata";
+MatFileHandler matHandler_glob;
 
 static void
 compressCb(arma::Mat<double> matIn, arma::Mat<double> matOut)
 {
 
-	NS_LOG_INFO("\n"<<Simulator::Now() << " Node " << Simulator::GetContext() << " compressed.");
+	NS_LOG_INFO("\n"
+				<< Simulator::Now() << " Node " << Simulator::GetContext() << " compressed.");
 	static uint32_t count = 0;
-	matIn.save(dir + "/_notcompress" + std::to_string(count), arma::csv_ascii);
-	matOut.save(dir + "/_compress" + std::to_string(count++), arma::csv_ascii);
+	matHandler_glob.WriteMat("notCompressSpat" + std::to_string(count), matIn);
+	matHandler_glob.WriteMat("CompressSpat" + std::to_string(count++), matOut);
 }
 
 static void
 receiveCb(Ptr<const Packet> p)
 {
 	NS_LOG_FUNCTION(p);
-	NS_LOG_INFO("\n"<<Simulator::Now() << " Node " << Simulator::GetContext() << " Received:");
+	NS_LOG_INFO("\n"
+				<< Simulator::Now() << " Node " << Simulator::GetContext() << " Received:");
 	p->Print(cout);
+	cout << endl;
 }
 
 static void
 transmittingCb(Ptr<const Packet> p)
 {
 	NS_LOG_FUNCTION(p);
-	NS_LOG_INFO("\n"<<Simulator::Now() << " Node " << Simulator::GetContext() << " Sends:");
+	NS_LOG_INFO("\n"
+				<< Simulator::Now() << " Node " << Simulator::GetContext() << " Sends:");
 	p->Print(cout);
+	cout << endl;
+}
+
+static void
+recErrorCb(const klab::KException &e)
+{
+	NS_LOG_ERROR("Reconstruction failed with error " << e.what());
 }
 
 int main(int argc, char *argv[])
 {
-
 	/*********  Command line arguments  **********/
 
 	uint32_t nSrcNodes = DEFAULT_NOF_SRCNODES,
@@ -59,19 +76,28 @@ int main(int argc, char *argv[])
 			 l = DEFAULT_L;
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS;
 	bool verbose = false,
-		 info = false;
+		 info = false,
+		 seq = false;
+	std::string matFilePath = DEFAULT_FILE,
+				// matFilePathOut = DEFAULT_FILEOUT,
+		srcMatrixName = DEFAULT_SRCMAT_NAME,
+				kName = DEFAULT_K_NAME;
 
 	CommandLine cmd;
 
 	cmd.AddValue("info", "Enable info messages", info);
 	cmd.AddValue("verbose", "Verbose Mode", verbose);
+	cmd.AddValue("seq", "Reconstruct sequentially for each received packet", seq);
 	cmd.AddValue("nSrcNodes", "NOF source nodes in topology", nSrcNodes);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
 	cmd.AddValue("channelDelay", "delay of all channels [ms]", channelDelayTmp);
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
 	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
 	cmd.AddValue("l", "NOF meas. vectors after spatial compression, rows of Z", l);
-	cmd.AddValue("dir", "Directory to put I/O files to", dir);
+	cmd.AddValue("file", "path to mat file to read from", matFilePath);
+	// cmd.AddValue("file", "path to mat file to write output to", matFilePathOut);
+	cmd.AddValue("MATsrc", "name of the matrix in the mat file containing the data for the source nodes", srcMatrixName);
+	cmd.AddValue("MATk", "name of the varial in the mat file containing the value of k", kName);
 
 	cmd.Parse(argc, argv);
 
@@ -79,32 +105,44 @@ int main(int argc, char *argv[])
 	/*********  Logging  **********/
 	if (verbose)
 	{
-		LogComponentEnableAll(LOG_LEVEL_ERROR);
+		LogComponentEnableAll(LOG_LEVEL_WARN);
 		LogComponentEnable("SingleCsCluster", LOG_LEVEL_FUNCTION);
 		LogComponentEnable("CsSrcApp", LOG_LEVEL_FUNCTION);
 		LogComponentEnable("CsClusterApp", LOG_LEVEL_FUNCTION);
-		LogComponentEnable("SimpleSinkApp", LOG_LEVEL_FUNCTION);
-		LogComponentEnable("SimpleSinkApp", LOG_LEVEL_FUNCTION);
+		LogComponentEnable("CsSinkApp", LOG_LEVEL_FUNCTION);
 		LogComponentEnable("MySimpleChannel", LOG_LEVEL_FUNCTION);
 		LogComponentEnable("MySimpleNetDevice", LOG_LEVEL_FUNCTION);
+		LogComponentEnable("MatFileHandler", LOG_LEVEL_FUNCTION);
 		Packet::EnablePrinting();
 	}
 	else if (info)
 	{
+		LogComponentEnableAll(LOG_LEVEL_WARN);
 		LogComponentEnable("SingleCsCluster", LOG_LEVEL_INFO);
 		LogComponentEnable("CsSrcApp", LOG_LEVEL_INFO);
-		LogComponentEnable("SimpleSinkApp", LOG_LEVEL_INFO);
+		LogComponentEnable("CsClusterApp", LOG_LEVEL_INFO);
+		LogComponentEnable("CsSinkApp", LOG_LEVEL_INFO);
+		LogComponentEnable("MatFileHandler", LOG_LEVEL_INFO);
 		Packet::EnablePrinting();
 	}
 	else
 	{
+		LogComponentEnableAll(LOG_LEVEL_WARN);
 		LogComponentEnable("SingleCsCluster", LOG_LEVEL_WARN);
 		LogComponentEnable("CsSrcApp", LOG_LEVEL_WARN);
+		LogComponentEnable("CsClusterApp", LOG_LEVEL_WARN);
+		LogComponentEnable("CsSinkApp", LOG_LEVEL_WARN);
 	}
+
+	/*********  read matlab file  **********/
+	NS_LOG_INFO("Reading mat file...");
+	matHandler_glob.Open(matFilePath);
+	DataStream<double> sourceData = matHandler_glob.ReadMat<double>(srcMatrixName);
+	// uint32_t k = matHandler_glob.ReadValue<double>(kName); // casting double  to uint32_t
+	//matHandler_glob.Open(matFilePathOut);				   // open output file
 	/*********  initialize nodes  **********/
 
 	NS_LOG_INFO("Initialzing Nodes...");
-	CsNodeContainer cluster;
 
 	NS_LOG_INFO("Creating cluster...");
 	CsClusterSimpleHelper clusterHelper;
@@ -114,6 +152,13 @@ int main(int argc, char *argv[])
 	clusterHelper.SetSrcDeviceAttribute("DataRate", DataRateValue(dataRate));
 	clusterHelper.SetClusterDeviceAttribute("DataRate", DataRateValue(dataRate));
 
+	// temporal compressor
+	Ptr<CompressorTemp<double>> comprTemp = CreateObject<CompressorTemp<double>>();
+	Ptr<RandomMatrix> ident = CreateObject<IdentRandomMatrix>();
+	comprTemp->SetAttribute("RanMatrix", PointerValue(ident));
+	clusterHelper.SetSrcAppAttribute("ComprTemp", PointerValue(comprTemp));
+	clusterHelper.SetClusterAppAttribute("ComprTemp", PointerValue(comprTemp));
+
 	double txProb = TXPROB_MODIFIER * l / nSrcNodes;
 	clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 
@@ -121,8 +166,8 @@ int main(int argc, char *argv[])
 	comp->TraceConnectWithoutContext("Complete", MakeCallback(&compressCb));
 	clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
 
-	cluster = clusterHelper.Create(0, nSrcNodes, dir + "/x");
-	ApplicationContainer clusterApps = clusterHelper.GetFirstApp(cluster);
+	CsCluster cluster = clusterHelper.Create(CLUSTER_ID, nSrcNodes, sourceData);
+	ApplicationContainer clusterApps = cluster.GetApps();
 
 	//add trace sources to apps
 	std::string confPath = "/NodeList/*/ApplicationList/0/$CsSrcApp/"; //for all nodes add a tx callback
@@ -145,7 +190,7 @@ int main(int argc, char *argv[])
 	// channel->Add(devA);
 	// channel->Add(devB);
 
-	Ptr<CsNode> clusterNode = cluster.Get(0);
+	Ptr<CsNode> clusterNode = cluster.GetClusterNode();
 	clusterNode->AddTxDevice(devA);
 	sink.AddDevice(devB);
 
@@ -153,22 +198,34 @@ int main(int argc, char *argv[])
 	devA->SetChannel(channel);
 	devB->SetNode(&sink);
 	devB->SetChannel(channel);
-	// MySimpleNetDeviceHelper hSrcToCluster, hRelayToSink;
-	// Ptr<RateErrorModel> errModSrc_ptr, errModRelay_ptr;
-
-	// hSrcToCluster.SetDeviceAttribute("DataRate", DataRateValue(dataRate));
-	// // hSrcToCluster.SetDeviceAttribute("ReceiveErrorModel", PointerValue(errModSrc_ptr));
-	// hSrcToCluster.SetChannelAttribute("Delay", TimeValue(channelDelay));
-	// tmp.Add(cluster.Get(0));
-	// tmp.Add(srcNodes.Get(0));
-	// hSrcToCluster.Install(tmp);
 	/*********  Install the applications  **********/
 
 	NS_LOG_INFO("Adding Applications...");
 
-	SimpleSinkApp sinkApp(nSrcNodes, cout);
-	sinkApp.TraceConnectWithoutContext("Rx", MakeCallback(&receiveCb));
-	sinkApp.Setup(&sink);
+	Ptr<CsSinkApp> sinkApp = CreateObject<CsSinkApp>();
+
+	Ptr<Reconstructor<double>> recTemp = CreateObject<OMP_ReconstructorTemp<double>>();
+	Ptr<TransMatrix<double>>transMat = CreateObject<DcTransMatrix<double>>();
+	recTemp->SetTransMat(transMat);
+	Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
+	recTemp->SetRanMat(ranMat);
+	//recTemp->SetAttribute("k", UintegerValue(k));
+	recTemp->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
+	sinkApp->SetAttribute("RecTemp", PointerValue(recTemp));
+
+	Ptr<Reconstructor<double>> recSpat = CreateObject<OMP_Reconstructor<double>>();
+	recSpat->SetTransMat(transMat);
+	//recSpat->SetAttribute("k", UintegerValue(k));
+	recSpat->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
+	sinkApp->SetAttribute("RecSpat", PointerValue(recSpat));
+	if(!seq)
+		sinkApp->SetAttribute("MinPackets", UintegerValue(l));
+	else
+		sinkApp->SetAttribute("MinPackets", UintegerValue(l/2));
+
+	sinkApp->TraceConnectWithoutContext("Rx", MakeCallback(&receiveCb));
+	sinkApp->AddCluster(&cluster);
+	sinkApp->Setup(&sink, matFilePath);
 
 	/*********  Running the Simulation  **********/
 
@@ -176,6 +233,21 @@ int main(int argc, char *argv[])
 	clusterApps.Start(Seconds(0.));
 	//	Simulator::Stop(Seconds(30));
 	Simulator::Run();
+
+	//write output data
+	// DataStreamContainer<double> dataOutCluster = cluster.GetStreams();
+	// matHandler_glob.WriteStruct<double>(cluster);
+	// // Ptr<CsNode> clusterNode = cluster.GetClusterNode();
+	// matHandler_glob.WriteStruct<double>(*clusterNode);
+	// for (auto it = cluster.SrcBegin(); it != cluster.SrcEnd(); it++)
+	// {
+	// 	matHandler_glob.WriteStruct<double>(**it);
+	// }
+	matHandler_glob.WriteCluster(cluster);
+	matHandler_glob.WriteValue<double>("nNodesUsed", nSrcNodes + 1);
+	matHandler_glob.WriteValue<double>("n", n);
+	matHandler_glob.WriteValue<double>("m", m);
+	matHandler_glob.WriteValue<double>("l", l);
 	Simulator::Destroy();
 	return 0;
 }

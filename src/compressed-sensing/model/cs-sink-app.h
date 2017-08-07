@@ -16,8 +16,9 @@
 #include "ns3/network-module.h"
 #include "ns3/applications-module.h"
 #include "cs-header.h"
-#include "ns3/cs-node-container.h"
+#include "ns3/cs-cluster.h"
 #include "reconstructor.h"
+#include "ns3/data-stream.h"
 
 using namespace ns3;
 
@@ -35,7 +36,7 @@ class CsSinkApp : public Application
   public:
 	enum E_DropCause
 	{
-		NOT_A_CLUSTER, /**< received data from non cluster node  */
+		NOT_A_CLUSTER,  /**< received data from non cluster node  */
 		UNKNOWN_CLUSTER /**< received from cluster which was not registered with AddCluster*/
 	};
 	typedef void (*RxDropCallback)(Ptr<const Packet>, E_DropCause); /**< callback signature:  dropping a received packet*/
@@ -60,16 +61,12 @@ class CsSinkApp : public Application
 	/**
 	* \brief Adds a cluster to receive from with given compression
 	*
-	* Assumes the cluster node is stored on index 0 in the container
 	* Asserts that the cluster with the given ID was added only once.
 	*
-	* \param cluster node container with cluster nodes
-	* \param n length of original measurement vector (from source nodes)
-	* \param m length of temporally compressed vector (from source nodes)
-	* \paran l NOF compressed vectors(from cluster node)
+	* \param cluster CsCluster with nodes
 	*
 	*/
-	void AddCluster(const CsNodeContainer &cluster, uint32_t n, uint32_t m, uint32_t l);
+	void AddCluster(Ptr<CsCluster> cluster);
 
 	/**
 	* \brief set the temporal reconstructor
@@ -77,7 +74,7 @@ class CsSinkApp : public Application
 	* \param rec pointer to the reconstructor
 	*
 	*/
-	void SetTemporalReconstructor(Ptr<Reconstructor<double>> rec);
+	// void SetTemporalReconstructor(Ptr<Reconstructor<double>> rec);
 
 	/**
 	* \brief set the spatial reconstructor
@@ -85,7 +82,7 @@ class CsSinkApp : public Application
 	* \param rec pointer to the reconstructor
 	*
 	*/
-	void SetSpatialReconstructor(Ptr<Reconstructor<double>> rec);
+	// void SetSpatialReconstructor(Ptr<Reconstructor<double>> rec);
 
 	//inherited from Application
 	// virtual void StartApplication();
@@ -150,7 +147,7 @@ class CsSinkApp : public Application
 	* \brief starts reconstruction of next sequence
 	*
 	*/
-	void ReconstructNext();
+	void ReconstructNext(bool newSeq);
 
 	/**
 	* \brief buffers packets data
@@ -161,33 +158,27 @@ class CsSinkApp : public Application
 	* \param diff difference to last sequence
 	*
 	*/
-	void BufferPacket(Ptr<const Packet> p, uint32_t diff);
-
-	/**
-	* \brief write output files
-	*
-	* Writes to the directory setuped and to the files specified with the Attribute FileBaseName
-	**/
-	void WriteOutputFiles();
+	void BufferPacketData(Ptr<const Packet> p, uint32_t diff);
 
 	/**
 	* \brief prepares  for reconstructing  a new measurement sequence	
 	*
 	* This method resets all input buffers.
 	*
-	*
-	* \return returnDesc
 	*/
 	void StartNewSeq();
 
-	Ptr<CsNode> m_node;					  /**< aggretated node*/
-	Ptr<Reconstructor<double>> m_recSpat, /**< spatial reconstructor*/
-		m_recTemp;						  /**< temporal reconstructor, just for getting the explicit*/
+	Ptr<CsNode> m_node; /**< aggretated sink node*/
 
+	Ptr<Reconstructor<double>> m_recSpat,									/**< spatial reconstructor*/
+		m_recTemp;															/**< temporal reconstructor, just for getting the explicit type*/
 	std::map<CsHeader::T_IdField, Ptr<Reconstructor<double>>> m_recTempMap; /**<temporal reconstructor for each added cluster*/
 
 	CsHeader::T_SeqField m_seqCount;						 /**< measurment sequence counter*/
+	uint32_t m_recAttempt;									 /**< reconstruction attempt of current measurement sequence*/
 	std::map<CsHeader::T_IdField, SeqChecker> m_seqCheckMap; /**< checking for new Sequence*/
+
+	std::map<CsHeader::T_IdField, Ptr<CsCluster>> m_clusters; /**< clusters ordered with id*/
 
 	bool m_isSetup;
 	Time m_timeout;			/**< Packet inter-send time*/
@@ -198,6 +189,8 @@ class CsSinkApp : public Application
 	TracedCallback<Ptr<const Packet>> m_rxTrace;				  /**< received a packet*/
 	TracedCallback<Ptr<const Packet>, E_DropCause> m_rxDropTrace; /**< callback:  dropping a received packet*/
 
+	uint32_t m_minPackets,											   /**< minmum NOF packets to start reconstructing*/
+		m_rxPackets;												   /**< NOF received packets*/
 	const static uint32_t N_SRCNODES_MAX = CsHeader::MAX_SRCNODES + 1; /**< maximum NOF source nodes, +1 since cluster is also source!*/
 };
 
