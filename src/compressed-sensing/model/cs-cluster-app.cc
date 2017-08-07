@@ -34,7 +34,7 @@ CsClusterApp::GetTypeId(void)
 							.AddAttribute("nNodes", "NOF source nodes (including cluster node)",
 										  UintegerValue(MAX_N_SRCNODES),
 										  MakeUintegerAccessor(&CsClusterApp::m_nNodes),
-										  MakeUintegerChecker<CsHeader::T_IdField>())
+										  MakeUintegerChecker<uint32_t>())
 							.AddTraceSource("Rx", "A new packet is received",
 											MakeTraceSourceAccessor(&CsClusterApp::m_rxTrace),
 											"ns3::Packet::TracedCallback")
