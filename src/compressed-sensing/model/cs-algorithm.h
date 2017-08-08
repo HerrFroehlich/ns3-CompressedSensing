@@ -31,27 +31,7 @@ class CsAlgorithm : public ns3::Object
 	typedef void (*CompleteTracedCallback)(int64_t time, uint32_t iter); /**< callback signature when completed a reconstruction*/
 	typedef void (*ErrorTracedCallback)(const klab::KException &e);		 /**< callback signature when reconstruction fails*/
 
-	static ns3::TypeId GetTypeId()
-	{
-		static TypeId tid = TypeId("CsAlgorithm")
-								.SetParent<Object>()
-								.SetGroupName("CompressedSensing")
-								.AddAttribute("Tolerance", "Tolerance of solution",
-											  DoubleValue(1e-3),
-											  MakeDoubleAccessor(&CsAlgorithm::m_tol),
-											  MakeDoubleChecker<double>())
-								.AddAttribute("MaxIter", "Maximum NOF Iterations, if 0 -> no iteration limit",
-											  UintegerValue(0),
-											  MakeUintegerAccessor(&CsAlgorithm::m_maxIter),
-											  MakeUintegerChecker<uint32_t>())
-								.AddTraceSource("RecComplete", "Callback when Reconstuction completed",
-												MakeTraceSourceAccessor(&CsAlgorithm::m_completeCb),
-												"Reconstructor::CompleteTracedCallback")
-								.AddTraceSource("RecError", "Callback when Reconstuction failed with an error",
-												MakeTraceSourceAccessor(&CsAlgorithm::m_errorCb),
-												"Reconstructor::ErrorTracedCallback");
-		return tid;
-	};
+	static ns3::TypeId GetTypeId();
 
 	CsAlgorithm(){};
 

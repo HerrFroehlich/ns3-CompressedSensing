@@ -5,6 +5,31 @@
 
 NS_LOG_COMPONENT_DEFINE("CsAlgorithm");
 
+NS_OBJECT_ENSURE_REGISTERED(CsAlgorithm);
+ns3::TypeId CsAlgorithm::GetTypeId()
+{
+	static TypeId tid = TypeId("CsAlgorithm")
+							.SetParent<Object>()
+							.SetGroupName("CompressedSensing")
+							.AddAttribute("Tolerance", "Tolerance of solution",
+										  DoubleValue(1e-3),
+										  MakeDoubleAccessor(&CsAlgorithm::m_tol),
+										  MakeDoubleChecker<double>())
+							.AddAttribute("MaxIter", "Maximum NOF Iterations, if 0 -> no iteration limit",
+										  UintegerValue(0),
+										  MakeUintegerAccessor(&CsAlgorithm::m_maxIter),
+										  MakeUintegerChecker<uint32_t>())
+							.AddTraceSource("RecComplete", "Callback when Reconstuction completed",
+											MakeTraceSourceAccessor(&CsAlgorithm::m_completeCb),
+											"Reconstructor::CompleteTracedCallback")
+							.AddTraceSource("RecError", "Callback when Reconstuction failed with an error",
+											MakeTraceSourceAccessor(&CsAlgorithm::m_errorCb),
+											"Reconstructor::ErrorTracedCallback");
+	return tid;
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 NS_OBJECT_ENSURE_REGISTERED(CsAlgorithm_OMP);
 ns3::TypeId CsAlgorithm_OMP::GetTypeId()
 {
@@ -175,7 +200,7 @@ Mat<double> CsAlgorithm_BP::Run(const Mat<double> &Y, const klab::TSmartPointer<
 		for (uint32_t i = 0; i < vecLen; i++)
 		{
 			Col<double> xVec;
-			bp.solve(Y.col(i), A,  xVec);
+			bp.solve(Y.col(i), A, xVec);
 			X.col(i) = xVec;
 		}
 		wallClock.stop();
@@ -222,7 +247,7 @@ Mat<cx_double> CsAlgorithm_BP::Run(const Mat<double> &Y, const klab::TSmartPoint
 		for (uint32_t i = 0; i < vecLen; i++)
 		{
 			Col<cx_double> xVec;
-			bp.solve(Yc.col(i), A,  xVec);
+			bp.solve(Yc.col(i), A, xVec);
 			X.col(i) = xVec;
 		}
 		wallClock.stop();
