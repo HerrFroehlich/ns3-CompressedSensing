@@ -66,7 +66,8 @@ Mat<double> CsAlgorithm_OMP::Run(const Mat<double> &Y, const klab::TSmartPointer
 			 m = Y.n_rows,
 			 vecLen = Y.n_cols,
 			 n = A->n(),
-			 iter = GetMaxIter();
+			 maxIter = GetMaxIter(),
+			 iter = 0;
 
 	kl1p::TOMPSolver<double> omp(GetTolerance());
 
@@ -78,8 +79,8 @@ Mat<double> CsAlgorithm_OMP::Run(const Mat<double> &Y, const klab::TSmartPointer
 		k = m / log10(n);
 	NS_ASSERT_MSG(k <= n, "k must be <=n !");
 
-	if (iter)
-		omp.setIterationLimit(iter);
+	if (maxIter)
+		omp.setIterationLimit(maxIter);
 
 	try
 	{
@@ -89,10 +90,11 @@ Mat<double> CsAlgorithm_OMP::Run(const Mat<double> &Y, const klab::TSmartPointer
 			Col<double> xVec;
 			omp.solve(Y.col(i), A, k, xVec);
 			X.col(i) = xVec;
+			iter += omp.iterations();
 		}
 		wallClock.stop();
 		time = wallClock.durationInMilliseconds();
-		CallCompleteCb(time, omp.iterations());
+		CallCompleteCb(time, iter);
 	}
 	catch (const klab::KException &e)
 	{
@@ -118,7 +120,8 @@ Mat<cx_double> CsAlgorithm_OMP::Run(const Mat<double> &Y, const klab::TSmartPoin
 			 m = Y.n_rows,
 			 vecLen = Y.n_cols,
 			 n = A->n(),
-			 iter = GetMaxIter();
+			 maxIter = GetMaxIter(),
+			 iter = 0;
 
 	kl1p::TOMPSolver<double, cx_double> omp(GetTolerance());
 
@@ -128,8 +131,8 @@ Mat<cx_double> CsAlgorithm_OMP::Run(const Mat<double> &Y, const klab::TSmartPoin
 	/*--------  Solve  --------*/
 	if (k == 0)
 		k = m / log10(n);
-	if (iter)
-		omp.setIterationLimit(iter);
+	if (maxIter)
+		omp.setIterationLimit(maxIter);
 
 	try
 	{
@@ -139,10 +142,11 @@ Mat<cx_double> CsAlgorithm_OMP::Run(const Mat<double> &Y, const klab::TSmartPoin
 			Col<cx_double> xVec;
 			omp.solve(Yc.col(i), A, k, xVec);
 			X.col(i) = xVec;
+			iter += omp.iterations();
 		}
 		wallClock.stop();
 		time = wallClock.durationInMilliseconds();
-		CallCompleteCb(time, omp.iterations());
+		CallCompleteCb(time, iter);
 	}
 	catch (const klab::KException &e)
 	{
@@ -183,7 +187,8 @@ Mat<double> CsAlgorithm_BP::Run(const Mat<double> &Y, const klab::TSmartPointer<
 
 	uint32_t vecLen = Y.n_cols,
 			 n = A->n(),
-			 iter = GetMaxIter();
+			 maxIter = GetMaxIter(),
+			 iter = 0;
 
 	kl1p::TBasisPursuitSolver<double> bp(GetTolerance());
 
@@ -191,8 +196,8 @@ Mat<double> CsAlgorithm_BP::Run(const Mat<double> &Y, const klab::TSmartPointer<
 
 	/*--------  Solve  --------*/
 
-	if (iter)
-		bp.setIterationLimit(iter);
+	if (maxIter)
+		bp.setIterationLimit(maxIter);
 
 	try
 	{
@@ -202,10 +207,11 @@ Mat<double> CsAlgorithm_BP::Run(const Mat<double> &Y, const klab::TSmartPointer<
 			Col<double> xVec;
 			bp.solve(Y.col(i), A, xVec);
 			X.col(i) = xVec;
+			iter += bp.iterations();
 		}
 		wallClock.stop();
 		time = wallClock.durationInMilliseconds();
-		CallCompleteCb(time, bp.iterations());
+		CallCompleteCb(time, iter);
 	}
 	catch (const klab::KException &e)
 	{
@@ -229,7 +235,8 @@ Mat<cx_double> CsAlgorithm_BP::Run(const Mat<double> &Y, const klab::TSmartPoint
 
 	uint32_t vecLen = Y.n_cols,
 			 n = A->n(),
-			 iter = GetMaxIter();
+			 maxIter = GetMaxIter(),
+			 iter = 0;
 
 	kl1p::TBasisPursuitSolver<double, cx_double> bp(GetTolerance());
 
@@ -238,8 +245,8 @@ Mat<cx_double> CsAlgorithm_BP::Run(const Mat<double> &Y, const klab::TSmartPoint
 
 	/*--------  Solve  --------*/
 
-	if (iter)
-		bp.setIterationLimit(iter);
+	if (maxIter)
+		bp.setIterationLimit(maxIter);
 
 	try
 	{
@@ -249,10 +256,11 @@ Mat<cx_double> CsAlgorithm_BP::Run(const Mat<double> &Y, const klab::TSmartPoint
 			Col<cx_double> xVec;
 			bp.solve(Yc.col(i), A, xVec);
 			X.col(i) = xVec;
+			iter += bp.iterations();
 		}
 		wallClock.stop();
 		time = wallClock.durationInMilliseconds();
-		CallCompleteCb(time, bp.iterations());
+		CallCompleteCb(time, iter);
 	}
 	catch (const klab::KException &e)
 	{
