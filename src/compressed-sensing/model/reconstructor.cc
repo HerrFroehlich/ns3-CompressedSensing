@@ -509,7 +509,6 @@ TypeId Reconstructor::GetTypeId(void)
 							.AddConstructor<Reconstructor>()
 							.SetGroupName("CompressedSensing")
 							.AddAttribute("AlgoTemp", "The CsAlgorithm used to reconstruct temporally.",
-										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(CreateObject<CsAlgorithm_OMP>()),
 										  MakePointerAccessor(&Reconstructor::SetAlgorithmTemp, &Reconstructor::GetAlgorithmTemp),
 										  MakePointerChecker<CsAlgorithm>())
