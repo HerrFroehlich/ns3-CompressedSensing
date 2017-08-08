@@ -1,10 +1,11 @@
 % Create signals for source nodes from a bmp-picture.
-% Each picture column corresponds to the input data of a node.
+% Each picture row corresponds to the input data of a node.
 
 %% Settings
 FILE_PATH = './out/data';       %output mat file
-PIC_PATH = './.lena512.bmp';    %input picture
+PIC_PATH = './.MRI-knee.bmp';    %input picture
 m = 128;                        % to check Y column sparsity
+k = 5;                         % assumed sparsity of the pictures
 %% Defines
 MAX_NODES = 256;
 
@@ -20,7 +21,6 @@ nSamp = input('NOF Samples: ');
 dir = fileparts(mfilename('fullpath'));
 picByte = imread(fullfile(dir, PIC_PATH));
 pic = double(picByte)/256;
-
 dim = size(pic);
 
 assert(dim(2) >= nNodes, 'not enough rows in picture');
@@ -28,10 +28,10 @@ assert(dim(1) >= nSamp, 'not enough columns in picture');
 
 %% Crop picture
 X = pic(1:nSamp, 1:nNodes);
-% X = imresize(pic, [nNodes, nSamp]);
+%X = imresize(pic, [nSamp, nNodes]);
 
 %% write to file
-save(FILE_PATH, 'X', '-v6');
+save(FILE_PATH, 'X', 'k', '-v6');
 
 fid = fopen([FILE_PATH 'INFO'], 'w');
 fprintf(fid, 'Number of nodes: %d\n', nNodes);
