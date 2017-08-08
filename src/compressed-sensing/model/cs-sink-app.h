@@ -147,7 +147,7 @@ class CsSinkApp : public Application
 	* \brief starts reconstruction of next sequence
 	*
 	*/
-	void ReconstructNext(bool newSeq);
+	void ReconstructNext();
 
 	/**
 	* \brief buffers packets data
@@ -188,7 +188,7 @@ class CsSinkApp : public Application
 	TracedCallback<Ptr<const Packet>, E_DropCause> m_rxDropTrace; /**< callback:  dropping a received packet*/
 
 	uint32_t m_minPackets,											   /**< minmum NOF packets to start reconstructing*/
-		m_rxPackets;												   /**< NOF received packets*/
+		m_rxPacketsSeq;												   /**< NOF received packets for this measurement sequence*/
 	const static uint32_t N_SRCNODES_MAX = CsHeader::MAX_SRCNODES + 1; /**< maximum NOF source nodes, +1 since cluster is also source!*/
 };
 

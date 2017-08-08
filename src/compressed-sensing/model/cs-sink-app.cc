@@ -47,7 +47,7 @@ CsSinkApp::CsSinkApp() : m_seqCount(0),
 						 m_isSetup(false),
 						 m_timeoutEvent(EventId()),
 						 m_minPackets(0),
-						 m_rxPackets(0)
+						 m_rxPacketsSeq(0)
 
 {
 	NS_LOG_FUNCTION(this);
@@ -128,16 +128,17 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 	SeqChecker &check = m_seqCheckMap.at(clusterId);
 	bool newSeq = check.AddNewSeq(seq);
 
-	// TODO: actually a new Reconstruction should take place if we have a new sequence for all cluster nodes
-	// if (newSeq)
-	// {
-	// 	return false;
-	// 	//ReconstructNext(newSeq);
-	// }
+	/*TODO: actually a new Reconstruction should take place if we have a new sequence for all cluster nodes!
+	 * -> new SeqChecker, buffer packets of new Seq
+	 */
+	
+	if (newSeq)
+		StartNewSeq();
+
 
 	BufferPacketData(p, check.GetSeqDiff());
-	if (++m_rxPackets >= m_minPackets)
-		ReconstructNext(newSeq);
+	if (++m_rxPacketsSeq >= m_minPackets)
+		ReconstructNext();
 	return true;
 }
 
@@ -183,12 +184,9 @@ void CsSinkApp::BufferPacketData(Ptr<const Packet> packet, uint32_t diff)
 	m_reconst->SetPrecodeEntries(id, precode);
 }
 
-void CsSinkApp::ReconstructNext(bool newSeq)
+void CsSinkApp::ReconstructNext()
 {
 	NS_LOG_FUNCTION(this);
-	if (newSeq)
-		StartNewSeq();
-
 	NS_LOG_INFO("Reconstructing measurement seqence " << m_seqCount << ", " << m_recAttempt + 1 << ". attempt");
 
 	m_reconst->ReconstructAll();
@@ -198,6 +196,7 @@ void CsSinkApp::ReconstructNext(bool newSeq)
 
 void CsSinkApp::StartNewSeq()
 {
+	m_rxPacketsSeq = 0;
 	m_recAttempt = 0;
 	m_reconst->Reset();
 	m_seqCount++;
