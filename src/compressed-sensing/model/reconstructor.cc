@@ -179,8 +179,9 @@ klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor::GetASpat(const Recon
 {
 	NS_LOG_FUNCTION(this << &info);
 
+	uint32_t nMeas = info.inBuf->GetWrRow();
 	//get phi
-	m_ranMatSpat->SetSize(info.l, info.nNodes, info.clSeed);
+	m_ranMatSpat->SetSize(nMeas, info.nNodes, info.clSeed);
 	klab::TSmartPointer<kl1p::TOperator<double>> Phi = m_ranMatSpat;
 
 	//get B
