@@ -30,7 +30,7 @@ using namespace arma;
 * \ingroup compsens
  * \defgroup rec Reconstructors
  *
- * Various classes for reconstructing spatial dependent, compressed data with compressed sensing algorithms
+ * Various classes for reconstructing spatially and temporally compressed data with compressed sensing algorithms
  */
 /**
 * \ingroup rec
@@ -67,15 +67,29 @@ class RecMatrixCx : public Object
 * \ingroup rec
 * \class Reconstructor
 *
-* \brief A base class template for compressed sensing reconstructors using KL1p
+* \brief A class to reconstruct spatially and temporally compressed data via compressed sensing techniques
 *
-* This class is used as a base class for different CS reconstructors (using KL1p).
-* The base takes care of storing data for multiple nodes. Their individual random sensing matrix is recreated from used seed, which is also stored.
-* Additionally a transformation matrix if needed can be aggregated.
-* This Template can be used with the following explicit instantiations (see for Attributes) :\n
-* Reconstructor<double>\n
-* Reconstructor<cx_double>\n
 *
+* The class takes care of storing data for multiple clusters \f$k\f$ (CsCluster).
+* This includes the spatial compressed data \f$Z_k\f$ and as well the spatially reconstructed data \f$Y_k\f$.
+* Every \f$Z_k\f$ is written row by row. The buffer and the reconstruction dimensions are gathered from the 
+* data stored in each CsCluster instance.
+* With help of a random sensing matrix \f$\Phi_k\f$ (RandomMatrix), which is drawn from a cluster node's seed, an optional spatial
+* transformation matrix \f$\Psi^{S}\f$ (TransMatrix), which can be either real or complex, and a spatial precoding matrix \f$B_k\f$
+* (SpatialPrecodingMatrix) \f$Y_k\f$ is reconstructed by solving with an CsAlgorithm :\n
+* \f$Z_k = A_k Y_k =\Phi_k B_k Y_k = \Phi_k B_k \Psi^{S} \Theta_k \f$ (FOR NOW SEPARETLY FOR EACH CLUSTER, LATER THEY WILL BE SOLVED JOINTLY (NC))\n
+* When using a transformation matrix \f$\Psi^{S}\f$ compressed seinsing algorithms return the atom values \f$ \Theta_k \f$.
+* To get \f$Y_k\f$ we simply do \f$Y_k = \Psi^{S} \Theta_k \f$.
+* From this the temporal compressed data \f$X_{jk}\f$ of each node \f$j\f$ in each cluster \f$k\f$ is restored by solving:\n
+* \f$X_{jk} = A_{jk} Y_{jk} =\Phi_{jk} Y_{jk} = \Phi_{jk} \Psi^{T} \Theta_{jk}\f$, where:\n
+* - \f$\Phi_{jk}\f$ is the random sensing matrix of the node, which is drawn from its seed\n
+* - \f$\Psi^{T}\f$ is the temporal transformation matrix, which can be either real or complex
+* - \f$ \Theta_{jk} \f$ atom values, when using \f$\Psi^{T}\f$\n
+*
+* Again if a transformation matrix \f$\Psi^{T}\f$  is used, we calculate \f$X_{jk} = \Psi^{T} \Theta_{jk} \f$.
+* The spatial and temporal reconstruction results are written to a DataStream to the clusters/nodes to enable an evaluation outside
+* of this class. When the Reconstructor is resetted, the input buffers are cleared and a new run starts by appending
+* a new DataStream to the clusters/nodes.
 *
 */
 class Reconstructor : public ns3::Object
@@ -302,7 +316,7 @@ class Reconstructor : public ns3::Object
 	* \brief gets the matrix operator used for reconstructing for the temporal case
 	*
 	* returns \f$A = \Phi \Psi \f$, where\n
-	* \f$\Phi\f$ is the random sensing matrix of the cluster\n
+	* \f$\Phi\f$ is the random sensing matrix of the node\n
 	* \f$\Psi\f$ is the transformation matrix
 	*
 	* \param seed seed to use to draw \f$\Phi\f$
