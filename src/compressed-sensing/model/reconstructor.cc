@@ -79,7 +79,7 @@ void Reconstructor::Reset()
 	m_runNmb++;
 	for (auto &entry : m_clusterInfoMap)
 	{
-		ClusterInfo info = entry.second;
+		ClusterInfo &info = entry.second;
 		info.AddNewStreams(m_runNmb);
 		info.inBuf->Reset();
 	}
