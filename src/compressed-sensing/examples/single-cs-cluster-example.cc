@@ -83,8 +83,38 @@ spatRecCb(int64_t time, uint32_t iter)
 static void
 recErrorCb(const klab::KException &e)
 {
-	cout << "Reconstruction failed with error " << e.what();
+	if (info || verbose)
+		cout << "Reconstruction failed with error " << e.what();
 }
+
+static void
+comprFailSpat(CsHeader::T_IdField id)
+{
+	if (info || verbose)
+		cout << "Spatial compression failed within cluster " << static_cast<int>(id) << endl;
+}
+
+static void
+packetDrop(Ptr<const Packet> packet)
+{
+	if (info || verbose)
+	{
+		CsHeader header;
+		CsHeader::T_IdField nodeId,
+			clusterId;
+		CsHeader::T_SeqField seq;
+
+		packet->PeekHeader(header);
+		nodeId = header.GetNodeId();
+		clusterId = header.GetClusterId();
+		seq = header.GetSeq();
+
+		cout << "Packet of Node " << static_cast<int>(nodeId) << " in cluster " << static_cast<int>(clusterId) << " with SEQ " << static_cast<int>(seq)
+			 << " was dropped on physical layer!" << endl;
+	}
+}
+
+/*-------------------------  MAIN  ------------------------------*/
 
 int main(int argc, char *argv[])
 {
@@ -95,7 +125,8 @@ int main(int argc, char *argv[])
 			 n = DEFAULT_N,
 			 m = DEFAULT_M,
 			 l = DEFAULT_L;
-	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS;
+	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
+		   rateErr = 0.0;
 	bool seq = false,
 		 precode = true,
 		 bpSpat = false;
@@ -111,6 +142,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("seq", "Reconstruct sequentially for each received packet", seq);
 	cmd.AddValue("precode", "Enable spatial precoding?", precode);
 	cmd.AddValue("bp", "Basis Pursuit when solving spatially?", bpSpat);
+	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
 	cmd.AddValue("nSrcNodes", "NOF source nodes in topology", nSrcNodes);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
 	cmd.AddValue("channelDelay", "delay of all channels [ms]", channelDelayTmp);
@@ -161,6 +193,8 @@ int main(int argc, char *argv[])
 	NS_LOG_INFO("Reading mat file...");
 	matHandler_glob.Open(matFilePath);
 	DataStream<double> sourceData = matHandler_glob.ReadMat<double>(srcMatrixName);
+	uint32_t nMeasSeq = sourceData.GetMaxSize() / n;
+
 	uint32_t k = matHandler_glob.ReadValue<double>(kName); // casting double  to uint32_t
 	//matHandler_glob.Open(matFilePathOut);				   // open output file
 	/*********  initialize nodes  **********/
@@ -171,6 +205,7 @@ int main(int argc, char *argv[])
 	CsClusterSimpleHelper clusterHelper;
 
 	clusterHelper.SetCompression(n, m, l);
+	//delay & data rate
 	clusterHelper.SetChannelAttribute("Delay", TimeValue(channelDelay));
 	clusterHelper.SetSrcDeviceAttribute("DataRate", DataRateValue(dataRate));
 	clusterHelper.SetClusterDeviceAttribute("DataRate", DataRateValue(dataRate));
@@ -184,15 +219,28 @@ int main(int argc, char *argv[])
 
 	if (precode)
 	{
-		double txProb = TXPROB_MODIFIER * l / nSrcNodes;
-		if (txProb <= 1)
+		double txProb = TXPROB_MODIFIER * l / (nSrcNodes * (1 - rateErr));
+		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
 
+	//spatial compressor
 	Ptr<Compressor<double>> comp = CreateObject<Compressor<double>>();
 	comp->TraceConnectWithoutContext("Complete", MakeCallback(&compressCb));
 	clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
 
+	//error model
+	Ptr<RateErrorModel> errModel = CreateObject<RateErrorModel>();
+	if (rateErr > 0.0)
+	{
+		errModel->SetRate(rateErr);
+		errModel->SetUnit(RateErrorModel::ErrorUnit::ERROR_UNIT_PACKET);
+		errModel->AssignStreams(0);
+		clusterHelper.SetSrcDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
+		clusterHelper.SetClusterDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
+	}
+
+	//create
 	CsCluster cluster = clusterHelper.Create(CLUSTER_ID, nSrcNodes, sourceData);
 	ApplicationContainer clusterApps = cluster.GetApps();
 
@@ -214,10 +262,13 @@ int main(int argc, char *argv[])
 
 	devA->SetAttribute("DataRate", DataRateValue(dataRate));
 	devB->SetAttribute("DataRate", DataRateValue(dataRate));
+	if (rateErr > 0.0)
+		devB->SetAttribute("ReceiveErrorModel", PointerValue(errModel));
 	// channel->Add(devA);
 	// channel->Add(devB);
 
-	Ptr<CsNode> clusterNode = cluster.GetClusterNode();
+	Ptr<CsNode>
+		clusterNode = cluster.GetClusterNode();
 	clusterNode->AddTxDevice(devA);
 	sink->AddDevice(devB);
 
@@ -225,27 +276,12 @@ int main(int argc, char *argv[])
 	devA->SetChannel(channel);
 	devB->SetNode(sink);
 	devB->SetChannel(channel);
-	/*********  Install the applications  **********/
 
+	//adding sink app
 	NS_LOG_INFO("Adding Applications...");
 
 	Ptr<CsSinkApp> sinkApp = CreateObject<CsSinkApp>();
 	sink->AddApplication(sinkApp);
-
-	// Ptr<Reconstructor<double>> recTemp = CreateObject<OMP_ReconstructorTemp<double>>();
-	// Ptr<TransMatrix<double>>transMat = CreateObject<DcTransMatrix<double>>();
-	// recTemp->SetTransMat(transMat);
-	// Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
-	// recTemp->SetRanMat(ranMat);
-	// //recTemp->SetAttribute("k", UintegerValue(k));
-	// recTemp->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
-	// sinkApp->SetAttribute("RecTemp", PointerValue(recTemp));
-
-	// Ptr<Reconstructor<double>> recSpat = CreateObject<OMP_Reconstructor<double>>();
-	// recSpat->SetTransMat(transMat);
-	// //recSpat->SetAttribute("k", UintegerValue(k));
-	// recSpat->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
-	// sinkApp->SetAttribute("RecSpat", PointerValue(recSpat));
 
 	Ptr<Reconstructor> rec = CreateObject<Reconstructor>();
 	Ptr<TransMatrix<double>> transMat = CreateObject<DcTransMatrix<double>>();
@@ -261,19 +297,22 @@ int main(int argc, char *argv[])
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_OMP/k", UintegerValue(k));
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/k", UintegerValue(k));
 	// recTemp->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
-	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/RecComplete", MakeCallback(&spatRecCb));
-	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/RecComplete", MakeCallback(&tempRecCb));
-	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/RecError", MakeCallback(&recErrorCb));
-	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/RecError", MakeCallback(&recErrorCb));
+
 	if (!seq)
-		sinkApp->SetAttribute("MinPackets", UintegerValue(l));
+		sinkApp->SetAttribute("MinPackets", UintegerValue(l * (1 - rateErr)));
 	else
 		sinkApp->SetAttribute("MinPackets", UintegerValue(0));
 
 	sinkApp->TraceConnectWithoutContext("Rx", MakeCallback(&receiveCb));
 	sinkApp->AddCluster(&cluster);
 	sinkApp->Setup(sink, matFilePath);
-
+	//setting calbacks
+	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/RecComplete", MakeCallback(&spatRecCb));
+	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/RecComplete", MakeCallback(&tempRecCb));
+	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/RecError", MakeCallback(&recErrorCb));
+	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/RecError", MakeCallback(&recErrorCb));
+	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprFail", MakeCallback(&comprFailSpat));
+	Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$MySimpleNetDevice/PhyRxDrop" , MakeCallback(&packetDrop));
 	/*********  Running the Simulation  **********/
 
 	NS_LOG_INFO("Starting Simulation...");
@@ -289,6 +328,7 @@ int main(int argc, char *argv[])
 		matHandler_glob.WriteValue<double>("attempts", 0);
 	else
 		matHandler_glob.WriteValue<double>("attempts", l);
+	matHandler_glob.WriteValue<double>("nMeasSeq", nMeasSeq);
 
 	Simulator::Destroy();
 	return 0;
