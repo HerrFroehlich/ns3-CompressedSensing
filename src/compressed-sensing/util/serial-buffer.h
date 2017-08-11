@@ -108,10 +108,12 @@ class SerialDataBuffer : public ns3::Object
 	*/
 	void ReadNext(T *buffer, uint32_t bufSize) const;
 
+
 	/**
 	* \brief Moves the memory from a buffer to this serial buffer
-	* BE SURE TO ALLOCATE THE BUFFER ON THE HEAP!
+	* 
 	* The buffer pointer will be set to zero after memory has been moved, to avoid delete conflicts.
+	* \warning { BE SURE TO ALLOCATE THE BUFFER ON THE HEAP! }
 	*
 	* \param buffer 	a reference to a pointer to a  buffer  of the stored type
 	* \param bufSize	size of that buffer
@@ -176,11 +178,18 @@ class SerialDataBuffer : public ns3::Object
 	uint32_t GetSpace() const;
 
 	/**
-	* \brief gets the remaining NOF elements for reading
+	* \brief gets the remaining NOF elements for reading (when using read next)
 	*
 	* \return NOF remaining elements
 	*/
 	uint32_t GetRemaining() const;
+
+	/**
+	* \brief gets the total NOF elements written
+	*
+	* \return NOF elements written
+	*/
+	uint32_t GetNWritten() const;
 
 	/**
 	* \brief gets the total size of the buffer
@@ -361,6 +370,12 @@ template <typename T>
 uint32_t SerialDataBuffer<T>::GetSize() const
 {
 	return m_dataSize;
+}
+
+template <typename T>
+uint32_t SerialDataBuffer<T>::GetNWritten() const
+{
+	return m_wrIdx;
 }
 
 #endif //SERIALBUFFER_H
