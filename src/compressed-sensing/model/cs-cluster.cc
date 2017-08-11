@@ -152,7 +152,11 @@ ApplicationContainer CsCluster::GetApps() const
 
 uint32_t CsCluster::DefaultSeedCreator(uint32_t number, CsHeader::T_IdField id)
 {
-	return number + 1 + id;
+	//return number + 1 + id;
+	if (number == 0) 	//cluster
+		return 1 + id;
+	else 				//source
+		return CsHeader::MAX_CLUSTERNODES + id;
 }
 
 void CsCluster::SetCompression(uint32_t n, uint32_t m, uint32_t l)
