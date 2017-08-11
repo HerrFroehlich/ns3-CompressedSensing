@@ -222,9 +222,9 @@ matvar_t *MatFileHandler::CreateStructMatField(Ptr<DataStream<double>> stream)
 	for (auto it = stream->Begin(); it != stream->End(); it++)
 	{
 		double dataCol[maxSize] = {0.0};
-		uint32_t bufSize = (*it)->GetSize();
+		uint32_t bufSize = (*it)->GetNWritten();
 		(*it)->Read(0, dataCol, bufSize);
-		std::copy(dataCol, dataCol + bufSize, data + writeIdx);
+		std::copy(dataCol, dataCol + maxSize, data + writeIdx);
 		writeIdx += maxSize;
 	}
 	std::string name = stream->GetName();
