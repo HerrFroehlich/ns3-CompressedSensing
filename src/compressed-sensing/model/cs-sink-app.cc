@@ -13,6 +13,8 @@
 NS_LOG_COMPONENT_DEFINE("CsSinkApp");
 NS_OBJECT_ENSURE_REGISTERED(CsSinkApp);
 
+const std::string CsSinkApp::SEQSTREAMNAME = "PacketSeq";
+
 TypeId CsSinkApp::GetTypeId(void)
 {
 	static TypeId tid = TypeId("CsSinkApp")
@@ -81,12 +83,9 @@ void CsSinkApp::AddCluster(Ptr<CsCluster> cluster)
 	m_reconst->AddCluster(cluster);
 
 	Ptr<CsNode> clusterNode = cluster->GetClusterNode();
-	CsHeader::T_IdField clusterId = clusterNode->GetClusterId();
-	uint32_t l = cluster->GetCompression(CsCluster::E_COMPR_DIMS::l);
 
 	//add sequence checker
-	// SeqChecker check(l);
-	m_seqCheckMap.emplace(clusterId, SeqChecker(l));
+	m_seqCheck.AddCluster(cluster);
 }
 
 bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnused, const Address &adrUnused)
@@ -125,8 +124,7 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 
 	CsHeader::T_SeqField seq = header.GetSeq();
 
-	SeqChecker &check = m_seqCheckMap.at(clusterId);
-	bool newSeq = check.AddNewSeq(seq);
+	bool newSeq = m_seqCheck.AddNewSeq(clusterId, seq);
 
 	/*TODO: actually a new Reconstruction should take place if we have a new sequence for all cluster nodes!
 	 * -> new SeqChecker, buffer packets of new Seq
@@ -135,14 +133,13 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 	if (newSeq)
 		StartNewSeq();
 
-
-	BufferPacketData(p, check.GetSeqDiff());
+	BufferPacketData(p, m_seqCheck.GetNZeros(clusterId));
 	if (++m_rxPacketsSeq >= m_minPackets)
 		ReconstructNext();
 	return true;
 }
 
-void CsSinkApp::BufferPacketData(Ptr<const Packet> packet, uint32_t diff)
+void CsSinkApp::BufferPacketData(Ptr<const Packet> packet, uint32_t nZeros)
 {
 	NS_LOG_FUNCTION(this << packet);
 
@@ -159,15 +156,12 @@ void CsSinkApp::BufferPacketData(Ptr<const Packet> packet, uint32_t diff)
 	double *data = new double[size]();
 	p->CopyData(reinterpret_cast<uint8_t *>(data), size * sizeof(double));
 
-	// if (diff > 1) // we have to fill with zeros if we have a difference greater one
-	// {
-	// 	std::vector<uint32_t> dim = m_recSpat->GetBufferDim(id);
-	// 	uint32_t m = dim.at(2);
-
-	// 	double *zeroFill = new double[m * diff](); //zero initialized
-	// 	m_recSpat->WriteData(id, zeroFill, m * diff);
-	// 	delete[] zeroFill;
-	// }
+	if (nZeros > 0) // we have to fill with zeros
+	{
+		double *zeroFill = new double[nZeros](); //zero initialized
+		m_reconst->WriteData(id, zeroFill, nZeros);
+		delete[] zeroFill;
+	}
 
 	m_reconst->WriteData(id, data, size);
 	delete[] data;

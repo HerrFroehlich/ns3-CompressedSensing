@@ -34,6 +34,8 @@ using namespace ns3;
 class CsSinkApp : public Application
 {
   public:
+	static const std::string SEQSTREAMNAME; /**< name base of DataStream storing packets sequence numbers*/
+
 	enum E_DropCause
 	{
 		NOT_A_CLUSTER,  /**< received data from non cluster node  */
@@ -89,45 +91,114 @@ class CsSinkApp : public Application
 	// virtual void StopApplication();
 
   private:
-	struct SeqChecker /**< check for new measurement sequence, TODO overflow???*/
+	/**
+	* \brief structure class to determine if a new measurement sequence was received and how many zeros have to be padded to 
+	*		 in case of packet loss.
+	*
+	*/
+	struct SeqChecker
 	{
 	  public:
-		SeqChecker(uint32_t l) : m_lastSeq(0), m_l(l), m_packDiff(0), m_seqDiff(0) {}
+		SeqChecker(){};
+
+		/**
+		* \brief adds a cluster to the SeqChecker
+		*
+		* \param cluster pointer to cluster to add
+		*
+		*/
+		void AddCluster(const Ptr<CsCluster> cluster)
+		{
+			DiffInfo diff;
+			diff.lastSeq = 0;
+			diff.l = cluster->GetCompression(CsCluster::E_COMPR_DIMS::l);
+			diff.m = cluster->GetCompression(CsCluster::E_COMPR_DIMS::m);
+			diff.packDiff = 0;
+			diff.seqDiff = 0;
+			diff.seqStream = Create<DataStream<double>>(SEQSTREAMNAME);
+			diff.seqStream->CreateBuffer(1, cluster->GetCompression(CsCluster::E_COMPR_DIMS::l));
+			cluster->AddStream(diff.seqStream);
+			m_diffMap.emplace(cluster->GetClusterId(), diff);
+		}
 
 		/**
 		* \brief adds new packet sequence
 		*
+		* \param clusterId ID of the clustere
+		* \param seq	   new sequence
+		*
 		* \return true if enough packets were received to complete a measurement sequence
 		*/
-		bool AddNewSeq(CsHeader::T_SeqField seq)
+		bool AddNewSeq(CsHeader::T_IdField clusterId, CsHeader::T_SeqField seq)
 		{
 			bool ret = false;
-			int32_t diff = seq - m_lastSeq;
-			if (diff < 0) //overflow
-				diff += std::numeric_limits<CsHeader::T_SeqField>::max();
+			DiffInfo &info = m_diffMap.at(clusterId);
+			int32_t diff = seq - info.lastSeq;
 
-			m_packDiff += diff;
-			m_seqDiff = diff;
-			if (m_packDiff == m_l)
+			if (info.packDiff == info.l) // from last run
 			{
-				ret = true;
-				m_packDiff = 0;
+				info.packDiff = 0;
 			}
 
-			m_lastSeq = seq;
+			if (diff < 0) // unnoticed new sequence or overflow?
+			{
+				if ((diff + info.l) > 0) // in this case we most likely missed a sequence
+				{
+					diff = seq;
+					info.packDiff = 0;
+					info.lastSeq = seq;
+					ret = true;
+				}
+				else //overflow
+					diff += std::numeric_limits<CsHeader::T_SeqField>::max();
+			}
+
+			info.packDiff += diff;
+			info.seqDiff = diff;
+
+			info.lastSeq = seq;
+			if (info.packDiff == info.l)
+			{
+				info.seqStream->CreateBuffer(1, info.l); // add new buffer
+				ret = true;
+			}
+
+			(*(info.seqStream->End()-1))->WriteNext(seq); // write seq to last buffer in data stream
+
 			return ret;
 		}
 
-		CsHeader::T_SeqField GetSeqDiff() /**< get difference to last sequence*/
+		/**
+		* \brief gets the number of zeros to pad
+		*
+		* If there are missing sequences we have to write zero rows to Z.
+		* This function determines how many 0s have to be padded.
+		*
+		* \param clusterId id of the cluster
+		*
+		* \return number of zeros to pad
+		*/
+		uint32_t GetNZeros(CsHeader::T_IdField clusterId) const
 		{
-			return m_seqDiff;
+			DiffInfo diff = m_diffMap.at(clusterId);
+			if (diff.seqDiff == 0)
+				return 0;
+			else
+				return (diff.seqDiff - 1) * diff.m;
 		}
 
 	  private:
-		CsHeader::T_SeqField m_lastSeq; /**< last package sequence number*/
-		uint32_t m_l;					/**< NOF packets per measurement sequence*/
-		uint32_t m_packDiff,			/**< difference of packets to full measurement sequence*/
-			m_seqDiff;					/**< difference to last sequence*/
+		struct DiffInfo
+		{
+			CsHeader::T_SeqField lastSeq;	  /**< last package sequence number*/
+			uint32_t l;						   /**< NOF packets per measurement sequence*/
+			uint32_t m;						   /**< NOF samples per packet*/
+			uint32_t packDiff,				   /**< difference of packets to full measurement sequence*/
+				seqDiff;					   /**< difference to last sequence*/
+			Ptr<DataStream<double>> seqStream; /**< stream to write sequence numbers to */
+		};
+
+		std::map<CsHeader::T_IdField, DiffInfo> m_diffMap; /**< map with Diff Info ordered by cluster id*/
 	};
 
 	/**
@@ -155,10 +226,10 @@ class CsSinkApp : public Application
 	* If diff > 1, diff*m zeros will append in front (missing rows of Z_k)
 	*
 	* \param p	Pointer to Packet
-	* \param diff difference to last sequence
+	* \param nZeros NOF zeros to pad
 	*
 	*/
-	void BufferPacketData(Ptr<const Packet> p, uint32_t diff);
+	void BufferPacketData(Ptr<const Packet> p, uint32_t nZeros);
 
 	/**
 	* \brief prepares  for reconstructing  a new measurement sequence	
@@ -172,11 +243,9 @@ class CsSinkApp : public Application
 
 	Ptr<Reconstructor> m_reconst; /**<  reconstructor*/
 
-	CsHeader::T_SeqField m_seqCount;						 /**< measurment sequence counter*/
-	uint32_t m_recAttempt;									 /**< reconstruction attempt of current measurement sequence*/
-	std::map<CsHeader::T_IdField, SeqChecker> m_seqCheckMap; /**< checking for new Sequence*/
-
-	std::map<CsHeader::T_IdField, Ptr<CsCluster>> m_clusters; /**< clusters ordered with id*/
+	CsHeader::T_SeqField m_seqCount; /**< measurment sequence counter*/
+	uint32_t m_recAttempt;			 /**< reconstruction attempt of current measurement sequence*/
+	SeqChecker m_seqCheck;			 /**< checking for new Sequence*/
 
 	bool m_isSetup;
 	Time m_timeout;			/**< Packet inter-send time*/
