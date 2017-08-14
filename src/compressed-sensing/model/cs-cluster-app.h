@@ -64,12 +64,16 @@ public:
   /**
 	* \brief sets the used spatial compressor
   *
-	*  The NOF measurements used for compression may differ from sequence to sequence, as the source nodes transmit randomly. 
-  *  This means the compressor's "n"  does not need to be given as parameter.
-  *  Therefore the compressor will be setup later during compression.
 	* \param comp  pointer to compressor
 	*/
   void SetSpatialCompressor(Ptr<Compressor<double>> comp);
+
+  /**
+	* \brief gets the used spatial compressor
+  *
+	* \return  pointer to compressor
+	*/
+  Ptr<Compressor<double>> GetSpatialCompressor() const;
 
   /**
 	* \brief sets the used spatial compressor
@@ -161,8 +165,7 @@ private:
   //m_clusterDataMap;                                                 /**< NodeDataBuffer for  incoming cluster  node data*/
   std::bitset<CsHeader::SRCINFO_BITLEN> m_srcInfo;
 
-  bool m_normalize, /**< normalize random matrix by 1/sqrt(m)?*/
-      m_running,
+  bool m_running,
       m_isSetup;
 
   Time m_timeout;         /**< Packet inter-send time*/

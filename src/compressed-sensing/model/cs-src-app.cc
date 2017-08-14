@@ -43,14 +43,9 @@ CsSrcApp::GetTypeId(void)
 										  DoubleValue(1.0),
 										  MakeDoubleAccessor(&CsSrcApp::m_txProb),
 										  MakeDoubleChecker<double>(0.0, 1.0))
-							.AddAttribute("Norm", "Normalize the random matrix to 1/sqrt(m)?",
-										  BooleanValue(false),
-										  MakeBooleanAccessor(&CsSrcApp::m_normalize),
-										  MakeBooleanChecker())
 							.AddAttribute("ComprTemp", "Temporal Compressor",
-										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(),
-										  MakePointerAccessor(&CsSrcApp::SetTempCompressor),
+										  MakePointerAccessor(&CsSrcApp::SetTempCompressor, &CsSrcApp::GetTempCompressor),
 										  MakePointerChecker<CompressorTemp<double>>())
 							.AddAttribute("RanTx", "The random variable attached to determine when to send.",
 										  TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
@@ -72,7 +67,6 @@ CsSrcApp::CsSrcApp() : m_yR(0), m_nodeId(0), m_clusterId(0),
 					   //    m_nDevices(0), m_nTxDevices(0),
 					   // m_nMeas(0), // m_nPackets(0),
 					   m_sent(0),
-					   m_normalize(true),
 					   m_running(false),
 					   m_isSetup(false),
 					   //    m_txPackets(0),
@@ -89,7 +83,6 @@ CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yR(m), m_nodeId(0), m_clusterId(0
 											 //  m_nDevices(0), m_nTxDevices(0),
 											 // m_nMeas(0), // m_nPackets(0),
 											 m_sent(0),
-											 m_normalize(true),
 											 m_running(false),
 											 m_isSetup(false),
 											 // m_txPackets(0),
@@ -117,7 +110,7 @@ void CsSrcApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
 	//setup compressor
 	if (!m_compR)
 		m_compR = CreateObject<CompressorTemp<double>>();
-	m_compR->Setup(m_seed, m_n, m_m, m_normalize);
+	m_compR->Setup(m_seed, m_n, m_m);
 
 	//add stream to node
 	m_node->AddStream(m_stream);
@@ -133,8 +126,14 @@ void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp<double>> comp)
 	if (comp)
 	{
 		m_compR = CopyObject(comp);
-		m_compR->Setup(m_seed, m_n, m_m, m_normalize);
+		m_compR->Setup(m_seed, m_n, m_m);
 	}
+}
+
+Ptr<CompressorTemp<double>> CsSrcApp::GetTempCompressor() const
+{
+	NS_LOG_FUNCTION(this);
+	return m_compR;
 }
 
 // void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp<double>> comp, uint32_t n, uint32_t m, bool norm)
@@ -160,7 +159,7 @@ void CsSrcApp::SetTempCompressDim(uint32_t n, uint32_t m)
 	// m_yR.Resize(m);
 
 	if (!m_compR)
-		m_compR->Setup(m_seed, m_n, m_m, m_normalize);
+		m_compR->Setup(m_seed, m_n, m_m);
 }
 
 // void CsSrcApp::SetSeed(uint32_t seed, bool norm)

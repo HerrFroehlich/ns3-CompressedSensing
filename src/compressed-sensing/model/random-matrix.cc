@@ -19,7 +19,11 @@ TypeId RandomMatrix::GetTypeId(void)
 							.AddAttribute("Stream", "RNG stream number",
 										  IntegerValue(0),
 										  MakeIntegerAccessor(&RandomMatrix::m_stream),
-										  MakeIntegerChecker<int64_t>());
+										  MakeIntegerChecker<int64_t>())
+							.AddAttribute("Norm", "Normalize to 1/sqrt(m)?",
+										  BooleanValue(false),
+										  MakeBooleanAccessor(&RandomMatrix::m_norm),
+										  MakeBooleanChecker());
 	return tid;
 }
 

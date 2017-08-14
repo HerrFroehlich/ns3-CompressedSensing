@@ -23,9 +23,8 @@ CsClusterApp::GetTypeId(void)
 										  MakeTimeAccessor(&CsClusterApp::m_timeout),
 										  MakeTimeChecker(Seconds(0)))
 							.AddAttribute("ComprSpat", "Spatial Compressor",
-										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(CreateObject<Compressor<double>>()),
-										  MakePointerAccessor(&CsClusterApp::SetSpatialCompressor),
+										  MakePointerAccessor(&CsClusterApp::SetSpatialCompressor, &CsClusterApp::GetSpatialCompressor),
 										  MakePointerChecker<Compressor<double>>())
 							.AddAttribute("l", "NOF of measurement vectors after spatial compression",
 										  UintegerValue(64),
@@ -38,10 +37,6 @@ CsClusterApp::GetTypeId(void)
 							.AddTraceSource("Rx", "A new packet is received",
 											MakeTraceSourceAccessor(&CsClusterApp::m_rxTrace),
 											"ns3::Packet::TracedCallback")
-							.AddAttribute("NormSpat", "Normalize the spatial random matrix to 1/sqrt(m)?",
-										  BooleanValue(false),
-										  MakeBooleanAccessor(&CsClusterApp::m_normalize),
-										  MakeBooleanChecker())
 							.AddTraceSource("RxDrop",
 											"Trace source indicating a packet has been dropped by the device during reception",
 											MakeTraceSourceAccessor(&CsClusterApp::m_rxDropTrace),
@@ -55,14 +50,14 @@ CsClusterApp::GetTypeId(void)
 }
 
 CsClusterApp::CsClusterApp() : m_l(0), m_outBufSize(0), m_nextPackSeq(0), m_zData(),
-							   m_normalize(true), m_running(false), m_isSetup(false),
+							   m_running(false), m_isSetup(false),
 							   m_timeoutEvent(EventId())
 {
 	NS_LOG_FUNCTION(this);
 }
 
 CsClusterApp::CsClusterApp(uint32_t n, uint32_t m, uint32_t l) : CsSrcApp(n, m), m_l(l), m_outBufSize(m * l), m_nextPackSeq(0), m_zData(m, l),
-																 m_normalize(true), m_running(false), m_isSetup(false),
+																 m_running(false), m_isSetup(false),
 																 m_timeoutEvent(EventId())
 {
 	NS_LOG_FUNCTION(this << n << m << l);
@@ -90,7 +85,7 @@ void CsClusterApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
 
 	if (!m_comp)
 		m_comp = CreateObject<Compressor<double>>();
-	m_comp->Setup(m_seed, m_nNodes, m_l, m_m, m_normalize);
+	m_comp->Setup(m_seed, m_nNodes, m_l, m_m);
 
 	m_zData.Resize(m_l, m_m);
 	m_isSetup = true;
@@ -103,7 +98,7 @@ void CsClusterApp::SetSpatialCompressor(Ptr<Compressor<double>> comp)
 	if (comp)
 	{
 		m_comp = CopyObject(comp);
-		m_comp->Setup(m_seed, m_nNodes, m_l, m_m, m_normalize);
+		m_comp->Setup(m_seed, m_nNodes, m_l, m_m);
 	}
 }
 
@@ -129,8 +124,16 @@ void CsClusterApp::SetSpatialCompressDim(uint32_t nNodes, uint32_t l)
 
 	m_zData.Resize(m_l, m_m);
 	// m_yR.Resize(m);
-	m_comp->Setup(m_seed, m_nNodes, m_l, m_m, m_normalize);
+	m_comp->Setup(m_seed, m_nNodes, m_l, m_m);
 }
+
+
+Ptr<Compressor<double>> CsClusterApp::GetSpatialCompressor() const
+{
+	NS_LOG_FUNCTION(this);
+	return m_comp;
+}
+
 void CsClusterApp::StartApplication()
 {
 	NS_LOG_FUNCTION(this);

@@ -143,4 +143,23 @@ class CsAlgorithm_BP : public CsAlgorithm
 	virtual Mat<double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A);
 	virtual Mat<cx_double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<cx_double>> A);
 };
+
+/**
+* \ingroup rec
+* \class CsAlgorithm_AMP
+*
+* \brief AMP solver algorithm
+*
+*/
+class CsAlgorithm_AMP : public CsAlgorithm
+{
+  public:
+	static ns3::TypeId GetTypeId();
+	CsAlgorithm_AMP();
+
+	/*inherited from CsAlgorithm*/
+	virtual Mat<double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A);
+	virtual Mat<cx_double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<cx_double>> A);
+};
+
 #endif //CS_ALGORITHM_H

@@ -22,9 +22,8 @@ TypeId Compressor<double>::GetTypeId(void)
 							.AddConstructor<Compressor<double>>()
 							.SetGroupName("CompressedSensing")
 							.AddAttribute("RanMatrix", "The underlying random matrix form to create the sensing matrix",
-										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(CreateObject<GaussianRandomMatrix>()),
-										  MakePointerAccessor(&Compressor::SetRanMat),
+										  MakePointerAccessor(&Compressor::SetRanMat, &Compressor::GetRanMat),
 										  MakePointerChecker<RandomMatrix>())
 							.AddAttribute("TransMatrix", "The underlying matrix of a real transformation in which the solution is sparse",
 										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
@@ -46,9 +45,8 @@ TypeId Compressor<cx_double>::GetTypeId(void)
 							.AddConstructor<Compressor<cx_double>>()
 							.SetGroupName("CompressedSensing")
 							.AddAttribute("RanMatrix", "The underlying random matrix form to create the sensing matrix",
-										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(CreateObject<GaussianRandomMatrix>()),
-										  MakePointerAccessor(&Compressor::SetRanMat),
+										  MakePointerAccessor(&Compressor::SetRanMat, &Compressor::GetRanMat),
 										  MakePointerChecker<RandomMatrix>())
 							.AddAttribute("TransMatrix", "The underlying matrix of a real transformation in which the solution is sparse",
 										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
@@ -65,16 +63,14 @@ TypeId Compressor<cx_double>::GetTypeId(void)
 template <typename T>
 Compressor<T>::Compressor() : m_seed(1), m_m(0),
 							  m_n(0), m_vecLen(0),
-							  m_bufLenIn(0), m_bufLenOut(0),
-							  m_normalize(false)
+							  m_bufLenIn(0), m_bufLenOut(0)
 {
 }
 
 template <typename T>
 Compressor<T>::Compressor(uint32_t n, uint32_t m, uint32_t vecLen) : m_seed(1), m_m(m),
 																	 m_n(n), m_vecLen(vecLen),
-																	 m_bufLenIn(n * vecLen), m_bufLenOut(m * vecLen),
-																	 m_normalize(false)
+																	 m_bufLenIn(n * vecLen), m_bufLenOut(m * vecLen)
 																	 
 {
 	if (m_transMat.isValid())
@@ -85,9 +81,9 @@ Compressor<T>::Compressor(uint32_t n, uint32_t m, uint32_t vecLen) : m_seed(1), 
 }
 
 template <typename T>
-void Compressor<T>::Setup(uint32_t seed, uint32_t n, uint32_t m, uint32_t vecLen, bool norm)
+void Compressor<T>::Setup(uint32_t seed, uint32_t n, uint32_t m, uint32_t vecLen)
 {
-	NS_LOG_FUNCTION(this << seed << m << n << vecLen << norm);
+	NS_LOG_FUNCTION(this << seed << m << n << vecLen);
 	m_seed = seed;
 	m_m = m;
 	m_n = n;
@@ -123,9 +119,6 @@ void Compressor<T>::Compress(const arma::Mat<T> &matIn, T *bufferOut, uint32_t b
 	if (m_ranMat.isValid())
 		m_ranMat->SetSize(m_m, m_n, m_seed);
 
-	if (m_normalize)
-		m_ranMat->NormalizeToM();
-
 	klab::TSmartPointer<kl1p::TOperator<T>> op_ptr = m_ranMat * m_transMat;
 	arma::Mat<T> y(bufferOut, m_m, m_vecLen, false, true);
 
@@ -158,15 +151,12 @@ void Compressor<T>::CompressSparse(const arma::Mat<T> &data, const arma::Col<TI>
 }
 
 template <typename T>
-void Compressor<T>::SetSeed(uint32_t seed, bool norm)
+void Compressor<T>::SetSeed(uint32_t seed)
 {
 	m_seed = seed;
 	if (m_ranMat.isValid())
 	{
 		m_ranMat->Generate(seed);
-
-		if (norm)
-			m_ranMat->NormalizeToM();
 	}
 }
 
@@ -177,6 +167,12 @@ void Compressor<T>::SetRanMat(Ptr<RandomMatrix> ranMat_ptr)
 	
 	if (m_ranMat.isValid())
 		m_ranMat->SetSize(m_m, m_n, m_seed);
+}
+
+template <typename T>
+Ptr<RandomMatrix>  Compressor<T>::GetRanMat() const
+{
+	return Ptr<RandomMatrix>(m_ranMat.get());
 }
 
 template <typename T>
@@ -231,9 +227,9 @@ CompressorTemp<T>::CompressorTemp(uint32_t n, uint32_t m) : Compressor<T>(n, m, 
 }
 
 template <typename T>
-void CompressorTemp<T>::Setup(uint32_t seed, uint32_t n, uint32_t m, bool norm)
+void CompressorTemp<T>::Setup(uint32_t seed, uint32_t n, uint32_t m)
 {
-	Compressor<T>::Setup(seed, n, m, VECLEN, norm);
+	Compressor<T>::Setup(seed, n, m, VECLEN);
 }
 
 // template class CompressorTemp<double>;

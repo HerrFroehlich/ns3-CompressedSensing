@@ -67,10 +67,9 @@ class Compressor : public Object
 	* \param n 		NOF original measurment vectors (X)
 	* \param m  	NOF  measurments vectors when compreesed
 	* \param vecLen	length of each measurement vector (e.g. 1 for temporal reconstruction, x for spatial reconstruction)
-	* \param norm	normalize random matrix to 1/sqrt(m)?
 	*
 	*/
-	void Setup(uint32_t seed, uint32_t n, uint32_t m, uint32_t vecLen, bool norm = false);
+	void Setup(uint32_t seed, uint32_t n, uint32_t m, uint32_t vecLen);
 
 	/**
 	* \brief compresses data from input buffer and writes it to the output buffer
@@ -118,10 +117,9 @@ class Compressor : public Object
 	* \brief sets the seed used for the random matrix and regenerates it
 	*
 	* \param seed seed to use
-	* \param norm normalize random matrix to 1/sqrt(m)?
 	*
 	*/
-	void SetSeed(uint32_t seed, bool norm = false);
+	void SetSeed(uint32_t seed);
 
 	/**
 	* \brief sets the internal random matrix object
@@ -130,6 +128,14 @@ class Compressor : public Object
 	*
 	*/
 	void SetRanMat(Ptr<RandomMatrix> ranMat_ptr);
+
+	/**
+	* \brief gets the internal random matrix object
+	*
+	* \return pointer to a RandomMatrix object
+	*
+	*/
+	Ptr<RandomMatrix> GetRanMat() const;
 
 	/**
 	* \brief sets the internal transformation object
@@ -147,7 +153,6 @@ class Compressor : public Object
 		m_vecLen;									/**< size of one measurement vector*/
 	uint64_t m_bufLenIn,							/**< input buffer length */
 		m_bufLenOut;								/**< output buffer length */
-	bool m_normalize;								/**< normalize random matrix?*/
 	klab::TSmartPointer<RandomMatrix> m_ranMat;		/**< Random matrix form from which sensing matrix is constructed*/
 	klab::TSmartPointer<TransMatrix<T>> m_transMat; /**< Transformation matrix form from which sensing matrix is constructed*/
 	TracedCallback<arma::Mat<T>, arma::Mat<T>> m_completeCb;	/**< callback when compression is completed, 1.matrix: input, 2.matrix result*/
@@ -191,10 +196,9 @@ class CompressorTemp : public Compressor<T>
 	*
 	* \param n 		NOF original measurment vectors (X)
 	* \param m  	NOF  measurments vectors when compreesed
-	* \param norm	normalize random matrix to 1/sqrt(m)?
 	*
 	*/
-	void Setup(uint32_t seed, uint32_t n, uint32_t m, bool norm = false);
+	void Setup(uint32_t seed, uint32_t n, uint32_t m);
 
   private:
 	const static uint32_t VECLEN = 1;

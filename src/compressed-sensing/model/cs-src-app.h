@@ -77,6 +77,13 @@ class CsSrcApp : public Application
 	void SetTempCompressor(Ptr<CompressorTemp<double>> comp);
 
 	/**
+	* \brief Gets the used temporal compressor.
+	*
+	* \return  pointer to compressor
+	*/
+	Ptr<CompressorTemp<double>> GetTempCompressor() const;
+
+	/**
 	* \brief sets the used temporal compressor
 	*
 	*  It is setuped via the given seed and sizes
@@ -208,8 +215,7 @@ class CsSrcApp : public Application
 
 	double m_txProb; /**< propability to send a packet*/
 
-	bool m_normalize, /**< normalize random matrix by 1/sqrt(m)?*/
-		m_running,
+	bool m_running,
 		m_isSetup;
 
 	Ptr<SerialDataBuffer<double>> m_fdata; /**< data from file*/
