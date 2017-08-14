@@ -312,7 +312,6 @@ void Reconstructor::WriteStream(Ptr<DataStream<double>> stream, const Mat<cx_dou
 template <>
 void Reconstructor::WriteRecSpat(const ClusterInfo &info, const Mat<double> &mat)
 {
-
 	if (m_transMatSpat.isValid() && !m_cxTransSpat) // since the reconstruction only gives the indices of the transform we have to apply it again!
 	{
 		m_transMatSpat->SetSize(info.nNodes);
@@ -322,7 +321,7 @@ void Reconstructor::WriteRecSpat(const ClusterInfo &info, const Mat<double> &mat
 		for (size_t i = 0; i < mat.n_cols; i++)
 		{
 			Col<double> xVec;
-			m_transMatSpat->apply(mat.col(i), xVec);
+			m_transMatSpat->applyAdjoint(mat.col(i), xVec);
 			res.col(i) = xVec;
 		}
 
@@ -356,7 +355,7 @@ void Reconstructor::WriteRecSpat(const ClusterInfo &info, const Mat<cx_double> &
 		for (size_t i = 0; i < mat.n_cols; i++)
 		{
 			Col<cx_double> xVec;
-			m_transMatSpatCx->apply(mat.col(i), xVec);
+			m_transMatSpatCx->applyAdjoint(mat.col(i), xVec);
 			res.col(i) = xVec;
 		}
 
@@ -387,7 +386,7 @@ void Reconstructor::WriteRecTemp(Ptr<DataStream<double>> stream, const Mat<doubl
 		for (size_t i = 0; i < mat.n_cols; i++)
 		{
 			Col<double> xVec;
-			m_transMatTemp->apply(mat.col(i), xVec);
+			m_transMatTemp->applyAdjoint(mat.col(i), xVec);
 			res.col(i) = xVec;
 		}
 		WriteStream<double>(stream, res);
@@ -412,7 +411,7 @@ void Reconstructor::WriteRecTemp(Ptr<DataStream<double>> stream, const Mat<cx_do
 		for (size_t i = 0; i < mat.n_cols; i++)
 		{
 			Col<cx_double> xVec;
-			m_transMatTempCx->apply(mat.col(i), xVec);
+			m_transMatTempCx->applyAdjoint(mat.col(i), xVec);
 			res.col(i) = xVec;
 		}
 		WriteStream<cx_double>(stream, res);
@@ -434,13 +433,13 @@ void Reconstructor::ReconstructSpat()
 
 		klab::TSmartPointer<kl1p::TOperator<T>> A = GetASpat<T>(info);
 		Mat<double> Z = info.inBuf->ReadAll();
-
+		
 		Mat<T> Y = m_algoSpat->Run(Z, A);
 
 		WriteRecSpat<T>(info, Y);
 	}
 }
-template void Reconstructor::Reconstructor::ReconstructSpat();			/**< \copydoc Reconstructor:ReconstructSpat()*/
+template void Reconstructor::Reconstructor::ReconstructSpat();			  /**< \copydoc Reconstructor:ReconstructSpat()*/
 template void Reconstructor::Reconstructor::ReconstructSpat<cx_double>(); /**< \copydoc Reconstructor:ReconstructSpat()*/
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
