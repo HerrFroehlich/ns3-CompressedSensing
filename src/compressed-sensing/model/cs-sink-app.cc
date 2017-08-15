@@ -55,11 +55,10 @@ CsSinkApp::CsSinkApp() : m_seqCount(0),
 	NS_LOG_FUNCTION(this);
 }
 
-void CsSinkApp::Setup(Ptr<CsNode> node, std::string dir)
+void CsSinkApp::Setup(Ptr<CsNode> node)
 {
-	NS_LOG_FUNCTION(this << node << dir);
+	NS_LOG_FUNCTION(this << node);
 	m_node = node;
-	m_dir = dir;
 
 	/*--------  Setup receiving netdevices  --------*/
 	NetDeviceContainer devices = node->GetRxDevices();

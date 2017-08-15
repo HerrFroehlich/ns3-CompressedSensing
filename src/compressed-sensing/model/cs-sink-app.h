@@ -58,7 +58,7 @@ class CsSinkApp : public Application
 	* \param dir directory to write files to
 	*
 	*/
-	void Setup(Ptr<CsNode> node, std::string dir);
+	void Setup(Ptr<CsNode> node);
 
 	/**
 	* \brief Adds a cluster to receive from with given compression
@@ -251,8 +251,6 @@ class CsSinkApp : public Application
 	Time m_timeout;			/**< Packet inter-send time*/
 	EventId m_timeoutEvent; /**< timeout event when waiting for new source data*/
 
-	std::string m_dir,											  /**< output directory*/
-		m_filebase;												  /**< Base filename for output files*/
 	TracedCallback<Ptr<const Packet>> m_rxTrace;				  /**< received a packet*/
 	TracedCallback<Ptr<const Packet>, E_DropCause> m_rxDropTrace; /**< callback:  dropping a received packet*/
 
