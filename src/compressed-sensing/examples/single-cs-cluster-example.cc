@@ -3,13 +3,14 @@
 #define DEFAULT_CHANNELDELAY_MS 1
 #define DEFAULT_DRATE_BPS 1000000 // 1Mbitps
 #define DEFAULT_N 256
-#define DEFAULT_M 128
-#define DEFAULT_L 32
+#define DEFAULT_M 64
+#define DEFAULT_L 64
 #define DEFAULT_FILE "./IOdata/data.mat"
+#define DEFAULT_K 20
 // #define DEFAULT_FILEOUT "./IOdata/dataOut.mat"
 #define DEFAULT_SRCMAT_NAME "X"
-#define DEFAULT_K_NAME "k"
 #define CLUSTER_ID 0
+#define DEFAULT_TOL 1e-3
 
 #define TXPROB_MODIFIER 1.1
 
@@ -124,24 +125,28 @@ int main(int argc, char *argv[])
 			 dataRate = DEFAULT_DRATE_BPS,
 			 n = DEFAULT_N,
 			 m = DEFAULT_M,
-			 l = DEFAULT_L;
+			 l = DEFAULT_L,
+			 k = DEFAULT_K,
+			 ks = DEFAULT_K;
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
-		   rateErr = 0.0;
+		   rateErr = 0.0,
+		   tol = 0.0;
 	bool seq = false,
-		 precode = true,
-		 bpSpat = false;
+		 noprecode = false,
+		 bpSpat = false,
+		 ampSpat = false;
 	std::string matFilePath = DEFAULT_FILE,
 				// matFilePathOut = DEFAULT_FILEOUT,
-		srcMatrixName = DEFAULT_SRCMAT_NAME,
-				kName = DEFAULT_K_NAME;
+		srcMatrixName = DEFAULT_SRCMAT_NAME;
 
 	CommandLine cmd;
 
 	cmd.AddValue("info", "Enable info messages", info);
 	cmd.AddValue("verbose", "Verbose Mode", verbose);
 	cmd.AddValue("seq", "Reconstruct sequentially for each received packet", seq);
-	cmd.AddValue("precode", "Enable spatial precoding?", precode);
+	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
 	cmd.AddValue("bp", "Basis Pursuit when solving spatially?", bpSpat);
+	cmd.AddValue("amp", "AMP when solving spatially?", ampSpat);
 	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
 	cmd.AddValue("nSrcNodes", "NOF source nodes in topology", nSrcNodes);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
@@ -152,11 +157,20 @@ int main(int argc, char *argv[])
 	cmd.AddValue("file", "path to mat file to read from", matFilePath);
 	// cmd.AddValue("file", "path to mat file to write output to", matFilePathOut);
 	cmd.AddValue("MATsrc", "name of the matrix in the mat file containing the data for the source nodes", srcMatrixName);
-	cmd.AddValue("MATk", "name of the variable in the mat file containing the value of k", kName);
+	cmd.AddValue("k", "sparsity of original source measurements (needed when using OMP temporally)", k);
+	cmd.AddValue("ks", "sparsity of the colums of Y (needed when using OMP spatially)", ks);
+	cmd.AddValue("tol", "Tolerance for solvers", tol);
 
 	cmd.Parse(argc, argv);
 
 	Time channelDelay = MilliSeconds(channelDelayTmp);
+
+	if (l > nSrcNodes+1)
+	{
+		cout << "l must be <= nSrcNodes!" << endl;
+		return 1;
+	}
+
 	/*********  Logging  **********/
 	if (verbose)
 	{
@@ -195,7 +209,7 @@ int main(int argc, char *argv[])
 	DataStream<double> sourceData = matHandler_glob.ReadMat<double>(srcMatrixName);
 	uint32_t nMeasSeq = sourceData.GetMaxSize() / n;
 
-	uint32_t k = matHandler_glob.ReadValue<double>(kName); // casting double  to uint32_t
+	//uint32_t k = matHandler_glob.ReadValue<double>(kName); // casting double  to uint32_t
 	//matHandler_glob.Open(matFilePathOut);				   // open output file
 	/*********  initialize nodes  **********/
 
@@ -217,7 +231,7 @@ int main(int argc, char *argv[])
 	clusterHelper.SetSrcAppAttribute("ComprTemp", PointerValue(comprTemp));
 	clusterHelper.SetClusterAppAttribute("ComprTemp", PointerValue(comprTemp));
 
-	if (precode)
+	if (!noprecode)
 	{
 		double txProb = TXPROB_MODIFIER * l / (nSrcNodes * (1 - rateErr));
 		if (txProb <= 1 && txProb >= 0)
@@ -288,14 +302,45 @@ int main(int argc, char *argv[])
 	Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
 	rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
 	ranMat = CreateObject<GaussianRandomMatrix>();
+	if(ampSpat)
+		ranMat->NormalizeToM();
+
 	rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
 	sinkApp->SetAttribute("Reconst", PointerValue(rec));
 
+	// Ptr<TransMatrix<cx_double>> transMat = CreateObject<FourierTransMatrix<cx_double>>();
+	// Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
+	// rec->SetAttribute("RecMatTempCx", PointerValue(Create<RecMatrixCx>(ranMat, transMat)));
+	// ranMat = CreateObject<GaussianRandomMatrix>();
+	// if(ampSpat)
+	// 	ranMat->NormalizeToM();
+
+	// rec->SetAttribute("RecMatSpatCx", PointerValue(Create<RecMatrixCx>(ranMat, transMat)));
+	// sinkApp->SetAttribute("Reconst", PointerValue(rec));
+
+	// Ptr<TransMatrix<double>> transMat = CreateObject<FourierTransMatrix<double>>();
+	// Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
+	// rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
+	// ranMat = CreateObject<GaussianRandomMatrix>();
+	// if(ampSpat)
+	// 	ranMat->NormalizeToM();
+
+	// rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
+	// sinkApp->SetAttribute("Reconst", PointerValue(rec));
+
 	if (bpSpat)
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_BP>()));
+	else if (ampSpat)
+	{
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_AMP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprSpat/RanMatrix/Norm", BooleanValue(true));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsSrcApp/ComprTemp/RanMatrix/Norm", BooleanValue(true));
+	}
 
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_OMP/k", UintegerValue(k));
-	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/k", UintegerValue(k));
+	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/k", UintegerValue(ks));
+	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/Tolerance", DoubleValue(tol));
+	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/Tolerance", DoubleValue(tol));
 	// recTemp->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
 
 	if (!seq)
@@ -312,7 +357,7 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/RecError", MakeCallback(&recErrorCb));
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/RecError", MakeCallback(&recErrorCb));
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprFail", MakeCallback(&comprFailSpat));
-	Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$MySimpleNetDevice/PhyRxDrop" , MakeCallback(&packetDrop));
+	Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$MySimpleNetDevice/PhyRxDrop", MakeCallback(&packetDrop));
 	/*********  Running the Simulation  **********/
 
 	NS_LOG_INFO("Starting Simulation...");
@@ -325,7 +370,7 @@ int main(int argc, char *argv[])
 	matHandler_glob.WriteValue<double>("m", m);
 	matHandler_glob.WriteValue<double>("l", l);
 	if (!seq)
-		matHandler_glob.WriteValue<double>("attempts", 0);
+		matHandler_glob.WriteValue<double>("attempts", 1);
 	else
 		matHandler_glob.WriteValue<double>("attempts", l);
 	matHandler_glob.WriteValue<double>("nMeasSeq", nMeasSeq);
