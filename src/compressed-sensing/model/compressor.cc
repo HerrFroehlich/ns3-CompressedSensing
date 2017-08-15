@@ -8,18 +8,18 @@
 #include "compressor.h"
 #include <armadillo>
 #include "assert.h"
-#include "ns3/template-registration.h"
 
 NS_LOG_COMPONENT_DEFINE("Compressor");
 
 /*--------  Compressor  --------*/
 
-template <>
-TypeId Compressor<double>::GetTypeId(void)
+NS_OBJECT_ENSURE_REGISTERED(Compressor);
+
+TypeId Compressor::GetTypeId(void)
 {
-	static TypeId tid = TypeId("Compressor<double>")
+	static TypeId tid = TypeId("Compressor")
 							.SetParent<Object>()
-							.AddConstructor<Compressor<double>>()
+							.AddConstructor<Compressor>()
 							.SetGroupName("CompressedSensing")
 							.AddAttribute("RanMatrix", "The underlying random matrix form to create the sensing matrix",
 										  PointerValue(CreateObject<GaussianRandomMatrix>()),
@@ -29,7 +29,7 @@ TypeId Compressor<double>::GetTypeId(void)
 										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
 										  PointerValue(),
 										  MakePointerAccessor(&Compressor::SetTransMat),
-										  MakePointerChecker<TransMatrix<double>>())
+										  MakePointerChecker<TransMatrix>())
 							.AddTraceSource("Complete",
 											"Trace source indicating that compression completed",
 											MakeTraceSourceAccessor(&Compressor::m_completeCb),
@@ -37,38 +37,16 @@ TypeId Compressor<double>::GetTypeId(void)
 	return tid;
 }
 
-template <>
-TypeId Compressor<cx_double>::GetTypeId(void)
-{
-	static TypeId tid = TypeId("Compressor<cx_double>")
-							.SetParent<Object>()
-							.AddConstructor<Compressor<cx_double>>()
-							.SetGroupName("CompressedSensing")
-							.AddAttribute("RanMatrix", "The underlying random matrix form to create the sensing matrix",
-										  PointerValue(CreateObject<GaussianRandomMatrix>()),
-										  MakePointerAccessor(&Compressor::SetRanMat, &Compressor::GetRanMat),
-										  MakePointerChecker<RandomMatrix>())
-							.AddAttribute("TransMatrix", "The underlying matrix of a real transformation in which the solution is sparse",
-										  TypeId::ATTR_SET | TypeId::ATTR_CONSTRUCT,
-										  PointerValue(),
-										  MakePointerAccessor(&Compressor::SetTransMat),
-										  MakePointerChecker<TransMatrix<cx_double>>())
-							.AddTraceSource("Complete",
-											"Trace source indicating that compression completed",
-											MakeTraceSourceAccessor(&Compressor::m_completeCb),
-											"Compressor::CompleteCallback");
-	return tid;
-}
 
-template <typename T>
-Compressor<T>::Compressor() : m_seed(1), m_m(0),
+
+Compressor::Compressor() : m_seed(1), m_m(0),
 							  m_n(0), m_vecLen(0),
 							  m_bufLenIn(0), m_bufLenOut(0)
 {
 }
 
-template <typename T>
-Compressor<T>::Compressor(uint32_t n, uint32_t m, uint32_t vecLen) : m_seed(1), m_m(m),
+
+Compressor::Compressor(uint32_t n, uint32_t m, uint32_t vecLen) : m_seed(1), m_m(m),
 																	 m_n(n), m_vecLen(vecLen),
 																	 m_bufLenIn(n * vecLen), m_bufLenOut(m * vecLen)
 																	 
@@ -80,8 +58,8 @@ Compressor<T>::Compressor(uint32_t n, uint32_t m, uint32_t vecLen) : m_seed(1), 
 		m_ranMat->SetSize(m, n, m_seed);
 }
 
-template <typename T>
-void Compressor<T>::Setup(uint32_t seed, uint32_t n, uint32_t m, uint32_t vecLen)
+
+void Compressor::Setup(uint32_t seed, uint32_t n, uint32_t m, uint32_t vecLen)
 {
 	NS_LOG_FUNCTION(this << seed << m << n << vecLen);
 	m_seed = seed;
@@ -93,20 +71,20 @@ void Compressor<T>::Setup(uint32_t seed, uint32_t n, uint32_t m, uint32_t vecLen
 
 }
 
-template <typename T>
-void Compressor<T>::Compress(const T *bufferIn, uint32_t bufLenIn, T *bufferOut, uint32_t bufLenOut) const
+
+void Compressor::Compress(const double *bufferIn, uint32_t bufLenIn, double *bufferOut, uint32_t bufLenOut) const
 {
 	NS_LOG_FUNCTION(this << bufferIn << bufLenIn << bufferOut << bufLenOut);
 	NS_ASSERT_MSG(bufLenIn == m_bufLenIn, "Incorrect input buffer size!");
 	NS_ASSERT(bufferIn); //null pointer check
 
-	klab::TSmartPointer<kl1p::TOperator<T>> op_ptr = m_ranMat * m_transMat;
-	const arma::Mat<T> x(const_cast<T *>(bufferIn), m_n, m_vecLen, false);
+	klab::TSmartPointer<kl1p::TOperator<double>> op_ptr = m_ranMat * m_transMat;
+	const arma::Mat<double> x(const_cast<double *>(bufferIn), m_n, m_vecLen, false);
 	Compress(x, bufferOut, bufLenOut);
 }
 
-template <typename T>
-void Compressor<T>::Compress(const arma::Mat<T> &matIn, T *bufferOut, uint32_t bufLenOut) const
+
+void Compressor::Compress(const arma::Mat<double> &matIn, double *bufferOut, uint32_t bufLenOut) const
 {
 	NS_LOG_FUNCTION(this << matIn << bufferOut << bufLenOut);
 	NS_ASSERT_MSG(bufLenOut == m_bufLenOut, "Incorrect output buffer size!");
@@ -119,28 +97,28 @@ void Compressor<T>::Compress(const arma::Mat<T> &matIn, T *bufferOut, uint32_t b
 	if (m_ranMat.isValid())
 		m_ranMat->SetSize(m_m, m_n, m_seed);
 
-	klab::TSmartPointer<kl1p::TOperator<T>> op_ptr = m_ranMat * m_transMat;
-	arma::Mat<T> y(bufferOut, m_m, m_vecLen, false, true);
+	klab::TSmartPointer<kl1p::TOperator<double>> op_ptr = m_ranMat * m_transMat;
+	arma::Mat<double> y(bufferOut, m_m, m_vecLen, false, true);
 
 	for (uint32_t i = 0; i < m_vecLen; i++)
 	{
-		Col<T> yVec(m_m);
+		Col<double> yVec(m_m);
 		op_ptr->apply(matIn.col(i), yVec);
 		y.col(i) = yVec;
 	}
 	m_completeCb(matIn, y);
 }
 
-template <typename T>
+
 template <typename TI>
-void Compressor<T>::CompressSparse(const arma::Mat<T> &data, const arma::Col<TI> &idx, T *bufferOut, uint32_t bufLenOut) const
+void Compressor::CompressSparse(const arma::Mat<double> &data, const arma::Col<TI> &idx, double *bufferOut, uint32_t bufLenOut) const
 {
 	NS_LOG_FUNCTION(this << data << idx << bufferOut << bufLenOut);
 	NS_ASSERT(data.n_rows == idx.n_rows);
 	NS_ASSERT_MSG((data.n_rows <= m_n) && (data.n_cols == m_vecLen), "Size mismatch!");
 
-	arma::Mat<T> sp = arma::zeros<arma::Mat<T>>(m_n, m_vecLen);
-	//arma::SpMat<T> sp(m_m, m_n); // contains zeros by default
+	arma::Mat<double> sp = arma::zeros<arma::Mat<double>>(m_n, m_vecLen);
+	//arma::SpMat<double> sp(m_m, m_n); // contains zeros by default
 	for (uint32_t i = 0; i < idx.n_elem; i++)
 	{
 		uint32_t rowIdx = idx.at(i);
@@ -150,8 +128,8 @@ void Compressor<T>::CompressSparse(const arma::Mat<T> &data, const arma::Col<TI>
 	Compress(sp, bufferOut, bufLenOut);
 }
 
-template <typename T>
-void Compressor<T>::SetSeed(uint32_t seed)
+
+void Compressor::SetSeed(uint32_t seed)
 {
 	m_seed = seed;
 	if (m_ranMat.isValid())
@@ -160,8 +138,8 @@ void Compressor<T>::SetSeed(uint32_t seed)
 	}
 }
 
-template <typename T>
-void Compressor<T>::SetRanMat(Ptr<RandomMatrix> ranMat_ptr)
+
+void Compressor::SetRanMat(Ptr<RandomMatrix> ranMat_ptr)
 {
 	m_ranMat = ranMat_ptr->Clone();
 	
@@ -169,14 +147,14 @@ void Compressor<T>::SetRanMat(Ptr<RandomMatrix> ranMat_ptr)
 		m_ranMat->SetSize(m_m, m_n, m_seed);
 }
 
-template <typename T>
-Ptr<RandomMatrix>  Compressor<T>::GetRanMat() const
+
+Ptr<RandomMatrix>  Compressor::GetRanMat() const
 {
 	return Ptr<RandomMatrix>(m_ranMat.get());
 }
 
-template <typename T>
-void Compressor<T>::SetTransMat(Ptr<TransMatrix<T>> transMat_ptr)
+
+void Compressor::SetTransMat(Ptr<TransMatrix> transMat_ptr)
 {
 	m_transMat = transMat_ptr->Clone();
 
@@ -184,55 +162,37 @@ void Compressor<T>::SetTransMat(Ptr<TransMatrix<T>> transMat_ptr)
 		m_transMat->SetSize(m_n);
 }
 
-// template class Compressor<double>;
-// template class Compressor<cx_double>;
-OBJECT_TEMPLATE_CLASS_DEFINE(Compressor, double);
-OBJECT_TEMPLATE_CLASS_DEFINE(Compressor, cx_double);
 
-template void Compressor<double>::CompressSparse<uint8_t>(const arma::Mat<double> &data, const arma::Col<uint8_t> &idx, double *bufferOut, uint32_t bufLenOut) const;
-template void Compressor<double>::CompressSparse<uint16_t>(const arma::Mat<double> &data, const arma::Col<uint16_t> &idx, double *bufferOut, uint32_t bufLenOut) const;
-template void Compressor<double>::CompressSparse<uint32_t>(const arma::Mat<double> &data, const arma::Col<uint32_t> &idx, double *bufferOut, uint32_t bufLenOut) const;
-template void Compressor<cx_double>::CompressSparse<uint8_t>(const arma::Mat<cx_double> &data, const arma::Col<uint8_t> &idx, cx_double *bufferOut, uint32_t bufLenOut) const;
-template void Compressor<cx_double>::CompressSparse<uint16_t>(const arma::Mat<cx_double> &data, const arma::Col<uint16_t> &idx, cx_double *bufferOut, uint32_t bufLenOut) const;
-template void Compressor<cx_double>::CompressSparse<uint32_t>(const arma::Mat<cx_double> &data, const arma::Col<uint32_t> &idx, cx_double *bufferOut, uint32_t bufLenOut) const;
+template void Compressor::CompressSparse<uint8_t>(const arma::Mat<double> &data, const arma::Col<uint8_t> &idx, double *bufferOut, uint32_t bufLenOut) const;
+template void Compressor::CompressSparse<uint16_t>(const arma::Mat<double> &data, const arma::Col<uint16_t> &idx, double *bufferOut, uint32_t bufLenOut) const;
+template void Compressor::CompressSparse<uint32_t>(const arma::Mat<double> &data, const arma::Col<uint32_t> &idx, double *bufferOut, uint32_t bufLenOut) const;
 
 /*--------  CompressorTemp  --------*/
-template <>
-TypeId CompressorTemp<double>::GetTypeId(void)
+
+NS_OBJECT_ENSURE_REGISTERED(CompressorTemp);
+
+TypeId CompressorTemp::GetTypeId(void)
 {
-	static TypeId tid = TypeId("CompressorTemp<double>")
-							.SetParent<Compressor<double>>()
-							.AddConstructor<CompressorTemp<double>>()
+	static TypeId tid = TypeId("CompressorTemp")
+							.SetParent<Compressor>()
+							.AddConstructor<CompressorTemp>()
 							.SetGroupName("CompressedSensing");
 	return tid;
 }
 
-template <>
-TypeId CompressorTemp<cx_double>::GetTypeId(void)
-{
-	static TypeId tid = TypeId("CompressorTemp<cx_double>")
-							.SetParent<Compressor<cx_double>>()
-							.AddConstructor<Compressor<cx_double>>()
-							.SetGroupName("CompressedSensing");
-	return tid;
-}
-template <typename T>
-CompressorTemp<T>::CompressorTemp() : Compressor<T>()
+
+CompressorTemp::CompressorTemp() : Compressor()
 {
 }
 
-template <typename T>
-CompressorTemp<T>::CompressorTemp(uint32_t n, uint32_t m) : Compressor<T>(n, m, VECLEN)
+
+CompressorTemp::CompressorTemp(uint32_t n, uint32_t m) : Compressor(n, m, VECLEN)
 {
 }
 
-template <typename T>
-void CompressorTemp<T>::Setup(uint32_t seed, uint32_t n, uint32_t m)
+
+void CompressorTemp::Setup(uint32_t seed, uint32_t n, uint32_t m)
 {
-	Compressor<T>::Setup(seed, n, m, VECLEN);
+	Compressor::Setup(seed, n, m, VECLEN);
 }
 
-// template class CompressorTemp<double>;
-// template class CompressorTemp<cx_double>;
-OBJECT_TEMPLATE_CLASS_DEFINE(CompressorTemp, double);
-OBJECT_TEMPLATE_CLASS_DEFINE(CompressorTemp, cx_double);

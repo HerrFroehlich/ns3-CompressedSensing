@@ -37,30 +37,17 @@ using namespace arma;
 * \class RecMatrix
 * \brief A container for a RandomMatrix and optional TransMatrix, used jointly for reconstruction
 *
-* \tparam T type of transformation (either double or arma::cx_double)
 */
-class RecMatrixReal : public Object
+class RecMatrix : public Object
 {
   public:
-	RecMatrixReal();
-	RecMatrixReal(Ptr<RandomMatrix> ran) : ranMatrix(ran){};
-	RecMatrixReal(Ptr<RandomMatrix> ran, Ptr<TransMatrix<double>> trans) : ranMatrix(ran), transMatrix(trans){};
+	RecMatrix();
+	RecMatrix(Ptr<RandomMatrix> ran) : ranMatrix(ran){};
+	RecMatrix(Ptr<RandomMatrix> ran, Ptr<TransMatrix> trans) : ranMatrix(ran), transMatrix(trans){};
 
 	Ptr<RandomMatrix> ranMatrix;
-	Ptr<TransMatrix<double>> transMatrix;
+	Ptr<TransMatrix> transMatrix;
 };
-class RecMatrixCx : public Object
-{
-  public:
-	RecMatrixCx();
-	RecMatrixCx(Ptr<RandomMatrix> ran) : ranMatrix(ran){};
-	RecMatrixCx(Ptr<RandomMatrix> ran, Ptr<TransMatrix<cx_double>> trans) : ranMatrix(ran), transMatrix(trans){};
-
-	Ptr<RandomMatrix> ranMatrix;
-	Ptr<TransMatrix<cx_double>> transMatrix;
-};
-// typedef RecMatrix<double> RecMatrixReal;
-// typedef RecMatrix<cx_double> RecMatrixCx;
 
 
 /**
@@ -198,21 +185,8 @@ class Reconstructor : public ns3::Object
 	* \tparam T type of transformation (either double or arma::cx_double)
 	*
 	*/
-	void SetRecMatSpat(Ptr<RecMatrixReal> recMat);
+	void SetRecMatSpat(Ptr<RecMatrix> recMat);
 	
-	/**
-	* \brief sets the internal RandomMatrix and complex TransMatrix from a RecMatrix container for spatial reconstruction
-	*
-	* When this function was called the spatial solver will work with complex values.
-	* The instances pointed too will be cloned, so changes on them after
-	* setting them will have no effect!
-	*
-	* \param recMat recMatrix container
-	* \tparam T type of transformation (either double or arma::cx_double)
-	*
-	*/
-	void SetRecMatSpat(Ptr<RecMatrixCx> recMat);
-
 	/**
 	* \brief sets the internal RandomMatrix and real TransMatrix from a RecMatrix container for temporal reconstruction
 	*
@@ -224,20 +198,7 @@ class Reconstructor : public ns3::Object
 	* \tparam T type of transformation (either double or arma::cx_double)
 	*
 	*/
-	void SetRecMatTemp(Ptr<RecMatrixReal>  recMat);
-
-	/**
-	* \brief sets the internal RandomMatrix and complex TransMatrix from a RecMatrix container for temporal reconstruction
-	*
-	* When this function was called the spatial solver will work with complex values.
-	* The instances pointed too will be cloned, so changes on them after
-	* setting them will have no effect!
-	*
-	* \param recMat recMatrix container
-	* \tparam T type of transformation (either double or arma::cx_double)
-	*
-	*/
-	void SetRecMatTemp(Ptr<RecMatrixCx> recMat);
+	void SetRecMatTemp(Ptr<RecMatrix>  recMat);
 
   private:
 	//internal typedefs
@@ -309,8 +270,7 @@ class Reconstructor : public ns3::Object
 	*
 	* \return operator used for reconstructing
 	*/
-	template <typename T = double>
-	klab::TSmartPointer<kl1p::TOperator<T>> GetASpat(const ClusterInfo &info);
+	klab::TSmartPointer<kl1p::TOperator<double>> GetASpat(const ClusterInfo &info);
 
 	/**
 	* \brief gets the matrix operator used for reconstructing for the temporal case
@@ -325,8 +285,7 @@ class Reconstructor : public ns3::Object
 	*
 	* \return operator used for reconstructing
 	*/
-	template <typename T = double>
-	klab::TSmartPointer<kl1p::TOperator<T>> GetATemp(uint32_t seed, uint32_t m, uint32_t n);
+	klab::TSmartPointer<kl1p::TOperator<double>> GetATemp(uint32_t seed, uint32_t m, uint32_t n);
 
 	/**
 	* \brief write matrix to spatial reconstruction buffer
@@ -334,17 +293,12 @@ class Reconstructor : public ns3::Object
 	* If there is a TransMatrix associated with this reconstructor, the transformation will be applied to mat.
 	* This is since the reconstruction algorithms will return the atom values of the transformation.
 	* It also writes to the current output DataStream of the cluster.
-	* This method is also needed since the reconstruction may be done in
-	* the complex domain, so the results are also complex but the in and output
-	* of the nodes is always real. Thus in the complex case only the real part
-	* of the matrix is stored.
 	*
 	* \param info info on cluster
 	* \param mat matrix to be written
 	*
 	*/
-	template <typename T = double>
-	void WriteRecSpat(const ClusterInfo &info, const Mat<T> &mat);
+	void WriteRecSpat(const ClusterInfo &info, const Mat<double> &mat);
 
 
 	/**
@@ -352,33 +306,23 @@ class Reconstructor : public ns3::Object
 	*
 	* If there is a TransMatrix associated with this reconstructor, the transformation will be applied to mat.
 	* This is since the reconstruction algorithms will return the atom values of the transformation.
-	* This method is also needed since the reconstruction may be done in
-	* the complex domain, so the results are also complex but the in and output
-	* of the nodes is always real. Thus in the complex case only the real part
-	* of the matrix is stored.
 	*
 	* \param info info on cluster
 	* \param mat matrix to be written
 	*
 	*/
-	template <typename T = double>
-	void WriteRecTemp(Ptr<DataStream<double>> stream, const Mat<T> &mat);
+	void WriteRecTemp(Ptr<DataStream<double>> stream, const Mat<double> &mat);
 
 	/**
 	* \brief writes a matrix to a DataStream<double> instance
 	*
 	* The matrix will be stored in a single SerialDataBuffer column by column.
-	* This method is needed since the reconstruction may be done in
-	* the complex domain, so the results are also complex but the in and output
-	* of the nodes is always real. Thus in the complex case only the real part
-	* of the matrix is stored.
 	*
 	* \param stream pointer to DataStream to write to
 	* \param mat	matrix which will be stored	
 	*
 	*/
-	template <typename T = double>
-	void WriteStream(Ptr<DataStream<double>> stream, const Mat<T> &mat);
+	void WriteStream(Ptr<DataStream<double>> stream, const Mat<double> &mat);
 
 	/**
 	* \brief reconstruct the spatially compressed cluster data for all added clusters
@@ -388,7 +332,6 @@ class Reconstructor : public ns3::Object
 	*
 	* \return time in ms needed for reconstruction
 	*/
-	template <typename T = double>
 	void ReconstructSpat();
 
 	/**
@@ -399,12 +342,10 @@ class Reconstructor : public ns3::Object
 	* \param clInfo ClusterInfo: info about cluster whose source nodes shall be reconstructed
 	* \return time in ms needed for reconstruction
 	*/
-	template <typename T = double>
 	void ReconstructTemp(const ClusterInfo &info);
 
 	//internal
 	uint32_t m_runNmb;				   /**< run number is increased for each input reset*/
-	bool m_cxTransTemp, m_cxTransSpat; /**< is transformation complex?*/
 
 	//clusters
 	uint32_t m_nClusters;										 /**< NOF clusters from which we are gathering data*/
@@ -416,8 +357,7 @@ class Reconstructor : public ns3::Object
 
 	//operators
 	klab::TSmartPointer<RandomMatrix> m_ranMatSpat, m_ranMatTemp;					/**< Random matrix form from which sensing matrix is constructed*/
-	klab::TSmartPointer<TransMatrix<double>> m_transMatSpat, m_transMatTemp;		/**< Transformation matrix form from which sensing matrix is constructed*/
-	klab::TSmartPointer<TransMatrix<cx_double>> m_transMatSpatCx, m_transMatTempCx; /**< Transformation matrix form from which sensing matrix is constructed, complex*/
+	klab::TSmartPointer<TransMatrix> m_transMatSpat, m_transMatTemp;		/**< Transformation matrix form from which sensing matrix is constructed*/
 
 };
 

@@ -23,9 +23,9 @@ CsClusterApp::GetTypeId(void)
 										  MakeTimeAccessor(&CsClusterApp::m_timeout),
 										  MakeTimeChecker(Seconds(0)))
 							.AddAttribute("ComprSpat", "Spatial Compressor",
-										  PointerValue(CreateObject<Compressor<double>>()),
+										  PointerValue(CreateObject<Compressor>()),
 										  MakePointerAccessor(&CsClusterApp::SetSpatialCompressor, &CsClusterApp::GetSpatialCompressor),
-										  MakePointerChecker<Compressor<double>>())
+										  MakePointerChecker<Compressor>())
 							.AddAttribute("l", "NOF of measurement vectors after spatial compression",
 										  UintegerValue(64),
 										  MakeUintegerAccessor(&CsClusterApp::m_l),
@@ -84,14 +84,14 @@ void CsClusterApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
 	m_srcDataBuffer.Resize(m_nNodes, m_m);
 
 	if (!m_comp)
-		m_comp = CreateObject<Compressor<double>>();
+		m_comp = CreateObject<Compressor>();
 	m_comp->Setup(m_seed, m_nNodes, m_l, m_m);
 
 	m_zData.Resize(m_l, m_m);
 	m_isSetup = true;
 }
 
-void CsClusterApp::SetSpatialCompressor(Ptr<Compressor<double>> comp)
+void CsClusterApp::SetSpatialCompressor(Ptr<Compressor> comp)
 {
 	NS_LOG_FUNCTION(this << comp);
 	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
@@ -102,7 +102,7 @@ void CsClusterApp::SetSpatialCompressor(Ptr<Compressor<double>> comp)
 	}
 }
 
-// void CsClusterApp::SetSpatialCompressor(Ptr<Compressor<double>> comp, uint32_t l, bool norm)
+// void CsClusterApp::SetSpatialCompressor(Ptr<Compressor> comp, uint32_t l, bool norm)
 // {
 // 	NS_LOG_FUNCTION(this << comp << l << norm);
 
@@ -128,7 +128,7 @@ void CsClusterApp::SetSpatialCompressDim(uint32_t nNodes, uint32_t l)
 }
 
 
-Ptr<Compressor<double>> CsClusterApp::GetSpatialCompressor() const
+Ptr<Compressor> CsClusterApp::GetSpatialCompressor() const
 {
 	NS_LOG_FUNCTION(this);
 	return m_comp;

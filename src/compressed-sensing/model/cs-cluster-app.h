@@ -66,14 +66,14 @@ public:
   *
 	* \param comp  pointer to compressor
 	*/
-  void SetSpatialCompressor(Ptr<Compressor<double>> comp);
+  void SetSpatialCompressor(Ptr<Compressor> comp);
 
   /**
 	* \brief gets the used spatial compressor
   *
 	* \return  pointer to compressor
 	*/
-  Ptr<Compressor<double>> GetSpatialCompressor() const;
+  Ptr<Compressor> GetSpatialCompressor() const;
 
   /**
 	* \brief sets the used spatial compressor
@@ -86,7 +86,7 @@ public:
 	* \param m2 NOF compressed vectors
 	* \param norm normalize random matrix by 1/sqrt(m)?
 	*/
-  // void SetSpatialCompressor(Ptr<Compressor<double>> comp, uint32_t l, bool norm = false);
+  // void SetSpatialCompressor(Ptr<Compressor> comp, uint32_t l, bool norm = false);
 
   /**
 	* \brief sets the compression given by l
@@ -157,7 +157,7 @@ private:
       m_outBufSize; /**< size of output buffer*/
 
   CsHeader::T_SeqField m_nextPackSeq; /**< sequence number of next packet*/
-  Ptr<Compressor<double>> m_comp;     /**< compressor*/
+  Ptr<Compressor> m_comp;     /**< compressor*/
 
   SerialDataBuffer<double> m_outBuf;                               /**< buffer containing output data*/
   MatBuffer<double> m_zData;                                       /**< buffer containg spatially compressed data*/

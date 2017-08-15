@@ -46,7 +46,7 @@ CsSrcApp::GetTypeId(void)
 							.AddAttribute("ComprTemp", "Temporal Compressor",
 										  PointerValue(),
 										  MakePointerAccessor(&CsSrcApp::SetTempCompressor, &CsSrcApp::GetTempCompressor),
-										  MakePointerChecker<CompressorTemp<double>>())
+										  MakePointerChecker<CompressorTemp>())
 							.AddAttribute("RanTx", "The random variable attached to determine when to send.",
 										  TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
 										  StringValue("ns3::UniformRandomVariable[Min=0.0|Max=1.0]"),
@@ -109,7 +109,7 @@ void CsSrcApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
 
 	//setup compressor
 	if (!m_compR)
-		m_compR = CreateObject<CompressorTemp<double>>();
+		m_compR = CreateObject<CompressorTemp>();
 	m_compR->Setup(m_seed, m_n, m_m);
 
 	//add stream to node
@@ -118,7 +118,7 @@ void CsSrcApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
 	m_isSetup = true;
 }
 
-void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp<double>> comp)
+void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp> comp)
 {
 	NS_LOG_FUNCTION(this << comp);
 	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
@@ -130,13 +130,13 @@ void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp<double>> comp)
 	}
 }
 
-Ptr<CompressorTemp<double>> CsSrcApp::GetTempCompressor() const
+Ptr<CompressorTemp> CsSrcApp::GetTempCompressor() const
 {
 	NS_LOG_FUNCTION(this);
 	return m_compR;
 }
 
-// void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp<double>> comp, uint32_t n, uint32_t m, bool norm)
+// void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp> comp, uint32_t n, uint32_t m, bool norm)
 // {
 // 	NS_LOG_FUNCTION(this << comp << n << m << norm);
 

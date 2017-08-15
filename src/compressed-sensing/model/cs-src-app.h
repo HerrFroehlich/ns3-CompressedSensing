@@ -74,14 +74,14 @@ class CsSrcApp : public Application
 	*  It is setuped with the previously defined/default seed and sizes 
 	* \param comp  pointer to compressor
 	*/
-	void SetTempCompressor(Ptr<CompressorTemp<double>> comp);
+	void SetTempCompressor(Ptr<CompressorTemp> comp);
 
 	/**
 	* \brief Gets the used temporal compressor.
 	*
 	* \return  pointer to compressor
 	*/
-	Ptr<CompressorTemp<double>> GetTempCompressor() const;
+	Ptr<CompressorTemp> GetTempCompressor() const;
 
 	/**
 	* \brief sets the used temporal compressor
@@ -94,7 +94,7 @@ class CsSrcApp : public Application
 	* \param m length of compressed vector
 	* \param norm normalize random matrix by 1/sqrt(m)?
 	*/
-	// void SetTempCompressor(Ptr<CompressorTemp<double>> comp, uint32_t n, uint32_t m, bool norm = false);
+	// void SetTempCompressor(Ptr<CompressorTemp> comp, uint32_t n, uint32_t m, bool norm = false);
 
 	/**
 	* \brief sets the compression given by n and m
@@ -219,7 +219,7 @@ class CsSrcApp : public Application
 		m_isSetup;
 
 	Ptr<SerialDataBuffer<double>> m_fdata; /**< data from file*/
-	Ptr<CompressorTemp<double>> m_compR;   /**< compressor for real*/
+	Ptr<CompressorTemp> m_compR;   /**< compressor for real*/
 	Ptr<RandomVariableStream> m_ranTx;	 /**< random variable stream, to determine when to send*/
 	// std::vector<uint32_t> m_isTxDevice;   /**< determine if device is used for sending */
 	std::vector<Ptr<Packet>> m_txPackets;  /**< packets to send next*/

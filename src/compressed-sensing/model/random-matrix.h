@@ -161,8 +161,7 @@ protected:
   bool m_norm;         /**< normalize to 1/srqt(m)?*/
 };
 
-klab::TSmartPointer<kl1p::TOperator<double>> operator*(const klab::TSmartPointer<RandomMatrix>, const klab::TSmartPointer<TransMatrix<double>>);
-klab::TSmartPointer<kl1p::TOperator<cx_double>> operator*(const klab::TSmartPointer<RandomMatrix>, const klab::TSmartPointer<TransMatrix<cx_double>>);
+klab::TSmartPointer<kl1p::TOperator<double>> operator*(const klab::TSmartPointer<RandomMatrix>, const klab::TSmartPointer<TransMatrix>);
 
 /**
 * \ingroup ranmat

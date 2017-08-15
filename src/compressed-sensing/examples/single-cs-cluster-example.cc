@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
 	clusterHelper.SetClusterDeviceAttribute("DataRate", DataRateValue(dataRate));
 
 	// temporal compressor
-	Ptr<CompressorTemp<double>> comprTemp = CreateObject<CompressorTemp<double>>();
+	Ptr<CompressorTemp> comprTemp = CreateObject<CompressorTemp>();
 	Ptr<RandomMatrix> ident = CreateObject<IdentRandomMatrix>();
 	comprTemp->SetAttribute("RanMatrix", PointerValue(ident));
 	clusterHelper.SetSrcAppAttribute("ComprTemp", PointerValue(comprTemp));
@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
 	}
 
 	//spatial compressor
-	Ptr<Compressor<double>> comp = CreateObject<Compressor<double>>();
+	Ptr<Compressor> comp = CreateObject<Compressor>();
 	comp->TraceConnectWithoutContext("Complete", MakeCallback(&compressCb));
 	clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
 
@@ -300,14 +300,14 @@ int main(int argc, char *argv[])
 	sink->AddApplication(sinkApp);
 
 	Ptr<Reconstructor> rec = CreateObject<Reconstructor>();
-	Ptr<TransMatrix<double>> transMat = CreateObject<DcTransMatrix<double>>();
+	Ptr<TransMatrix> transMat = CreateObject<DcTransMatrix>();
 	Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
-	rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
+	rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 	ranMat = CreateObject<GaussianRandomMatrix>();
 	if(ampSpat)
 		ranMat->NormalizeToM();
 
-	rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
+	rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 	sinkApp->SetAttribute("Reconst", PointerValue(rec));
 
 	// Ptr<TransMatrix<cx_double>> transMat = CreateObject<FourierTransMatrix<cx_double>>();
@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
 	// rec->SetAttribute("RecMatSpatCx", PointerValue(Create<RecMatrixCx>(ranMat, transMat)));
 	// sinkApp->SetAttribute("Reconst", PointerValue(rec));
 
-	// Ptr<TransMatrix<double>> transMat = CreateObject<FourierTransMatrix<double>>();
+	// Ptr<TransMatrix> transMat = CreateObject<FourierTransMatrix<double>>();
 	// Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
 	// rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
 	// ranMat = CreateObject<GaussianRandomMatrix>();

@@ -37,16 +37,16 @@ using namespace ns3;
 * Compressor<double>\n
 * Compressor<cx_double>\n
 *
-* \tparam T type of internal data (either double or arma::cx_double)
+* \tparam double type of internal data (either double or arma::cx_double)
 *
 * \author Tobias Waurick
 * \date 11.07.17
 */
-template <typename T>
+
 class Compressor : public Object
 {
   public:
-	typedef void (*CompleteCallback)(arma::Mat<T>, arma::Mat<T>); /**< callback signature: complete a compression*/
+	typedef void (*CompleteCallback)(arma::Mat<double>, arma::Mat<double>); /**< callback signature: complete a compression*/
 
 	static TypeId GetTypeId(void);
 	Compressor();
@@ -81,7 +81,7 @@ class Compressor : public Object
 	* \param bufLenOut length of output buffer (must be vecLen*m)
 	*
 	*/
-	void Compress(const T *bufferIn, uint32_t bufLenIn, T *bufferOut, uint32_t bufLenOut) const;
+	void Compress(const double *bufferIn, uint32_t bufLenIn, double *bufferOut, uint32_t bufLenOut) const;
 
 	/**
 	* \brief compresses data from input matrix and writes it to the output buffer
@@ -93,7 +93,7 @@ class Compressor : public Object
 	* \param bufLenOut length of output buffer (must be vecLen*m)
 	*
 	*/
-	void Compress(const arma::Mat<T> &matIn, T *bufferOut, uint32_t bufLenOut) const;
+	void Compress(const arma::Mat<double> &matIn, double *bufferOut, uint32_t bufLenOut) const;
 
 	/**
 	* \brief compresses data from input matrix with sparse rows and writes it to the output buffer
@@ -111,7 +111,7 @@ class Compressor : public Object
 	*
 	*/
 	template <typename TI>
-	void CompressSparse(const arma::Mat<T> &data, const arma::Col<TI> &idx, T *bufferOut, uint32_t bufLenOut) const;
+	void CompressSparse(const arma::Mat<double> &data, const arma::Col<TI> &idx, double *bufferOut, uint32_t bufLenOut) const;
 
 	/**
 	* \brief sets the seed used for the random matrix and regenerates it
@@ -143,7 +143,7 @@ class Compressor : public Object
 	* \param transMat_ptr pointer to a TransMatrix object
 	*
 	*/
-	void SetTransMat(Ptr<TransMatrix<T>> transMat_ptr);
+	void SetTransMat(Ptr<TransMatrix> transMat_ptr);
 
   private:
 	uint32_t
@@ -154,8 +154,8 @@ class Compressor : public Object
 	uint64_t m_bufLenIn,							/**< input buffer length */
 		m_bufLenOut;								/**< output buffer length */
 	klab::TSmartPointer<RandomMatrix> m_ranMat;		/**< Random matrix form from which sensing matrix is constructed*/
-	klab::TSmartPointer<TransMatrix<T>> m_transMat; /**< Transformation matrix form from which sensing matrix is constructed*/
-	TracedCallback<arma::Mat<T>, arma::Mat<T>> m_completeCb;	/**< callback when compression is completed, 1.matrix: input, 2.matrix result*/
+	klab::TSmartPointer<TransMatrix> m_transMat; /**< Transformation matrix form from which sensing matrix is constructed*/
+	TracedCallback<arma::Mat<double>, arma::Mat<double>> m_completeCb;	/**< callback when compression is completed, 1.matrix: input, 2.matrix result*/
 };
 
 /**
@@ -164,19 +164,19 @@ class Compressor : public Object
 *
 * \brief compresses measurements X into a lower dimensional space Y (temporal coding)
 *
-* Similiar to Compressor<T>, but here the length of a measurement vector is fixed to 1;
+* Similiar to Compressor<double>, but here the length of a measurement vector is fixed to 1;
 *
 * This Template can be used with the following explicit instantiations (see for Attributes) :\n
 * CompressorTemp<double>\n
 * CompressorTemp<cx_double>\n
 *
-* \tparam T type of internal data (either double or arma::cx_double)
+* \tparam double type of internal data (either double or arma::cx_double)
 *
 * \author Tobias Waurick
 * \date 12.07.17
 */
-template <typename T>
-class CompressorTemp : public Compressor<T>
+
+class CompressorTemp : public Compressor
 {
   public:
 	static TypeId GetTypeId(void);

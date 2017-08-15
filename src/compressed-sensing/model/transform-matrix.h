@@ -22,12 +22,14 @@ using namespace kl1p;
 * \ingroup transmat
 * \class TransMatrix
 *
-* \brief a base clase template to create transformation matrices
+* \brief a base clase  to create real transformation matrices
 *
-* \tparam T data type entries of underlying matrix
+* With this base class it is possible to create NxN transformation matrices in the real domain.
+* To use both with ns3 and kl1p it inherits from ns3::Object and as well from kl1p::TOperator<double>.
+*
+*
 */
-template <typename T>
-class TransMatrix : public ns3::Object, public virtual TOperator<T>
+class TransMatrix : public ns3::Object, public virtual TOperator<double>
 {
   public:
 	/**
@@ -59,14 +61,6 @@ class TransMatrix : public ns3::Object, public virtual TOperator<T>
 	uint32_t GetSize() const;
 
 	/**
-	* \brief returns the transformation matrix
-	*
-	*
-	* \return transformation matrix
-	*/
-	arma::Mat<T> GetMatrix();
-
-	/**
 	* \brief applies the inverse of the transformation
 	*
 	*
@@ -75,7 +69,7 @@ class TransMatrix : public ns3::Object, public virtual TOperator<T>
 	*
 	* \tparam T data type
 	*/
-	// virtual void ApplyInverse(const arma::Col<T> &in, arma::Col<T> &out) = 0;
+	// virtual void ApplyInverse(const arma::Col<double> &in, arma::Col<double> &out) = 0;
 
 	/**
 	* \brief clones the object
@@ -84,18 +78,6 @@ class TransMatrix : public ns3::Object, public virtual TOperator<T>
 	*/
 	virtual TransMatrix *Clone() const = 0;
 
-	operator arma::Mat<T>()
-	{
-		return GetMatrix();
-	};
-
-	template <typename T2>
-	friend arma::Mat<T2> operator*(const TransMatrix<T2> &, const arma::Mat<T2> &);
-
-	template <typename T2>
-	friend arma::Mat<T2> operator*(const arma::Mat<T2> &, const TransMatrix<T2> &);
-	template <typename T2>
-	friend std::ostream &operator<<(std::ostream &os, const TransMatrix<T2> &obj);
 };
 
 /**
@@ -104,10 +86,10 @@ class TransMatrix : public ns3::Object, public virtual TOperator<T>
 *
 * \brief matrix inducing a 1D fourier transformation
 *
-* \tparam T data type
+* The inverse is used here, since with the compressed sensing approaches the transformation coefficients are
+*
 */
-template <typename T>
-class FourierTransMatrix : public virtual TransMatrix<T>, public virtual TInverseFourier1DOperator<T>
+class FourierTransMatrix : public virtual TransMatrix, public virtual TInverseFourier1DOperator<double>
 {
   public:
 	/**
@@ -138,14 +120,14 @@ class FourierTransMatrix : public virtual TransMatrix<T>, public virtual TInvers
 	*/
 	virtual FourierTransMatrix *Clone() const;
 
-	// virtual void ApplyInverse(const arma::Col<T> &in, arma::Col<T> &out);
+	// virtual void ApplyInverse(const arma::Col<double> &in, arma::Col<double> &out);
 
 	/*inherited from TOperator*/
-	virtual void apply(const arma::Col<T> &in, arma::Col<T> &out);
-	virtual void applyAdjoint(const arma::Col<T> &in, arma::Col<T> &out);
+	virtual void apply(const arma::Col<double> &in, arma::Col<double> &out);
+	virtual void applyAdjoint(const arma::Col<double> &in, arma::Col<double> &out);
 
   private:
-	// kl1p::TInverseFourier1DOperator<T> m_inverse;
+	// kl1p::TInverseFourier1DOperator<double> m_inverse;
 };
 
 /**
@@ -156,8 +138,7 @@ class FourierTransMatrix : public virtual TransMatrix<T>, public virtual TInvers
 *
 */
 
-template <typename T>
-class DcTransMatrix : public virtual TransMatrix<T>, public virtual TInverseDCT1DOperator<T>
+class DcTransMatrix : public virtual TransMatrix, public virtual TInverseDCT1DOperator<double>
 {
   public:
 	/**
@@ -188,12 +169,12 @@ class DcTransMatrix : public virtual TransMatrix<T>, public virtual TInverseDCT1
 	*/
 	virtual DcTransMatrix *Clone() const;
 
-	// virtual void ApplyInverse(const arma::Col<T> &in, arma::Col<T> &out);
+	// virtual void ApplyInverse(const arma::Col<double> &in, arma::Col<double> &out);
 
 	/*inherited from TOperator*/
-	virtual void apply(const arma::Col<T> &in, arma::Col<T> &out);
-	virtual void applyAdjoint(const arma::Col<T> &in, arma::Col<T> &out);
+	virtual void apply(const arma::Col<double> &in, arma::Col<double> &out);
+	virtual void applyAdjoint(const arma::Col<double> &in, arma::Col<double> &out);
   private:
-	// kl1p::TInverseDCT1DOperator<T> m_inverse;
+	// kl1p::TInverseDCT1DOperator<double> m_inverse;
 };
 #endif //TRANSFORM_MATRIX_H
