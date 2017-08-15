@@ -27,6 +27,7 @@ using namespace std;
 NS_LOG_COMPONENT_DEFINE("SingleCsCluster");
 
 MatFileHandler matHandler_glob;
+uint32_t tTemp_glob = 0, tSpat_glob = 0, nErrorRec_glob = 0, nErrorComp_glob = 0;
 bool verbose = false,
 	 info = false;
 
@@ -37,9 +38,6 @@ compressCb(arma::Mat<double> matIn, arma::Mat<double> matOut)
 	if (info || verbose)
 		cout << "\n"
 			 << Simulator::Now() << " Node " << Simulator::GetContext() << " compressed.";
-	static uint32_t count = 0;
-	matHandler_glob.WriteMat("notCompressSpat" + std::to_string(count), matIn);
-	matHandler_glob.WriteMat("CompressSpat" + std::to_string(count++), matOut);
 }
 
 static void
@@ -72,6 +70,7 @@ tempRecCb(int64_t time, uint32_t iter)
 	if (info || verbose)
 		cout << "Reconstructed temporally in " << time << " ms with " << iter << " iterations"
 			 << "\n";
+	tTemp_glob += time;
 }
 
 static void
@@ -80,12 +79,14 @@ spatRecCb(int64_t time, uint32_t iter)
 	if (info || verbose)
 		cout << "Reconstructed spatially in " << time << " ms with " << iter << " iterations"
 			 << "\n";
+	tSpat_glob += time;
 }
 static void
 recErrorCb(const klab::KException &e)
 {
 	if (info || verbose)
 		cout << "Reconstruction failed with error " << e.what();
+	nErrorRec_glob++;
 }
 
 static void
@@ -93,6 +94,7 @@ comprFailSpat(CsHeader::T_IdField id)
 {
 	if (info || verbose)
 		cout << "Spatial compression failed within cluster " << static_cast<int>(id) << endl;
+	nErrorComp_glob++;
 }
 
 static void
@@ -369,6 +371,10 @@ int main(int argc, char *argv[])
 	matHandler_glob.WriteValue<double>("n", n);
 	matHandler_glob.WriteValue<double>("m", m);
 	matHandler_glob.WriteValue<double>("l", l);
+	matHandler_glob.WriteValue<double>("totalTimeTemp", tTemp_glob);
+	matHandler_glob.WriteValue<double>("totalTimeSpat", tSpat_glob);
+	matHandler_glob.WriteValue<double>("nErrorRec", nErrorRec_glob);
+	matHandler_glob.WriteValue<double>("nErrorComp", nErrorComp_glob);
 	if (!seq)
 		matHandler_glob.WriteValue<double>("attempts", 1);
 	else
