@@ -321,7 +321,7 @@ void Reconstructor::WriteRecSpat(const ClusterInfo &info, const Mat<double> &mat
 		for (size_t i = 0; i < mat.n_cols; i++)
 		{
 			Col<double> xVec;
-			m_transMatSpat->applyAdjoint(mat.col(i), xVec);
+			m_transMatSpat->apply(mat.col(i), xVec);
 			res.col(i) = xVec;
 		}
 
@@ -355,7 +355,7 @@ void Reconstructor::WriteRecSpat(const ClusterInfo &info, const Mat<cx_double> &
 		for (size_t i = 0; i < mat.n_cols; i++)
 		{
 			Col<cx_double> xVec;
-			m_transMatSpatCx->applyAdjoint(mat.col(i), xVec);
+			m_transMatSpatCx->apply(mat.col(i), xVec);
 			res.col(i) = xVec;
 		}
 
@@ -383,10 +383,12 @@ void Reconstructor::WriteRecTemp(Ptr<DataStream<double>> stream, const Mat<doubl
 	{
 		Mat<double> res;
 		res.set_size(mat.n_rows, mat.n_cols);
+		m_transMatTemp->SetSize(mat.n_rows);
+
 		for (size_t i = 0; i < mat.n_cols; i++)
 		{
 			Col<double> xVec;
-			m_transMatTemp->applyAdjoint(mat.col(i), xVec);
+			m_transMatTemp->apply(mat.col(i), xVec);
 			res.col(i) = xVec;
 		}
 		WriteStream<double>(stream, res);
@@ -408,10 +410,12 @@ void Reconstructor::WriteRecTemp(Ptr<DataStream<double>> stream, const Mat<cx_do
 	{
 		Mat<cx_double> res;
 		res.set_size(mat.n_rows, mat.n_cols);
+		m_transMatTempCx->SetSize(mat.n_rows);
+
 		for (size_t i = 0; i < mat.n_cols; i++)
 		{
 			Col<cx_double> xVec;
-			m_transMatTempCx->applyAdjoint(mat.col(i), xVec);
+			m_transMatTempCx->apply(mat.col(i), xVec);
 			res.col(i) = xVec;
 		}
 		WriteStream<cx_double>(stream, res);

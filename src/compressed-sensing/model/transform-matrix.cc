@@ -65,12 +65,12 @@ OBJECT_TEMPLATE_CLASS_DEFINE(TransMatrix, cx_double);
 
 /*--------  FourierTransMatrix  --------*/
 template <typename T>
-FourierTransMatrix<T>::FourierTransMatrix() : TransMatrix<T>(0), TFourier1DOperator<T>(0)//, m_inverse(0)
+FourierTransMatrix<T>::FourierTransMatrix() : TransMatrix<T>(0), TInverseFourier1DOperator<T>(0)//, m_inverse(0)
 {
 }
 
 template <typename T>
-FourierTransMatrix<T>::FourierTransMatrix(uint32_t n) : TransMatrix<T>(n), TFourier1DOperator<T>(n)//, m_inverse(n)
+FourierTransMatrix<T>::FourierTransMatrix(uint32_t n) : TransMatrix<T>(n), TInverseFourier1DOperator<T>(n)//, m_inverse(n)
 {
 	SetSize(n);
 }
@@ -81,6 +81,7 @@ void FourierTransMatrix<T>::SetSize(uint32_t n)
 	if (n != TransMatrix<T>::GetSize())
 	{
 		TransMatrix<T>::SetSize(n);
+		TInverseFourier1DOperator<T>::resize(n);
 		//m_inverse.resize(n);
 	}
 }
@@ -100,25 +101,25 @@ FourierTransMatrix<T>*FourierTransMatrix<T>::Clone() const
 template <typename T>
 void FourierTransMatrix<T>::apply(const arma::Col<T> &in, arma::Col<T> &out)
 {
-	TFourier1DOperator<T>::apply(in, out);
+	TInverseFourier1DOperator<T>::apply(in, out);
 }
 
 template <typename T>
 void FourierTransMatrix<T>::applyAdjoint(const arma::Col<T> &in, arma::Col<T> &out)
 {
-	TFourier1DOperator<T>::applyAdjoint(in, out);
+	TInverseFourier1DOperator<T>::applyAdjoint(in, out);
 }
 
 OBJECT_TEMPLATE_CLASS_DEFINE(FourierTransMatrix, double);
 OBJECT_TEMPLATE_CLASS_DEFINE(FourierTransMatrix, cx_double);
 /*--------  DcTransMatrix  --------*/
 template <typename T>
-DcTransMatrix<T>::DcTransMatrix() : TransMatrix<T>(0), TDCT1DOperator<T>(0)//, m_inverse(0)
+DcTransMatrix<T>::DcTransMatrix() : TransMatrix<T>(0), TInverseDCT1DOperator<T>(0)//, m_inverse(0)
 {
 }
 
 template <typename T>
-DcTransMatrix<T>::DcTransMatrix(uint32_t n) : TransMatrix<T>(n), TDCT1DOperator<T>(n)//, m_inverse(n)
+DcTransMatrix<T>::DcTransMatrix(uint32_t n) : TransMatrix<T>(n), TInverseDCT1DOperator<T>(n)//, m_inverse(n)
 {
 	TransMatrix<T>::SetSize(n);
 }
@@ -129,7 +130,7 @@ void DcTransMatrix<T>::SetSize(uint32_t n)
 	if (n != TransMatrix<T>::GetSize())
 	{
 		TransMatrix<T>::SetSize(n);
-		TDCT1DOperator<T>::resize(n);
+		TInverseDCT1DOperator<T>::resize(n);
 	//	m_inverse.resize(n);
 	}
 }
@@ -149,13 +150,13 @@ DcTransMatrix<T> *DcTransMatrix<T>::Clone() const
 template <typename T>
 void DcTransMatrix<T>::apply(const arma::Col<T> &in, arma::Col<T> &out)
 {
-	TDCT1DOperator<T>::apply(in, out);
+	TInverseDCT1DOperator<T>::apply(in, out);
 }
 
 template <typename T>
 void DcTransMatrix<T>::applyAdjoint(const arma::Col<T> &in, arma::Col<T> &out)
 {
-	TDCT1DOperator<T>::applyAdjoint(in, out);
+	TInverseDCT1DOperator<T>::applyAdjoint(in, out);
 }
 
 OBJECT_TEMPLATE_CLASS_DEFINE(DcTransMatrix, double);

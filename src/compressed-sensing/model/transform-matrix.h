@@ -107,7 +107,7 @@ class TransMatrix : public ns3::Object, public virtual TOperator<T>
 * \tparam T data type
 */
 template <typename T>
-class FourierTransMatrix : public virtual TransMatrix<T>, public virtual TFourier1DOperator<T>
+class FourierTransMatrix : public virtual TransMatrix<T>, public virtual TInverseFourier1DOperator<T>
 {
   public:
 	/**
@@ -157,7 +157,7 @@ class FourierTransMatrix : public virtual TransMatrix<T>, public virtual TFourie
 */
 
 template <typename T>
-class DcTransMatrix : public virtual TransMatrix<T>, public virtual TDCT1DOperator<T>
+class DcTransMatrix : public virtual TransMatrix<T>, public virtual TInverseDCT1DOperator<T>
 {
   public:
 	/**
