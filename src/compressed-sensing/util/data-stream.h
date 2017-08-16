@@ -40,7 +40,7 @@ class DataStream : public ns3::Object
 	* \param name name of this DataStream
 	*
 	*/
-	DataStream(std::string name) : m_maxSize(0), m_name(name){};
+	DataStream(std::string name) : m_name(name){};
 
 	/**
 	* \brief Adds a SerialDataBuffer
@@ -51,9 +51,6 @@ class DataStream : public ns3::Object
 	void AddBuffer(Ptr<T_Buffer> buffer)
 	{
 		m_dataStreams.push_back(buffer);
-		uint32_t size = buffer->GetSize();
-		if (size > m_maxSize)
-			m_maxSize = size;
 	};
 
 	/**
@@ -137,9 +134,6 @@ class DataStream : public ns3::Object
 		{
 			m_dataStreams.push_back(Create<T_Buffer>(bufSize));
 		}
-
-		if (bufSize > m_maxSize)
-			m_maxSize = bufSize;
 	};
 
 	/**
@@ -175,11 +169,17 @@ class DataStream : public ns3::Object
 	*/
 	uint32_t GetMaxSize() const
 	{
-		return m_maxSize;
+		uint32_t max = 0;
+		for (auto it = Begin(); it != End(); it++)
+		{
+			uint32_t size = (*it)->GetSize();
+			if (size > max)
+				max = size;
+		}
+		return max;
 	};
 
   private:
-	uint32_t m_maxSize;						  /**< the largest size of all stored SerialDataBuffer instances */
 	std::string m_name;						  /**< name of the DataStream*/
 	std::vector<Ptr<T_Buffer>> m_dataStreams; /**< stored SerialDataBuffer instances*/
 };
@@ -227,6 +227,17 @@ class DataStreamContainer
 	{
 		m_dataStreams.push_back(stream);
 	};
+
+	/**
+	* \brief Creates a new empty stream and appends it to this container
+	*
+	* \param name name of new DataStream
+	*
+	*/
+	void CreateStream(std::string name)
+	{
+		AddStream(Create<DataStream<T>>(name));
+	}
 
 	/**
 	* \brief gets a DataStream at the given index
@@ -291,6 +302,52 @@ class DataStreamContainer
 	{
 		return m_groupName;
 	}
+
+	/**
+	* \brief Gets a DataStream by name
+	*
+	* Throws an error if the DataStream is not present
+	*
+	* \param name name of the DataStream
+	*
+	* \return pointer to DataStream
+	*/
+	Ptr<DataStream<T>> GetStreamByName(std::string name)
+	{
+		for (auto it = StreamBegin(); it != StreamEnd(); it++)
+		{
+			std::string streamName = (*it)->GetName();
+			if (streamName == name)
+			{
+				return *it;
+			}
+		}
+		NS_ABORT_MSG("Entry not found!");
+	}
+
+
+	/**
+	* \brief Removes a DataStream by name
+	*
+	* Throws an error if the DataStream is not present
+	*
+	* \param name name of the DataStream
+	*
+	*/
+	void RmStreamByName(std::string name)
+	{
+		for (auto it = StreamBegin(); it != StreamEnd(); it++)
+		{
+			std::string streamName = (*it)->GetName();
+			if (streamName == name)
+			{
+				m_dataStreams.erase(it);
+				return;
+			}
+		}
+		NS_ABORT_MSG("Entry not found!");
+	}
+
 
 	/**
 	* \brief gets a copy of this DataStreamContainer
