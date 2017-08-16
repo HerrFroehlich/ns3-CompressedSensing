@@ -11,6 +11,9 @@
 NS_LOG_COMPONENT_DEFINE("CsNode");
 NS_OBJECT_ENSURE_REGISTERED(CsNode);
 
+const std::string CsNode::STREAMNAME_COMPR = "Compressed";
+const std::string CsNode::STREAMNAME_UNCOMPR = "UnCompressed";
+
 TypeId
 CsNode::GetTypeId(void)
 {
@@ -42,17 +45,30 @@ CsNode::CsNode() : m_type(CsNode::NodeType::NONE), m_seed(1), m_clusterId(0), m_
 CsNode::CsNode(CsNode::NodeType type) : m_type(type), m_seed(1), m_clusterId(0), m_nodeId(0)
 {
 	NS_LOG_FUNCTION(this << type);
-	if(type == NodeType::CLUSTER)
+	if (type == NodeType::CLUSTER)
 		m_nodeId = CsHeader::CLUSTER_NODEID;
-	SetGroupName("Node" + std::to_string(m_nodeId));
 
+	if (type == NodeType::CLUSTER || type == NodeType::SOURCE)
+	{
+		CreateStream(STREAMNAME_COMPR);
+		CreateStream(STREAMNAME_UNCOMPR);
+	}
+
+	SetGroupName("Node" + std::to_string(m_nodeId));
 }
 
 CsNode::CsNode(CsNode::NodeType type, uint32_t systemId) : Node(systemId), m_type(type), m_seed(1), m_clusterId(0), m_nodeId(0)
 {
 	NS_LOG_FUNCTION(this << type << systemId);
-	if(type == NodeType::CLUSTER)
+	if (type == NodeType::CLUSTER)
 		m_nodeId = CsHeader::CLUSTER_NODEID;
+
+	if (type == NodeType::CLUSTER || type == NodeType::SOURCE)
+	{
+		CreateStream(STREAMNAME_COMPR);
+		CreateStream(STREAMNAME_UNCOMPR);
+	}
+
 	SetGroupName("Node" + std::to_string(m_nodeId));
 }
 uint32_t

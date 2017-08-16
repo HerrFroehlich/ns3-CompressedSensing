@@ -26,16 +26,20 @@ using namespace ns3;
 * nodes are connected with direct point to point links. As a result it is 
 * necessary to destinguish between receiving and transmitting net devices.
 * Therefore CsNode distinguishes between both by aggregating them separetly
-* to it. Furthermore CsNode instances are categorized into source, cluster,
+* to it. Furthermore CsNode instances are categorized into source, cluster head,
 * and sink nodes. CsNode also stores a seed, which can be used for generating
 * random values/matrices. Inheriting from DataStreamContainer<double>, in addition, 
 * DataStream instances with double values can be inserted into the CsNode.
+* If the node is a cluster head or a source node, two DataStream instances will be attached:
+* one for the compressed output, one for the uncompressed input data.
 *
 */
 class CsNode : public Node, public DataStreamContainer<double>
 {
   public:
 	static TypeId GetTypeId(void);
+	static const std::string STREAMNAME_COMPR; 		/**< name of DataStream storing temporal compression results*/
+	static const std::string STREAMNAME_UNCOMPR; 	/**< name of DataStream uncompressed data*/
 
 	enum NodeType /**< type of node*/
 	{
