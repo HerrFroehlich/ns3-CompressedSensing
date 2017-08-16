@@ -103,18 +103,6 @@ class MatBuffer : public ns3::Object
 	void Write(const T *buffer, uint32_t bufSize);
 
 	/**
-	* \brief writes data from a buffer by moving. Data in buffer has to be in a column by column order.
-	*
-	* BE SURE TO ALLOCATE THE BUFFER ON THE HEAP!
-	* The buffer pointer will be set to zero after memory has been moved, to avoid delete conflicts.
-	*
-	* \param buffer pointer to input buffer
-	* \param bufSize size of buffer
-	*
-	*/
-	// void WrMove(T *&buffer, uint32_t bufSize);
-
-	/**
 	* \brief reads the buffer matrix
 	*
 	* \return a const reference to the buffered data as a matrix
