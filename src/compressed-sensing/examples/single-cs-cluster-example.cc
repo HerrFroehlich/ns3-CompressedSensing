@@ -136,32 +136,33 @@ int main(int argc, char *argv[])
 	bool seq = false,
 		 noprecode = false,
 		 bpSpat = false,
-		 ampSpat = false;
+		 ampSpat = false,
+		 calcSnr = false;
 	std::string matFilePath = DEFAULT_FILE,
 				// matFilePathOut = DEFAULT_FILEOUT,
 		srcMatrixName = DEFAULT_SRCMAT_NAME;
 
 	CommandLine cmd;
 
-	cmd.AddValue("info", "Enable info messages", info);
-	cmd.AddValue("verbose", "Verbose Mode", verbose);
-	cmd.AddValue("seq", "Reconstruct sequentially for each received packet", seq);
-	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
-	cmd.AddValue("bp", "Basis Pursuit when solving spatially?", bpSpat);
 	cmd.AddValue("amp", "AMP when solving spatially?", ampSpat);
-	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
-	cmd.AddValue("nSrcNodes", "NOF source nodes in topology", nSrcNodes);
+	cmd.AddValue("bp", "Basis Pursuit when solving spatially?", bpSpat);
+	cmd.AddValue("channelDelay", "delay of all channels in ms", channelDelayTmp);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
-	cmd.AddValue("channelDelay", "delay of all channels [ms]", channelDelayTmp);
-	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
-	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
-	cmd.AddValue("l", "NOF meas. vectors after spatial compression, rows of Z", l);
 	cmd.AddValue("file", "path to mat file to read from", matFilePath);
-	// cmd.AddValue("file", "path to mat file to write output to", matFilePathOut);
-	cmd.AddValue("MATsrc", "name of the matrix in the mat file containing the data for the source nodes", srcMatrixName);
+	cmd.AddValue("info", "Enable info messages", info);
 	cmd.AddValue("k", "sparsity of original source measurements (needed when using OMP temporally)", k);
 	cmd.AddValue("ks", "sparsity of the colums of Y (needed when using OMP spatially)", ks);
+	cmd.AddValue("l", "NOF meas. vectors after spatial compression, rows of Z", l);
+	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
+	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
+	cmd.AddValue("nSrcNodes", "NOF source nodes in topology", nSrcNodes);
+	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
+	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
+	cmd.AddValue("seq", "Reconstruct sequentially for each received packet", seq);
+	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
 	cmd.AddValue("tol", "Tolerance for solvers", tol);
+	cmd.AddValue("verbose", "Verbose Mode", verbose);
+	cmd.AddValue("MATsrc", "name of the matrix in the mat file containing the data for the source nodes", srcMatrixName);
 
 	cmd.Parse(argc, argv);
 
@@ -310,6 +311,9 @@ int main(int argc, char *argv[])
 	rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 	sinkApp->SetAttribute("Reconst", PointerValue(rec));
 
+	if(calcSnr)
+		rec->SetAttribute("CalcSnr", BooleanValue(true));
+
 	// Ptr<TransMatrix<cx_double>> transMat = CreateObject<FourierTransMatrix<cx_double>>();
 	// Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
 	// rec->SetAttribute("RecMatTempCx", PointerValue(Create<RecMatrixCx>(ranMat, transMat)));
@@ -352,7 +356,7 @@ int main(int argc, char *argv[])
 
 	sinkApp->TraceConnectWithoutContext("Rx", MakeCallback(&receiveCb));
 	sinkApp->AddCluster(&cluster);
-	sinkApp->Setup(sink, matFilePath);
+	sinkApp->Setup(sink);
 	//setting calbacks
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/RecComplete", MakeCallback(&spatRecCb));
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/RecComplete", MakeCallback(&tempRecCb));
@@ -366,6 +370,19 @@ int main(int argc, char *argv[])
 	clusterApps.Start(Seconds(0.));
 	//	Simulator::Stop(Seconds(30));
 	Simulator::Run();
+	Simulator::Destroy();
+
+	/*********  Writing output **********/
+	if(calcSnr) // remove in/output streams of the cluster head/ source nodes to write less
+	{
+		for (auto it = cluster.Begin(); it != cluster.End(); it++)
+		{
+			(*it)->RmStreamByName(CsNode::STREAMNAME_UNCOMPR);
+			(*it)->RmStreamByName(CsNode::STREAMNAME_COMPR);
+		}
+	}
+
+
 	matHandler_glob.WriteCluster(cluster);
 	matHandler_glob.WriteValue<double>("nNodesUsed", nSrcNodes + 1);
 	matHandler_glob.WriteValue<double>("n", n);
@@ -381,6 +398,5 @@ int main(int argc, char *argv[])
 		matHandler_glob.WriteValue<double>("attempts", l);
 	matHandler_glob.WriteValue<double>("nMeasSeq", nMeasSeq);
 
-	Simulator::Destroy();
 	return 0;
 }

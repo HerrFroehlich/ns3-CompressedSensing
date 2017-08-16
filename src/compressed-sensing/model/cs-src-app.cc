@@ -61,6 +61,8 @@ CsSrcApp::GetTypeId(void)
 	return tid;
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 CsSrcApp::CsSrcApp() : m_yR(0), m_nodeId(0), m_clusterId(0),
 					   m_nextSeq(0), m_seed(1),
 					   m_n(0), m_m(0),
@@ -74,8 +76,9 @@ CsSrcApp::CsSrcApp() : m_yR(0), m_nodeId(0), m_clusterId(0),
 
 {
 	NS_LOG_FUNCTION(this);
-	m_stream = Create<DataStream<double>>(STREAMNAME);
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yR(m), m_nodeId(0), m_clusterId(0),
 											 m_nextSeq(0), m_seed(1),
@@ -89,8 +92,9 @@ CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yR(m), m_nodeId(0), m_clusterId(0
 											 m_sendEvent(EventId())
 {
 	NS_LOG_FUNCTION(this << n << m);
-	m_stream = Create<DataStream<double>>(STREAMNAME);
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 void CsSrcApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
 {
@@ -112,11 +116,14 @@ void CsSrcApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
 		m_compR = CreateObject<CompressorTemp>();
 	m_compR->Setup(m_seed, m_n, m_m);
 
-	//add stream to node
-	m_node->AddStream(m_stream);
+	//get streams from node
+	m_streamY = m_node->GetStreamByName(CsNode::STREAMNAME_COMPR);
+	m_streamX = m_node->GetStreamByName(CsNode::STREAMNAME_UNCOMPR);
 
 	m_isSetup = true;
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp> comp)
 {
@@ -130,23 +137,15 @@ void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp> comp)
 	}
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 Ptr<CompressorTemp> CsSrcApp::GetTempCompressor() const
 {
 	NS_LOG_FUNCTION(this);
 	return m_compR;
 }
 
-// void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp> comp, uint32_t n, uint32_t m, bool norm)
-// {
-// 	NS_LOG_FUNCTION(this << comp << n << m << norm);
-
-// 	m_compR = CopyObject(comp);
-// 	m_n = n;
-// 	m_m = m;
-// 	m_normalize = norm;
-
-// 	m_compR->Setup(m_seed, m_n, m_m, m_normalize);
-// }
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 void CsSrcApp::SetTempCompressDim(uint32_t n, uint32_t m)
 {
@@ -162,12 +161,7 @@ void CsSrcApp::SetTempCompressDim(uint32_t n, uint32_t m)
 		m_compR->Setup(m_seed, m_n, m_m);
 }
 
-// void CsSrcApp::SetSeed(uint32_t seed, bool norm)
-// {
-// 	NS_LOG_FUNCTION(this << seed << norm);
-
-// 	m_compR->SetSeed(seed, norm);
-// }
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 void CsSrcApp::SetTxProb(double p)
 {
@@ -176,6 +170,8 @@ void CsSrcApp::SetTxProb(double p)
 
 	m_txProb = p;
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 void CsSrcApp::StartApplication()
 {
@@ -204,6 +200,8 @@ void CsSrcApp::StopApplication()
 	m_running = false;
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 void CsSrcApp::SendToAll(Ptr<Packet> p)
 {
 	NS_LOG_FUNCTION(this << p);
@@ -221,6 +219,8 @@ void CsSrcApp::SendToAll(Ptr<Packet> p)
 		(*it)->Send(p, Address(), 0);
 	}
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 bool CsSrcApp::CompressNext()
 {
@@ -243,18 +243,21 @@ bool CsSrcApp::CompressNext()
 		return false;
 	}
 
-	double xData[m_n] = {0};
+	double xData[m_n] = {0.0};
 	double *yData = new double[m_m];
 	m_fdata->ReadNext(xData, m_n);
 	m_compR->Compress(xData, m_n, yData, m_m);
 
 	// write to stream
-	m_stream->CreateBuffer(yData, m_m);
+	m_streamY->CreateBuffer(yData, m_m);
+	m_streamX->CreateBuffer(xData, m_n);
 
 	m_yR.MoveMem(yData, m_m);
 
 	return true;
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 void CsSrcApp::CreateCsPackets()
 {
@@ -282,6 +285,8 @@ void CsSrcApp::CreateCsPackets()
 	m_nextSeq++;
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 void CsSrcApp::WriteTxPacketList(const std::vector<Ptr<Packet>> &pktList)
 {
 	// NS_LOG_FUNCTION(this);
@@ -295,6 +300,9 @@ void CsSrcApp::WriteTxPacketList(const std::vector<Ptr<Packet>> &pktList)
 		m_txPackets = pktList;
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+
 uint32_t CsSrcApp::GetMaxPayloadSize()
 {
 	NS_LOG_FUNCTION(this);
@@ -302,15 +310,23 @@ uint32_t CsSrcApp::GetMaxPayloadSize()
 	return m_m * sizeof(double);
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+
 bool CsSrcApp::HasPackets()
 {
 	return !m_txPackets.empty();
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+
 bool CsSrcApp::IsSending()
 {
 	return m_sendEvent.IsRunning();
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 void CsSrcApp::SendPacket(Ptr<Packet> p)
 {
@@ -324,6 +340,8 @@ void CsSrcApp::SendPacket(Ptr<Packet> p)
 		ScheduleTx(m_interval);
 	}
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 void CsSrcApp::ScheduleTx(Time dt)
 {
@@ -340,3 +358,6 @@ void CsSrcApp::ScheduleTx(Time dt)
 	else if (HasPackets())
 		Simulator::Schedule(dt, &CsSrcApp::ScheduleTx, this, m_interval);
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+

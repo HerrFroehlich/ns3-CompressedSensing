@@ -39,8 +39,7 @@ using namespace ns3;
 class CsSrcApp : public Application
 {
   public:
-	typedef double T_PktData;						   /**< package data type*/
-	const std::string STREAMNAME = "ComprTemp"; /**< name of DataStream storing temporal compression results*/
+	typedef double T_PktData;			   /**< package data type*/
 
 	static TypeId GetTypeId(void);
 
@@ -196,11 +195,6 @@ class CsSrcApp : public Application
 		m_seed, /**< seed used for generating the random sensing matrix*/
 		m_n,	/**< length of an original measurement vector*/
 		m_m,	/**< length of compressed measurment vector*/
-		// m_nDevices,   /**< number of net devices*/
-		// m_nTxDevices, /**< number of net devices*/
-		//	m_packetSize, /**< Packet size in byte*/
-		// m_nMeas,	  /**< NOF measurements to send*/
-		//m_nPackets,   /**< NOF packets to send*/
 		m_sent;			/**< NOF packets already sent*/
 	Ptr<CsNode> m_node; /**< aggretated node*/
   private:
@@ -219,11 +213,12 @@ class CsSrcApp : public Application
 		m_isSetup;
 
 	Ptr<SerialDataBuffer<double>> m_fdata; /**< data from file*/
-	Ptr<CompressorTemp> m_compR;   /**< compressor for real*/
+	Ptr<CompressorTemp> m_compR;		   /**< compressor for real*/
 	Ptr<RandomVariableStream> m_ranTx;	 /**< random variable stream, to determine when to send*/
 	// std::vector<uint32_t> m_isTxDevice;   /**< determine if device is used for sending */
-	std::vector<Ptr<Packet>> m_txPackets;  /**< packets to send next*/
-	Ptr<DataStream<double>> m_stream; /**< data stream storing compression results*/
+	std::vector<Ptr<Packet>> m_txPackets; /**< packets to send next*/
+	Ptr<DataStream<double>> m_streamY,	/**< DataStream storing compression results*/
+		m_streamX;						  /**< DataStream storing original measurements*/
 
 	Time m_interval; /**< Packet inter-send time*/
 	EventId m_sendEvent;

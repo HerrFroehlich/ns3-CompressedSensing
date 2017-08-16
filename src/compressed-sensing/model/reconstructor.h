@@ -49,7 +49,6 @@ class RecMatrix : public Object
 	Ptr<TransMatrix> transMatrix;
 };
 
-
 /**
 * \ingroup rec
 * \class Reconstructor
@@ -76,7 +75,7 @@ class RecMatrix : public Object
 * Again if a transformation matrix \f$\Psi^{T}\f$  is used, we calculate the inverse.
 * The spatial and temporal reconstruction results are written to a DataStream to the clusters/nodes to enable an evaluation outside
 * of this class. When the Reconstructor is resetted, the input buffers are cleared and a new run starts by appending
-* a new DataStream to the clusters/nodes.
+* a new DataStream to the clusters/nodes. The name of the DataStream instances is generated from a given run number.
 *
 */
 class Reconstructor : public ns3::Object
@@ -138,10 +137,12 @@ class Reconstructor : public ns3::Object
 	/**
 	* \brief resets the reconstructor
 	*
-	* Increments the run number and adds new DataStream instances to all nodes and clusters.
+	* Sets the new measurment sequence number and adds new DataStream instances to all nodes and clusters.
+	*
+	* \param seq new measurment sequence number
 	*
 	*/
-	void Reset();
+	void Reset(uint32_t seq);
 
 	/**
 	* \brief sets the temporal reconstruction algorithm
@@ -186,7 +187,7 @@ class Reconstructor : public ns3::Object
 	*
 	*/
 	void SetRecMatSpat(Ptr<RecMatrix> recMat);
-	
+
 	/**
 	* \brief sets the internal RandomMatrix and real TransMatrix from a RecMatrix container for temporal reconstruction
 	*
@@ -198,12 +199,11 @@ class Reconstructor : public ns3::Object
 	* \tparam T type of transformation (either double or arma::cx_double)
 	*
 	*/
-	void SetRecMatTemp(Ptr<RecMatrix>  recMat);
+	void SetRecMatTemp(Ptr<RecMatrix> recMat);
 
   private:
 	//internal typedefs
 	typedef NodeDataBuffer<double> T_InBuffer; /**< input NodeDataBuffer with doubles*/
-
 
 	/**
 	* \brief Class containing info on each cluster
@@ -216,14 +216,14 @@ class Reconstructor : public ns3::Object
 
 	  public:
 		ClusterInfo(Ptr<CsCluster> cl) : cluster(cl),
-															n(cl->GetCompression(CsCluster::E_COMPR_DIMS::n)),
-															m(cl->GetCompression(CsCluster::E_COMPR_DIMS::m)),
-															l(cl->GetCompression(CsCluster::E_COMPR_DIMS::l)),
-															nNodes(cl->GetN()),
-															clSeed(cl->GetClusterSeed()),
-															inBuf(CreateObject<T_InBuffer>(l, m)),
-															spatRecBuf(CreateObject<MatBuffer<double>>(nNodes, m)),
-															precode(new SpatialPrecodingMatrix<double>(nNodes))
+										 n(cl->GetCompression(CsCluster::E_COMPR_DIMS::n)),
+										 m(cl->GetCompression(CsCluster::E_COMPR_DIMS::m)),
+										 l(cl->GetCompression(CsCluster::E_COMPR_DIMS::l)),
+										 nNodes(cl->GetN()),
+										 clSeed(cl->GetClusterSeed()),
+										 inBuf(CreateObject<T_InBuffer>(l, m)),
+										 spatRecBuf(CreateObject<MatBuffer<double>>(nNodes, m)),
+										 precode(new SpatialPrecodingMatrix<double>(nNodes))
 		{
 			AddNewStreams(0);
 		};
@@ -240,9 +240,14 @@ class Reconstructor : public ns3::Object
 			cluster->AddStream(clStream);
 			for (auto it = cluster->Begin(); it != cluster->End(); it++)
 			{
+				//create output streams
 				Ptr<DataStream<double>> stream = Create<DataStream<double>>(Reconstructor::STREAMNAME + std::to_string(run));
 				streams.push_back(stream);
 				(*it)->AddStream(stream);
+
+				//get input streams
+				stream = (*it)->GetStreamByName(CsNode::STREAMNAME_UNCOMPR);
+				streamsXin.push_back(stream);
 			}
 		};
 
@@ -255,6 +260,7 @@ class Reconstructor : public ns3::Object
 		Ptr<MatBuffer<double>> spatRecBuf;							 /**< data of cluster after spatial reconstruction*/
 		Ptr<DataStream<double>> clStream;							 /**< cluster stream, where spatial reconstruction results are written to*/
 		std::vector<Ptr<DataStream<double>>> streams;				 /**< node streams, ordered by node id, where temporal reconstruction results are written to*/
+		std::vector<Ptr<DataStream<double>>> streamsXin;			 /**< streams containing the original uncompressed measurements x of each node, needed to calculate the snr*/
 		klab::TSmartPointer<SpatialPrecodingMatrix<double>> precode; /**< precoding matrix*/
 	};
 
@@ -290,9 +296,11 @@ class Reconstructor : public ns3::Object
 	/**
 	* \brief write matrix to spatial reconstruction buffer
 	*
-	* If there is a TransMatrix associated with this reconstructor, the transformation will be applied to mat.
+	* If there is a TransMatrix associated with this reconstructor, the transformation will be applied to the matrix.
 	* This is since the reconstruction algorithms will return the atom values of the transformation.
-	* It also writes to the current output DataStream of the cluster.
+	* The (resulting) matrix is written to an internal buffer, to use it for temporal reconstruction. 
+	* If setup the SNR compared to the original measurement will be calculated and stored to a DataStream of the cluster,
+	* else the result is written directly.
 	*
 	* \param info info on cluster
 	* \param mat matrix to be written
@@ -300,18 +308,20 @@ class Reconstructor : public ns3::Object
 	*/
 	void WriteRecSpat(const ClusterInfo &info, const Mat<double> &mat);
 
-
 	/**
-	* \brief write matrix to node stream
+	* \brief write column vector to node stream
 	*
-	* If there is a TransMatrix associated with this reconstructor, the transformation will be applied to mat.
+	* If there is a TransMatrix associated with this reconstructor, the transformation will be applied to the vector.
 	* This is since the reconstruction algorithms will return the atom values of the transformation.
+	* If setup the SNR compared to the original measurement will be calculated and stored to the DataStream,
+	* else the result is written directly.
 	*
-	* \param info info on cluster
-	* \param mat matrix to be written
+	* \param stream pointer to DataStream to write to
+	* \param vec column vector to be written
+	* \param streamX pointer to DataStream containing the original uncompressed measurements x of the node, needed to calculate the snr
 	*
 	*/
-	void WriteRecTemp(Ptr<DataStream<double>> stream, const Mat<double> &mat);
+	void WriteRecTemp(Ptr<DataStream<double>> stream, const Col<double> &vec, Ptr<DataStream<double>> streamX);
 
 	/**
 	* \brief writes a matrix to a DataStream<double> instance
@@ -344,8 +354,51 @@ class Reconstructor : public ns3::Object
 	*/
 	void ReconstructTemp(const ClusterInfo &info);
 
+	/**
+	* \brief calculates the snr from two matrices and writes the result to the given DataStream
+	*
+	* calculates \f$SNR(\fract{|x_0|}{|x_0 - x_r|})\f$,
+	* where \f$x_0f\f$ is the original measurement and \f$x_rf\f$ the reconstructed one.
+	* The result will be stored in a single SerialDataBuffer.
+	*
+	* \param stream pointer to DataStream to write to
+	* \param x0	original measurement matrix/vector	
+	* \param xr	reconstructed measurement matrix/vector	
+	*/
+	void CalcSnr(Ptr<DataStream<double>> stream, const Mat<double> &x0, const Mat<double> &xr);
+
+	/**
+	* \brief Gets the original temporal compressed \f$Y_0\f$ from a cluster
+	*
+	* The compressed data of a node is written to a single row. Thus  \f$Y_0\f$ has
+	* m columns, and as many rows as nodes in the cluster.
+	* To get the compressed data for each node the DataStream containing the
+	* compressed data is looked up via the CsNode::STREAMNAME_COMPR.
+	* The DataStream stored on the node is deleted to ease up the memory.
+	*
+	* \param info on cluster
+	*
+	* \return matrix containing \f$Y_0\f$
+	*/
+	Mat<double> GetY0(const ClusterInfo &info);
+
+	/**
+	* \brief Gets the current, original, uncompressed measurement \f$x_0\f$ from a node
+	*
+	* When calculating the SNR directly, no longer needed \f$x_0\f$ are deleted from the DataStream.
+	* Thus this method returns the first buffer in the given DataStream as a MxN matrix.
+	* Missing values are filled with zero, too many are ignored.
+	*
+	* \param stream pointer to DataStream containing all the original uncompressed measurements
+	* \param n		 NOF elements in \f$x_0\f$
+	*
+	* \return column vector containing \f$x_0\f$
+	*/
+	Col<double> GetX0(Ptr<DataStream<double>> stream, uint32_t n);
+
 	//internal
-	uint32_t m_runNmb;				   /**< run number is increased for each input reset*/
+	uint32_t m_seq; /**< current measurment sequence*/
+	bool m_calcSnr;	/**< Calculate SNR directly?*/
 
 	//clusters
 	uint32_t m_nClusters;										 /**< NOF clusters from which we are gathering data*/
@@ -356,9 +409,8 @@ class Reconstructor : public ns3::Object
 		m_algoTemp;
 
 	//operators
-	klab::TSmartPointer<RandomMatrix> m_ranMatSpat, m_ranMatTemp;					/**< Random matrix form from which sensing matrix is constructed*/
-	klab::TSmartPointer<TransMatrix> m_transMatSpat, m_transMatTemp;		/**< Transformation matrix form from which sensing matrix is constructed*/
-
+	klab::TSmartPointer<RandomMatrix> m_ranMatSpat, m_ranMatTemp;	/**< Random matrix form from which sensing matrix is constructed*/
+	klab::TSmartPointer<TransMatrix> m_transMatSpat, m_transMatTemp; /**< Transformation matrix form from which sensing matrix is constructed*/
 };
 
 #endif //RECONSTRUCTOR_H

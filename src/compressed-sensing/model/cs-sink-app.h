@@ -163,7 +163,7 @@ class CsSinkApp : public Application
 				ret = true;
 			}
 
-			(*(info.seqStream->End()-1))->WriteNext(seq); // write seq to last buffer in data stream
+			(*(info.seqStream->End() - 1))->WriteNext(seq); // write seq to last buffer in data stream
 
 			return ret;
 		}
@@ -247,7 +247,7 @@ class CsSinkApp : public Application
 	uint32_t m_recAttempt;			 /**< reconstruction attempt of current measurement sequence*/
 	SeqChecker m_seqCheck;			 /**< checking for new Sequence*/
 
-	bool m_isSetup;
+	bool m_isSetup;			/**< was setup called ?*/
 	Time m_timeout;			/**< Packet inter-send time*/
 	EventId m_timeoutEvent; /**< timeout event when waiting for new source data*/
 

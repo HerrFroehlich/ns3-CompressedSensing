@@ -15,6 +15,8 @@ NS_OBJECT_ENSURE_REGISTERED(CsSinkApp);
 
 const std::string CsSinkApp::SEQSTREAMNAME = "PacketSeq";
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 TypeId CsSinkApp::GetTypeId(void)
 {
 	static TypeId tid = TypeId("CsSinkApp")
@@ -44,6 +46,8 @@ TypeId CsSinkApp::GetTypeId(void)
 	return tid;
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 CsSinkApp::CsSinkApp() : m_seqCount(0),
 						 m_recAttempt(0),
 						 m_isSetup(false),
@@ -54,6 +58,8 @@ CsSinkApp::CsSinkApp() : m_seqCount(0),
 {
 	NS_LOG_FUNCTION(this);
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 void CsSinkApp::Setup(Ptr<CsNode> node)
 {
@@ -69,6 +75,8 @@ void CsSinkApp::Setup(Ptr<CsNode> node)
 	m_isSetup = true;
 	//StartNewSeq();
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 void CsSinkApp::AddCluster(Ptr<CsCluster> cluster)
 {
@@ -86,6 +94,8 @@ void CsSinkApp::AddCluster(Ptr<CsCluster> cluster)
 	//add sequence checker
 	m_seqCheck.AddCluster(cluster);
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnused, const Address &adrUnused)
 {
@@ -128,7 +138,7 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 	/*TODO: actually a new Reconstruction should take place if we have a new sequence for all cluster nodes!
 	 * -> new SeqChecker, buffer packets of new Seq
 	 */
-	
+
 	if (newSeq)
 		StartNewSeq();
 
@@ -137,6 +147,8 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 		ReconstructNext();
 	return true;
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 void CsSinkApp::BufferPacketData(Ptr<const Packet> packet, uint32_t nZeros)
 {
@@ -177,6 +189,8 @@ void CsSinkApp::BufferPacketData(Ptr<const Packet> packet, uint32_t nZeros)
 	m_reconst->SetPrecodeEntries(id, precode);
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 void CsSinkApp::ReconstructNext()
 {
 	NS_LOG_FUNCTION(this);
@@ -187,10 +201,11 @@ void CsSinkApp::ReconstructNext()
 	m_recAttempt++;
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 void CsSinkApp::StartNewSeq()
 {
 	m_rxPacketsSeq = 0;
 	m_recAttempt = 0;
-	m_reconst->Reset();
-	m_seqCount++;
+	m_reconst->Reset(++m_seqCount);
 }
