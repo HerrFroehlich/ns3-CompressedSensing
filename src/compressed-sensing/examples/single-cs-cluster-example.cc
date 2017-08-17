@@ -12,7 +12,7 @@
 #define CLUSTER_ID 0
 #define DEFAULT_TOL 1e-3
 
-#define TXPROB_MODIFIER 1.1
+#define TXPROB_MODIFIER 1.0
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -27,7 +27,7 @@ using namespace std;
 NS_LOG_COMPONENT_DEFINE("SingleCsCluster");
 
 MatFileHandler matHandler_glob;
-uint32_t tTemp_glob = 0, tSpat_glob = 0, nErrorRec_glob = 0, nErrorComp_glob = 0;
+uint32_t tTemp_glob = 0, tSpat_glob = 0, nErrorRec_glob = 0; //, nErrorComp_glob = 0;
 bool verbose = false,
 	 info = false;
 
@@ -89,13 +89,13 @@ recErrorCb(const klab::KException &e)
 	nErrorRec_glob++;
 }
 
-static void
-comprFailSpat(CsHeader::T_IdField id)
-{
-	if (info || verbose)
-		cout << "Spatial compression failed within cluster " << static_cast<int>(id) << endl;
-	nErrorComp_glob++;
-}
+// static void
+// comprFailSpat(CsHeader::T_IdField id)
+// {
+// 	if (info || verbose)
+// 		cout << "Spatial compression failed within cluster " << static_cast<int>(id) << endl;
+// 	nErrorComp_glob++;
+// }
 
 static void
 packetDrop(Ptr<const Packet> packet)
@@ -135,8 +135,8 @@ int main(int argc, char *argv[])
 		   tol = 0.0;
 	bool seq = false,
 		 noprecode = false,
-		 bpSpat = false,
-		 ampSpat = false,
+		 bpAlg = false,
+		 ampAlg = false,
 		 calcSnr = false;
 	std::string matFilePath = DEFAULT_FILE,
 				// matFilePathOut = DEFAULT_FILEOUT,
@@ -144,8 +144,8 @@ int main(int argc, char *argv[])
 
 	CommandLine cmd;
 
-	cmd.AddValue("amp", "AMP when solving spatially?", ampSpat);
-	cmd.AddValue("bp", "Basis Pursuit when solving spatially?", bpSpat);
+	cmd.AddValue("amp", "use AMP algorithm?", ampAlg);
+	cmd.AddValue("bp", "use Basis Pursuit algorithm", bpAlg);
 	cmd.AddValue("channelDelay", "delay of all channels in ms", channelDelayTmp);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
 	cmd.AddValue("file", "path to mat file to read from", matFilePath);
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
 
 	Time channelDelay = MilliSeconds(channelDelayTmp);
 
-	if (l > nSrcNodes+1)
+	if (l > nSrcNodes + 1)
 	{
 		cout << "l must be <= nSrcNodes!" << endl;
 		return 1;
@@ -303,22 +303,25 @@ int main(int argc, char *argv[])
 	Ptr<Reconstructor> rec = CreateObject<Reconstructor>();
 	Ptr<TransMatrix> transMat = CreateObject<DcTransMatrix>();
 	Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
+	if (ampAlg)
+		ranMat->NormalizeToM();
 	rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrix>(ranMat, transMat)));
+	
 	ranMat = CreateObject<GaussianRandomMatrix>();
-	if(ampSpat)
+	if (ampAlg)
 		ranMat->NormalizeToM();
 
 	rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 	sinkApp->SetAttribute("Reconst", PointerValue(rec));
 
-	if(calcSnr)
+	if (calcSnr)
 		rec->SetAttribute("CalcSnr", BooleanValue(true));
 
 	// Ptr<TransMatrix<cx_double>> transMat = CreateObject<FourierTransMatrix<cx_double>>();
 	// Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
 	// rec->SetAttribute("RecMatTempCx", PointerValue(Create<RecMatrixCx>(ranMat, transMat)));
 	// ranMat = CreateObject<GaussianRandomMatrix>();
-	// if(ampSpat)
+	// if(ampAlg)
 	// 	ranMat->NormalizeToM();
 
 	// rec->SetAttribute("RecMatSpatCx", PointerValue(Create<RecMatrixCx>(ranMat, transMat)));
@@ -328,17 +331,21 @@ int main(int argc, char *argv[])
 	// Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
 	// rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
 	// ranMat = CreateObject<GaussianRandomMatrix>();
-	// if(ampSpat)
+	// if(ampAlg)
 	// 	ranMat->NormalizeToM();
 
 	// rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
 	// sinkApp->SetAttribute("Reconst", PointerValue(rec));
 
-	if (bpSpat)
+	if (bpAlg)
+	{
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_BP>()));
-	else if (ampSpat)
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_BP>()));
+	}
+	else if (ampAlg)
 	{
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_AMP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_AMP>()));
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprSpat/RanMatrix/Norm", BooleanValue(true));
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsSrcApp/ComprTemp/RanMatrix/Norm", BooleanValue(true));
 	}
@@ -362,7 +369,7 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/RecComplete", MakeCallback(&tempRecCb));
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/RecError", MakeCallback(&recErrorCb));
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/RecError", MakeCallback(&recErrorCb));
-	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprFail", MakeCallback(&comprFailSpat));
+	//	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprFail", MakeCallback(&comprFailSpat));
 	Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$MySimpleNetDevice/PhyRxDrop", MakeCallback(&packetDrop));
 	/*********  Running the Simulation  **********/
 
@@ -373,7 +380,7 @@ int main(int argc, char *argv[])
 	Simulator::Destroy();
 
 	/*********  Writing output **********/
-	if(calcSnr) // remove in/output streams of the cluster head/ source nodes to write less
+	if (calcSnr) // remove in/output streams of the cluster head/ source nodes to write less
 	{
 		for (auto it = cluster.Begin(); it != cluster.End(); it++)
 		{
@@ -381,7 +388,6 @@ int main(int argc, char *argv[])
 			(*it)->RmStreamByName(CsNode::STREAMNAME_COMPR);
 		}
 	}
-
 
 	matHandler_glob.WriteCluster(cluster);
 	matHandler_glob.WriteValue<double>("nNodesUsed", nSrcNodes + 1);
@@ -391,7 +397,7 @@ int main(int argc, char *argv[])
 	matHandler_glob.WriteValue<double>("totalTimeTemp", tTemp_glob);
 	matHandler_glob.WriteValue<double>("totalTimeSpat", tSpat_glob);
 	matHandler_glob.WriteValue<double>("nErrorRec", nErrorRec_glob);
-	matHandler_glob.WriteValue<double>("nErrorComp", nErrorComp_glob);
+	//matHandler_glob.WriteValue<double>("nErrorComp", nErrorComp_glob);
 	if (!seq)
 		matHandler_glob.WriteValue<double>("attempts", 1);
 	else
