@@ -113,7 +113,7 @@ class CsSinkApp : public Application
 			diff.lastSeq = 0;
 			diff.l = cluster->GetCompression(CsCluster::E_COMPR_DIMS::l);
 			diff.m = cluster->GetCompression(CsCluster::E_COMPR_DIMS::m);
-			diff.packDiff = 0;
+			diff.nPack = 0;
 			diff.seqDiff = 0;
 			diff.seqStream = Create<DataStream<double>>(SEQSTREAMNAME);
 			diff.seqStream->CreateBuffer(1, cluster->GetCompression(CsCluster::E_COMPR_DIMS::l));
@@ -127,41 +127,30 @@ class CsSinkApp : public Application
 		* \param clusterId ID of the clustere
 		* \param seq	   new sequence
 		*
-		* \return true if enough packets were received to complete a measurement sequence
+		* \return difference in measurement sequences
 		*/
-		bool AddNewSeq(CsHeader::T_IdField clusterId, CsHeader::T_SeqField seq)
+		uint32_t AddNewSeq(CsHeader::T_IdField clusterId, CsHeader::T_SeqField seq)
 		{
-			bool ret = false;
+			uint32_t ret = 0;
 			DiffInfo &info = m_diffMap.at(clusterId);
 			int32_t diff = seq - info.lastSeq;
 
-			if (info.packDiff == info.l) // from last run
+			if (diff < 0) // overflow?
 			{
-				info.packDiff = 0;
+				diff += std::numeric_limits<CsHeader::T_SeqField>::max();
 			}
 
-			if (diff < 0) // unnoticed new sequence or overflow?
-			{
-				if ((diff + info.l) > 0) // in this case we most likely missed a sequence
-				{
-					diff = seq;
-					info.packDiff = 0;
-					info.lastSeq = seq;
-					ret = true;
-				}
-				else //overflow
-					diff += std::numeric_limits<CsHeader::T_SeqField>::max();
-			}
+			info.nPack += diff;
 
-			info.packDiff += diff;
-			info.seqDiff = diff;
-
-			info.lastSeq = seq;
-			if (info.packDiff == info.l)
+			if (info.nPack >= info.l)
 			{
 				info.seqStream->CreateBuffer(1, info.l); // add new buffer
-				ret = true;
+				ret = info.nPack / info.l;
+				info.nPack %= info.l;
 			}
+
+			info.seqDiff = diff % info.l;
+			info.lastSeq = seq;
 
 			(*(info.seqStream->End() - 1))->WriteNext(seq); // write seq to last buffer in data stream
 
@@ -172,7 +161,7 @@ class CsSinkApp : public Application
 		* \brief gets the number of zeros to pad
 		*
 		* If there are missing sequences we have to write zero rows to Z.
-		* This function determines how many 0s have to be padded.
+		* This function determines how many 0s have to be padded depending on the previous added sequence number.
 		*
 		* \param clusterId id of the cluster
 		*
@@ -193,7 +182,7 @@ class CsSinkApp : public Application
 			CsHeader::T_SeqField lastSeq;	  /**< last package sequence number*/
 			uint32_t l;						   /**< NOF packets per measurement sequence*/
 			uint32_t m;						   /**< NOF samples per packet*/
-			uint32_t packDiff,				   /**< difference of packets to full measurement sequence*/
+			uint32_t nPack,				   	   /**< NOF packets so far (including missed)*/
 				seqDiff;					   /**< difference to last sequence*/
 			Ptr<DataStream<double>> seqStream; /**< stream to write sequence numbers to */
 		};
@@ -234,10 +223,12 @@ class CsSinkApp : public Application
 	/**
 	* \brief prepares  for reconstructing  a new measurement sequence	
 	*
-	* This method resets all input buffers.
+	* This method resets all input buffers of the Reconstructor.
+	*
+	* \param seqDiff difference in sequence numbers
 	*
 	*/
-	void StartNewSeq();
+	void StartNewSeq(uint32_t seqDiff);
 
 	Ptr<CsNode> m_node; /**< aggretated sink node*/
 
