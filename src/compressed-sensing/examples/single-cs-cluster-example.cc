@@ -38,6 +38,8 @@ compressCb(arma::Mat<double> matIn, arma::Mat<double> matOut)
 	if (info || verbose)
 		cout << "\n"
 			 << Simulator::Now() << " Node " << Simulator::GetContext() << " compressed.";
+	matIn.save("IOdata/Yrx", csv_ascii);
+	matOut.save("IOdata/Z", csv_ascii);
 }
 
 static void
