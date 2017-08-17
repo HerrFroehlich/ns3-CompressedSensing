@@ -133,14 +133,14 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 
 	CsHeader::T_SeqField seq = header.GetSeq();
 
-	bool newSeq = m_seqCheck.AddNewSeq(clusterId, seq);
+	uint32_t seqDiff = m_seqCheck.AddNewSeq(clusterId, seq);
 
 	/*TODO: actually a new Reconstruction should take place if we have a new sequence for all cluster nodes!
 	 * -> new SeqChecker, buffer packets of new Seq
 	 */
 
-	if (newSeq)
-		StartNewSeq();
+	if (seqDiff)
+		StartNewSeq(seqDiff);
 
 	BufferPacketData(p, m_seqCheck.GetNZeros(clusterId));
 	if (++m_rxPacketsSeq >= m_minPackets)
@@ -203,9 +203,10 @@ void CsSinkApp::ReconstructNext()
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-void CsSinkApp::StartNewSeq()
+void CsSinkApp::StartNewSeq(uint32_t seqDiff)
 {
 	m_rxPacketsSeq = 0;
 	m_recAttempt = 0;
-	m_reconst->Reset(++m_seqCount);
+	m_seqCount += seqDiff;
+	m_reconst->Reset(m_seqCount);
 }
