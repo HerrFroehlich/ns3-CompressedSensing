@@ -32,7 +32,7 @@ public:
     SRC_NOT_IN_CLUSTER /**< received data from source node which is not in this cluster*/
   };
   typedef void (*RxDropCallback)(Ptr<const Packet>, E_DropCause); /**< callback signature:  dropping a received packet*/
-  typedef void (*CompressFailCallback)(CsHeader::T_IdField);      /**< callback signature:  compression failed*/
+  //typedef void (*CompressFailCallback)(CsHeader::T_IdField);      /**< callback signature:  compression failed*/
 
   static TypeId GetTypeId(void);
 
@@ -173,7 +173,7 @@ private:
 
   TracedCallback<Ptr<const Packet>> m_rxTrace;                  /**< received a packet*/
   TracedCallback<Ptr<const Packet>, E_DropCause> m_rxDropTrace; /**< callback:  dropping a received packet*/
-  TracedCallback<CsHeader::T_IdField> m_compressFailTrace;      /**< trace when compression failed*/
+  //TracedCallback<CsHeader::T_IdField> m_compressFailTrace;      /**< trace when compression failed*/
 
   const static uint32_t MAX_N_SRCNODES = CsHeader::MAX_SRCNODES + 1; /**< maximum NOF source nodes, +1 since cluster is also source!*/
 };

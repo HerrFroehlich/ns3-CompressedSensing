@@ -41,11 +41,12 @@ CsClusterApp::GetTypeId(void)
 											"Trace source indicating a packet has been dropped by the device during reception",
 											MakeTraceSourceAccessor(&CsClusterApp::m_rxDropTrace),
 											"CsClusterApp::RxDropCallback")
-							.AddTraceSource("ComprFail",
-											"Trace source when spatial compression has failed"
-											"by the device during reception",
-											MakeTraceSourceAccessor(&CsClusterApp::m_compressFailTrace),
-											"CsClusterApp::CompressFailCallback");
+							// .AddTraceSource("ComprFail",
+							// 				"Trace source when spatial compression has failed"
+							// 				"by the device during reception",
+							// 				MakeTraceSourceAccessor(&CsClusterApp::m_compressFailTrace),
+							// 				"CsClusterApp::CompressFailCallback")
+							;
 	return tid;
 }
 
@@ -162,12 +163,13 @@ bool CsClusterApp::CompressNext()
 	m_srcDataBuffer.SortByMeta();
 
 	//setup compressor & compress
-	uint32_t nMeas = m_srcDataBuffer.GetWrRow();
-	if (nMeas < m_l)
-	{
-		m_compressFailTrace(m_clusterId);
-		return false;
-	}
+	//uint32_t nMeas = m_srcDataBuffer.GetWrRow();
+	// if (nMeas < m_l)
+	// {
+	// 	m_nextPackSeq += m_l; //so that sink can detect missing measurement sequences
+	// 	m_compressFailTrace(m_clusterId);
+	// 	return false;
+	// }
 
 	uint32_t zBufSize = m_zData.nElem();
 	double zData[zBufSize];
