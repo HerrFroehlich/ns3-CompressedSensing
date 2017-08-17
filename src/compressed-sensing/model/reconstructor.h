@@ -64,15 +64,15 @@ class RecMatrix : public Object
 * transformation matrix \f$\Psi^{S}\f$ (TransMatrix), which can be either real or complex, and a spatial precoding matrix \f$B_k\f$
 * (SpatialPrecodingMatrix) \f$Y_k\f$ is reconstructed by solving with an CsAlgorithm :\n
 * \f$Z_k = A_k Y_k =\Phi_k B_k Y_k = \Phi_k B_k \Psi^{S} \Theta_k \f$ (FOR NOW SEPARETLY FOR EACH CLUSTER, LATER THEY WILL BE SOLVED JOINTLY (NC))\n
-* When using a transformation matrix \f$\Psi^{S}\f$ compressed seinsing algorithms return the atom values \f$ \Theta_k \f$.
-* To get \f$Y_k\f$ we simply apply the inverse.
+* When using a transformation matrix \f$\Psi^{S}\f$ compressed sensing algorithms return the atom values \f$ \Theta_k \f$.
+* \f$Y_k\f$ is simply  calculated by \f$Y_k = \Psi^{S} \Theta_k\f$.
 * From this the temporal compressed data \f$X_{jk}\f$ of each node \f$j\f$ in each cluster \f$k\f$ is restored by solving:\n
 * \f$X_{jk} = A_{jk} Y_{jk} =\Phi_{jk} Y_{jk} = \Phi_{jk} \Psi^{T} \Theta_{jk}\f$, where:\n
 * - \f$\Phi_{jk}\f$ is the random sensing matrix of the node, which is drawn from its seed\n
 * - \f$\Psi^{T}\f$ is the temporal transformation matrix, which can be either real or complex
 * - \f$ \Theta_{jk} \f$ atom values, when using \f$\Psi^{T}\f$\n
 *
-* Again if a transformation matrix \f$\Psi^{T}\f$  is used, we calculate the inverse.
+* Again if a transformation matrix \f$\Psi^{T}\f$  is used, we get \f$X_{jk}\f$ by doing f$Y_{jk} = \Psi^{T} \Theta_k\f$.
 * The spatial and temporal reconstruction results are written to a DataStream to the clusters/nodes to enable an evaluation outside
 * of this class. When the Reconstructor is resetted, the input buffers are cleared and a new run starts by appending
 * a new DataStream to the clusters/nodes. The name of the DataStream instances is generated from a given run number.
@@ -357,7 +357,7 @@ class Reconstructor : public ns3::Object
 	/**
 	* \brief calculates the snr from two matrices and writes the result to the given DataStream
 	*
-	* calculates \f$SNR(\fract{|x_0|}{|x_0 - x_r|})\f$,
+	* calculates \f$SNR(\frac{|x_0|}{|x_0 - x_r|})\f$,
 	* where \f$x_0f\f$ is the original measurement and \f$x_rf\f$ the reconstructed one.
 	* The result will be stored in a single SerialDataBuffer.
 	*
