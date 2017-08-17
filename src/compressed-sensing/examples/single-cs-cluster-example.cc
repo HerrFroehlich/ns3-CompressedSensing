@@ -162,6 +162,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
 	cmd.AddValue("tol", "Tolerance for solvers", tol);
 	cmd.AddValue("verbose", "Verbose Mode", verbose);
+	cmd.AddValue("MATfile", "path to the matlab file with extension", matFilePath);
 	cmd.AddValue("MATsrc", "name of the matrix in the mat file containing the data for the source nodes", srcMatrixName);
 
 	cmd.Parse(argc, argv);
