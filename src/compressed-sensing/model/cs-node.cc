@@ -45,8 +45,10 @@ CsNode::CsNode() : m_type(CsNode::NodeType::NONE), m_seed(1), m_clusterId(0), m_
 CsNode::CsNode(CsNode::NodeType type) : m_type(type), m_seed(1), m_clusterId(0), m_nodeId(0)
 {
 	NS_LOG_FUNCTION(this << type);
+	NS_ASSERT_MSG(m_clusterId < CsClusterHeader::GetMaxClusters(), "Not enough clusters setup in the CsHeader!");
+
 	if (type == NodeType::CLUSTER)
-		m_nodeId = CsHeader::CLUSTER_NODEID;
+		m_nodeId = CsClusterHeader::CLUSTER_NODEID;
 
 	if (type == NodeType::CLUSTER || type == NodeType::SOURCE)
 	{
@@ -60,8 +62,10 @@ CsNode::CsNode(CsNode::NodeType type) : m_type(type), m_seed(1), m_clusterId(0),
 CsNode::CsNode(CsNode::NodeType type, uint32_t systemId) : Node(systemId), m_type(type), m_seed(1), m_clusterId(0), m_nodeId(0)
 {
 	NS_LOG_FUNCTION(this << type << systemId);
+	NS_ASSERT_MSG(m_clusterId < CsClusterHeader::GetMaxClusters(), "Not enough clusters setup in the CsHeader!");
+
 	if (type == NodeType::CLUSTER)
-		m_nodeId = CsHeader::CLUSTER_NODEID;
+		m_nodeId = CsClusterHeader::CLUSTER_NODEID;
 
 	if (type == NodeType::CLUSTER || type == NodeType::SOURCE)
 	{
@@ -158,13 +162,14 @@ CsNode::GetNodeType() const
 
 void CsNode::SetNodeId(CsHeader::T_IdField id)
 {
-	NS_ASSERT_MSG(!IsCluster() || id == CsHeader::CLUSTER_NODEID, "Cluster node must have fixed CLUSTER_NODEID!");
+	NS_ASSERT_MSG(!IsCluster() || id == CsClusterHeader::CLUSTER_NODEID, "Cluster node must have fixed CLUSTER_NODEID!");
 	m_nodeId = id;
 	SetGroupName("Node" + std::to_string(id));
 }
 
 void CsNode::SetClusterId(CsHeader::T_IdField id)
 {
+	NS_ASSERT_MSG(m_clusterId < CsClusterHeader::GetMaxClusters(), "Not enough clusters setup in the CsHeader!");
 	m_clusterId = id;
 }
 

@@ -12,6 +12,7 @@
 #include "cs-src-app.h"
 #include "ns3/mat-buffer.h"
 #include "ns3/node-data-buffer-meta.h"
+#include "cs-cluster-header.h"
 
 /**
 * \ingroup csApps
@@ -163,7 +164,7 @@ private:
   MatBuffer<double> m_zData;                                       /**< buffer containg spatially compressed data*/
   NodeDataBufferMeta<double, CsHeader::T_IdField> m_srcDataBuffer; /**< NodeDataBuffer with meta data for incoming source node data*/
   //m_clusterDataMap;                                                 /**< NodeDataBuffer for  incoming cluster  node data*/
-  std::bitset<CsHeader::SRCINFO_BITLEN> m_srcInfo;
+  CsClusterHeader::T_SrcInfoField m_srcInfo;
 
   bool m_running,
       m_isSetup;

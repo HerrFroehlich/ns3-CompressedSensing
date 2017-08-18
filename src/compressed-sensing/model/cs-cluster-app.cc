@@ -203,7 +203,7 @@ void CsClusterApp::CreateCsPackets()
 	std::vector<Ptr<Packet>> pktList;
 	pktList.reserve(packetsNow);
 
-	CsHeader header;
+	CsClusterHeader header;
 	header.SetClusterId(m_clusterId);
 	header.SetNodeId(m_nodeId);
 	header.SetDataSize(payloadSize);
@@ -217,12 +217,14 @@ void CsClusterApp::CreateCsPackets()
 		header.SetSeq(m_nextPackSeq++); // we increase seq for each new packet
 		remain -= payloadSize;
 		Ptr<Packet> p = Create<Packet>(byte_ptr + i * payloadSize, payloadSize);
+		header.SetNcInfoNew(m_clusterId, i);
 		p->AddHeader(header);
 		pktList.push_back(p);
 	}
 	//last package
 	Ptr<Packet> p = Create<Packet>(byte_ptr + (packetsNow - 1) * payloadSize, remain);
 	header.SetSeq(m_nextPackSeq++); // we increase seq for each new packet
+	header.SetNcInfoNew(m_clusterId, (packetsNow - 1));
 	p->AddHeader(header);
 	pktList.push_back(p);
 
@@ -279,9 +281,9 @@ bool CsClusterApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idU
 	nodeId = header.GetNodeId();
 	clusterId = header.GetClusterId();
 
-	if (clusterId == m_clusterId && nodeId != CsHeader::CLUSTER_NODEID) //we receive from a source node of this cluster
+	if (clusterId == m_clusterId && nodeId != CsClusterHeader::CLUSTER_NODEID) //we receive from a source node of this cluster
 		success = ReceiveSrc(p);
-	else if (clusterId != m_clusterId && nodeId == CsHeader::CLUSTER_NODEID) // we receive from a different cluster node
+	else if (clusterId != m_clusterId && nodeId == CsClusterHeader::CLUSTER_NODEID) // we receive from a different cluster node
 		success = ReceiveCluster(p);
 	else //  we receive from a source node of a different cluster
 		m_rxDropTrace(p, E_DropCause::SRC_NOT_IN_CLUSTER);

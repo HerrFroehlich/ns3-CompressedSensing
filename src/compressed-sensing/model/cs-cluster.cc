@@ -156,7 +156,7 @@ uint32_t CsCluster::DefaultSeedCreator(uint32_t number, CsHeader::T_IdField id)
 	if (number == 0) 	//cluster
 		return 1 + id;
 	else 				//source
-		return CsHeader::MAX_CLUSTERNODES + id;
+		return CsClusterHeader::GetMaxClusters() + id + 1;
 }
 
 void CsCluster::SetCompression(uint32_t n, uint32_t m, uint32_t l)

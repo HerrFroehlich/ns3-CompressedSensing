@@ -15,7 +15,7 @@
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/applications-module.h"
-#include "cs-header.h"
+#include "cs-cluster-header.h"
 #include "ns3/cs-cluster.h"
 #include "reconstructor.h"
 #include "ns3/data-stream.h"

@@ -13,7 +13,7 @@
 #include "ns3/application-container.h"
 #include "transform-matrix.h"
 #include "random-matrix.h"
-#include "cs-header.h"
+#include "cs-cluster-header.h"
 using namespace ns3;
 
 class CsCluster : public Object, public DataStreamContainer<double>

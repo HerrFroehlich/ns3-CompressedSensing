@@ -46,10 +46,12 @@ receiveCb(Ptr<const Packet> p)
 	NS_LOG_FUNCTION(p);
 
 	if (info || verbose)
+	{
 		cout << "\n"
 			 << Simulator::Now() << " Node " << Simulator::GetContext() << " Received:";
-	p->Print(cout);
-	cout << endl;
+		p->Print(cout);
+		cout << endl;
+	}
 }
 
 static void
@@ -58,10 +60,12 @@ transmittingCb(Ptr<const Packet> p)
 	NS_LOG_FUNCTION(p);
 
 	if (info || verbose)
+	{
 		cout << "\n"
 			 << Simulator::Now() << " Node " << Simulator::GetContext() << " Sends:";
-	p->Print(cout);
-	cout << endl;
+		p->Print(cout);
+		cout << endl;
+	}
 }
 
 static void
@@ -168,7 +172,7 @@ int main(int argc, char *argv[])
 
 	Time channelDelay = MilliSeconds(channelDelayTmp);
 
-	if (l > nSrcNodes+1)
+	if (l > nSrcNodes + 1)
 	{
 		cout << "l must be <= nSrcNodes!" << endl;
 		return 1;
@@ -219,7 +223,7 @@ int main(int argc, char *argv[])
 	NS_LOG_INFO("Setting up...");
 
 	std::vector<uint32_t> lk(1, l);
-	CsHeader::SetupCl(lk);
+	CsClusterHeader::SetupCl(lk);
 
 	/*********  create cluster  **********/
 	NS_LOG_INFO("Creating cluster...");
@@ -309,13 +313,13 @@ int main(int argc, char *argv[])
 	Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
 	rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 	ranMat = CreateObject<GaussianRandomMatrix>();
-	if(ampSpat)
+	if (ampSpat)
 		ranMat->NormalizeToM();
 
 	rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 	sinkApp->SetAttribute("Reconst", PointerValue(rec));
 
-	if(calcSnr)
+	if (calcSnr)
 		rec->SetAttribute("CalcSnr", BooleanValue(true));
 
 	// Ptr<TransMatrix<cx_double>> transMat = CreateObject<FourierTransMatrix<cx_double>>();
@@ -377,7 +381,7 @@ int main(int argc, char *argv[])
 	Simulator::Destroy();
 
 	/*********  Writing output **********/
-	if(calcSnr) // remove in/output streams of the cluster head/ source nodes to write less
+	if (calcSnr) // remove in/output streams of the cluster head/ source nodes to write less
 	{
 		for (auto it = cluster.Begin(); it != cluster.End(); it++)
 		{
@@ -385,7 +389,6 @@ int main(int argc, char *argv[])
 			(*it)->RmStreamByName(CsNode::STREAMNAME_COMPR);
 		}
 	}
-
 
 	matHandler_glob.WriteCluster(cluster);
 	matHandler_glob.WriteValue<double>("nNodesUsed", nSrcNodes + 1);

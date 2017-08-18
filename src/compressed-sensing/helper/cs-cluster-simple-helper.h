@@ -14,7 +14,7 @@
 #include "ns3/my-simple-net-device-helper.h"
 #include "ns3/cs-cluster-app.h"
 #include "ns3/application-container.h"
-#include "ns3/cs-header.h"
+#include "ns3/cs-cluster-header.h"
 #include "ns3/data-stream.h"
 #include "ns3/cs-cluster.h"
 #include "cs-node-container.h"

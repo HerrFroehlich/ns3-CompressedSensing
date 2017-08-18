@@ -120,7 +120,7 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 	clusterId = header.GetClusterId();
 
 	//check if we received from a cluster and if we know it
-	if (nodeId != CsHeader::CLUSTER_NODEID) // we do not receive from a different cluster node
+	if (nodeId != CsClusterHeader::CLUSTER_NODEID) // we do not receive from a different cluster node
 	{
 		m_rxDropTrace(p, E_DropCause::NOT_A_CLUSTER);
 		return false;
@@ -131,7 +131,7 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 	// 	return false;
 	// }
 
-	CsHeader::T_SeqField seq = header.GetSeq();
+	CsClusterHeader::T_SeqField seq = header.GetSeq();
 
 	uint32_t seqDiff = m_seqCheck.AddNewSeq(clusterId, seq);
 
@@ -154,8 +154,8 @@ void CsSinkApp::BufferPacketData(Ptr<const Packet> packet, uint32_t nZeros)
 {
 	NS_LOG_FUNCTION(this << packet);
 
-	CsHeader header;
-	CsHeader::T_IdField id;
+	CsClusterHeader header;
+	CsClusterHeader::T_IdField id;
 
 	Ptr<Packet> p = packet->Copy(); //COW
 
@@ -178,11 +178,11 @@ void CsSinkApp::BufferPacketData(Ptr<const Packet> packet, uint32_t nZeros)
 	delete[] data;
 
 	//set precoding
-	CsHeader::T_SrcInfo bitset = header.GetSrcInfo();
+	CsClusterHeader::T_SrcInfoField bitset = header.GetSrcInfo();
 
 	std::vector<bool> precode;
-	precode.reserve(CsHeader::SRCINFO_BITLEN);
-	for (uint32_t i = 0; i < CsHeader::SRCINFO_BITLEN; i++)
+	precode.reserve(CsClusterHeader::SRCINFO_BITLEN);
+	for (uint32_t i = 0; i < CsClusterHeader::SRCINFO_BITLEN; i++)
 	{
 		precode.push_back(bitset[i]);
 	}
