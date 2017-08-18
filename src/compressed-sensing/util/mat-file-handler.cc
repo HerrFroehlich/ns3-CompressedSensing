@@ -39,7 +39,7 @@ bool MatFileHandler::Open(std::string path)
 	if (NULL == m_matFile) // create new mat file
 	{
 		m_matFile = Mat_CreateVer(path.c_str(), NULL, MAT_VERSION);
-		NS_ABORT_MSG_IF(m_matFile != NULL, "Could not write file!");
+		NS_ABORT_MSG_IF(m_matFile == NULL, "Could not write file!");
 		m_isOpen = true;
 		return false;
 	}
@@ -66,7 +66,7 @@ void MatFileHandler::OpenNew(std::string path)
 		Mat_Close(m_matFile);
 
 	m_matFile = Mat_CreateVer(path.c_str(), NULL, MAT_VERSION);
-	NS_ABORT_MSG_IF(m_matFile != NULL, "Could not write file!");
+	NS_ABORT_MSG_IF(m_matFile == NULL, "Could not write file!");
 	m_isOpen = true;
 }
 
@@ -80,14 +80,14 @@ void MatFileHandler::Close()
 template <>
 double MatFileHandler::ReadValue(std::string name) const
 {
-	NS_ABORT_MSG_IF(m_isOpen, "Open file first!");
+	NS_ABORT_MSG_IF(!m_isOpen, "Open file first!");
 
 	matvar_t *matvar;
 
 	matvar = Mat_VarRead(m_matFile, name.c_str());
-	NS_ABORT_MSG_IF(matvar, "Variable does not exist!");
-	NS_ABORT_MSG_IF(matvar->data_type == matio_types::MAT_T_DOUBLE && !matvar->isComplex, "Variable is not a double!");
-	NS_ABORT_MSG_IF(matvar->rank == 2 || (matvar->dims[0] == 1 && matvar->dims[1] == 1),
+	NS_ABORT_MSG_IF(!matvar, "Variable does not exist!");
+	NS_ABORT_MSG_IF(!(matvar->data_type == matio_types::MAT_T_DOUBLE && !matvar->isComplex), "Variable is not a double!");
+	NS_ABORT_MSG_IF(!(matvar->rank == 2 || (matvar->dims[0] == 1 && matvar->dims[1] == 1)),
 				  "Variable is not a single value");
 
 	return *((double *)matvar->data);
@@ -97,13 +97,13 @@ template double MatFileHandler::ReadValue<double>(std::string) const;
 template <>
 DataStream<double> MatFileHandler::ReadMat(std::string name) const
 {
-	NS_ABORT_MSG_IF(m_isOpen, "Open file first!");
+	NS_ABORT_MSG_IF(!m_isOpen, "Open file first!");
 	matvar_t *matvar;
 
 	matvar = Mat_VarRead(m_matFile, name.c_str());
-	NS_ABORT_MSG_IF(matvar, "Variable " + name + " does not exist!");
-	NS_ABORT_MSG_IF(matvar->class_type == matio_classes::MAT_C_DOUBLE && !matvar->isComplex, "Variable is not a double!");
-	NS_ABORT_MSG_IF(matvar->rank == 2 && (matvar->dims[0] >= 1 && matvar->dims[1] >= 1),
+	NS_ABORT_MSG_IF(!matvar, "Variable " + name + " does not exist!");
+	NS_ABORT_MSG_IF(!(matvar->class_type == matio_classes::MAT_C_DOUBLE && !matvar->isComplex), "Variable is not a double!");
+	NS_ABORT_MSG_IF(!(matvar->rank == 2 && (matvar->dims[0] >= 1 && matvar->dims[1] >= 1)),
 				  "Variable is not a vector/ matrix!");
 
 	uint32_t nStreams = matvar->dims[1],
@@ -128,7 +128,7 @@ template DataStream<double> MatFileHandler::ReadMat<double>(std::string) const;
 template <>
 void MatFileHandler::WriteValue(std::string name, double value)
 {
-	NS_ABORT_MSG_IF(m_isOpen, "Open file first!");
+	NS_ABORT_MSG_IF(!m_isOpen, "Open file first!");
 	//NS_ABORT_MSG_IF(!m_varInfoMap.count(name), "Variable with this name already exists!");
 	if (m_varInfoMap.count(name)) // overwrite existing
 	{
@@ -139,7 +139,7 @@ void MatFileHandler::WriteValue(std::string name, double value)
 	size_t dims[2] = {1, 1};
 	matvar_t *matvar = Mat_VarCreate(name.c_str(), MAT_C_DOUBLE, MAT_T_DOUBLE, 2, dims, &value, 0);
 
-	NS_ABORT_MSG_IF(matvar, "Could not create variable!");
+	NS_ABORT_MSG_IF(!matvar, "Could not create variable!");
 	CreateInfo(name, matvar);
 
 	Mat_VarWrite(m_matFile, matvar, MAT_COMPRESSION);
@@ -150,7 +150,7 @@ template void MatFileHandler::WriteValue<double>(std::string name, double);
 template <>
 void MatFileHandler::WriteMat(std::string name, const arma::Mat<double> &mat)
 {
-	NS_ABORT_MSG_IF(m_isOpen, "Open file first!");
+	NS_ABORT_MSG_IF(!m_isOpen, "Open file first!");
 
 	//NS_ABORT_MSG_IF(!m_varInfoMap.count(name), "Variable with this name already exists!");
 	if (m_varInfoMap.count(name)) // overwrite existing
@@ -162,7 +162,7 @@ void MatFileHandler::WriteMat(std::string name, const arma::Mat<double> &mat)
 	size_t dims[2] = {mat.n_rows, mat.n_cols};
 	void *data = (void *)const_cast<double *>(mat.memptr());
 	matvar_t *matvar = Mat_VarCreate(name.c_str(), MAT_C_DOUBLE, MAT_T_DOUBLE, 2, dims, data, MAT_F_DONT_COPY_DATA);
-	NS_ABORT_MSG_IF(matvar, "Could not create variable!");
+	NS_ABORT_MSG_IF(!matvar, "Could not create variable!");
 
 	Mat_VarWrite(m_matFile, matvar, MAT_COMPRESSION);
 	CreateInfo(name, matvar);
@@ -173,7 +173,7 @@ template void MatFileHandler::WriteMat<double>(std::string, const arma::Mat<doub
 template <>
 void MatFileHandler::WriteMat(const DataStream<double> &stream)
 {
-	NS_ABORT_MSG_IF(m_isOpen, "Open file first!");
+	NS_ABORT_MSG_IF(!m_isOpen, "Open file first!");
 
 	std::string name = stream.GetName();
 	//NS_ABORT_MSG_IF(!m_varInfoMap.count(name), "Variable with this name already exists!");
@@ -198,7 +198,7 @@ void MatFileHandler::WriteMat(const DataStream<double> &stream)
 	}
 
 	matvar_t *matvar = Mat_VarCreate(name.c_str(), MAT_C_DOUBLE, MAT_T_DOUBLE, 2, dims, &data, MAT_F_DONT_COPY_DATA);
-	NS_ABORT_MSG_IF(matvar, "Could not create variable!");
+	NS_ABORT_MSG_IF(!matvar, "Could not create variable!");
 
 	Mat_VarWrite(m_matFile, matvar, MAT_COMPRESSION);
 	CreateInfo(name, matvar);
@@ -230,7 +230,7 @@ matvar_t *MatFileHandler::CreateStructMatField(Ptr<DataStream<double>> stream)
 	std::string name = stream->GetName();
 	matvar = Mat_VarCreate(name.c_str(), MAT_C_DOUBLE, MAT_T_DOUBLE, 2, dims, data, 0);
 	delete[] data;
-	NS_ABORT_MSG_IF(matvar, "Could not create variable " + name + "!");
+	NS_ABORT_MSG_IF(!matvar, "Could not create variable " + name + "!");
 
 	return matvar;
 }
@@ -239,7 +239,7 @@ template matvar_t *MatFileHandler::CreateStructMatField(Ptr<DataStream<double>>)
 template <>
 void MatFileHandler::WriteStruct(const DataStreamContainer<double> &container)
 {
-	NS_ABORT_MSG_IF(m_isOpen, "Open file first!");
+	NS_ABORT_MSG_IF(!m_isOpen, "Open file first!");
 
 	std::string groupName = container.GetGroupName();
 
@@ -265,7 +265,7 @@ void MatFileHandler::WriteStruct(const DataStreamContainer<double> &container)
 	}
 
 	matvar = Mat_VarCreateStruct(groupName.c_str(), 2, structDims, fieldnames_c, nStreams);
-	NS_ABORT_MSG_IF(matvar, "Could not create structure!");
+	NS_ABORT_MSG_IF(!matvar, "Could not create structure!");
 	//add fields to structure
 	for (uint32_t i = 0; i < nStreams; i++)
 	{
@@ -284,7 +284,7 @@ template void MatFileHandler::WriteStruct<double>(const DataStreamContainer<doub
 
 void MatFileHandler::WriteCluster(const CsCluster &cluster)
 {
-	NS_ABORT_MSG_IF(m_isOpen, "Open file first!");
+	NS_ABORT_MSG_IF(!m_isOpen, "Open file first!");
 
 	std::string groupName = cluster.GetGroupName();
 
@@ -323,7 +323,7 @@ void MatFileHandler::WriteCluster(const CsCluster &cluster)
 
 	//create structure variable
 	matvar = Mat_VarCreateStruct(groupName.c_str(), 2, structDims, fieldnames_c, nFields);
-	NS_ABORT_MSG_IF(matvar, "Could not create structure!");
+	NS_ABORT_MSG_IF(!matvar, "Could not create structure!");
 
 	//add matrix fields to structure
 	for (uint32_t i = 0; i < nStreamsCluster; i++)
@@ -354,7 +354,7 @@ void MatFileHandler::WriteCluster(const CsCluster &cluster)
 		}
 
 		field = Mat_VarCreateStruct(fieldnames_c[j], 2, structDims, fieldnamesNode_c, nStreamsNode);
-		NS_ABORT_MSG_IF(field, "Could not create structure!");
+		NS_ABORT_MSG_IF(!field, "Could not create structure!");
 		//add fields to structure
 		for (uint32_t i = 0; i < nStreamsNode; i++)
 		{
@@ -384,7 +384,7 @@ std::vector<std::string> MatFileHandler::GetVarNames()
 
 MatFileHandler::S_VAR_INFO MatFileHandler::GetVarInfo(std::string name)
 {
-	NS_ABORT_MSG_IF(m_varInfoMap.count(name), "Variable with this name doesn't exists!");
+	NS_ABORT_MSG_IF(!m_varInfoMap.count(name), "Variable with this name doesn't exists!");
 	return m_varInfoMap.at(name);
 }
 
