@@ -40,9 +40,10 @@ class CsClusterHeader : public CsHeader
 	const static uint32_t SRCINFO_LEN = sizeof(T_IdField) * BYTE_NVAL_DIV_BYTE_LEN; /**< length of source info field in byte*/
 
 	//fields
-	typedef double T_NcInfoField;   /**< type of the values in the network coding information field*/
-	typedef uint8_t T_NcCountField; /**< type of the recombination counter*/
-	typedef std::bitset<SRCINFO_BITLEN> T_SrcInfoField;
+	typedef double T_NcInfoFieldValue;					/**< type of the values in the network coding information field*/
+	typedef std::vector<double> T_NcInfoField;			/**< type of the network coding information field*/
+	typedef uint8_t T_NcCountField;						/**< type of the recombination counter*/
+	typedef std::bitset<SRCINFO_BITLEN> T_SrcInfoField; /**< type of the source information field*/
 
 	CsClusterHeader();
 
@@ -114,7 +115,7 @@ class CsClusterHeader : public CsHeader
 	* \param vec vector containing values of the network coding information field
 	*
 	*/
-	void SetNcInfo(std::vector<T_NcInfoField> vec);
+	void SetNcInfo(T_NcInfoField vec);
 
 	/**
 	* \brief gets the the network coding information field
@@ -122,7 +123,7 @@ class CsClusterHeader : public CsHeader
 	*
 	* \return vector containing values of the network coding information field
 	*/
-	std::vector<T_NcInfoField> GetNcInfo() const;
+	T_NcInfoField GetNcInfo() const;
 
 	/**
 	* \brief incremenents the network coding recombination counter
@@ -167,8 +168,8 @@ class CsClusterHeader : public CsHeader
 
 	//variables
 	T_NcCountField m_ncCount;
-	T_SrcInfoField m_srcInfo;			 /**< info about source nodes*/
-	std::vector<T_NcInfoField> m_ncInfo; /**< network coding information field*/
+	T_SrcInfoField m_srcInfo; /**< info about source nodes*/
+	T_NcInfoField m_ncInfo;   /**< network coding information field*/
 };
 
 #endif //CS_CLUSTER_HEADER

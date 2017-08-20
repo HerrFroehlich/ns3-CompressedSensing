@@ -84,7 +84,7 @@ void CsClusterHeader::SetNcInfoNew(T_IdField clusterId, uint32_t i)
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-void CsClusterHeader::SetNcInfo(std::vector<T_NcInfoField> vec)
+void CsClusterHeader::SetNcInfo(CsClusterHeader::T_NcInfoField vec)
 {
 	NS_ASSERT_MSG(m_isSetup, "Run SetupCl first!");
 	NS_ASSERT_MSG(vec.size() == m_ncInfoSize, "Vector has incorrect size!");
@@ -94,7 +94,7 @@ void CsClusterHeader::SetNcInfo(std::vector<T_NcInfoField> vec)
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-std::vector<CsClusterHeader::T_NcInfoField> CsClusterHeader::GetNcInfo() const
+CsClusterHeader::T_NcInfoField CsClusterHeader::GetNcInfo() const
 {
 	NS_ASSERT_MSG(m_isSetup, "Run SetupCl first!");
 
@@ -163,7 +163,7 @@ uint32_t CsClusterHeader::Deserialize(Buffer::Iterator start)
 	m_ncCount = i.ReadU8();
 
 	//nc info
-	uint32_t nBytes = m_ncInfoSize * sizeof(T_NcInfoField);
+	uint32_t nBytes = m_ncInfoSize * sizeof(T_NcInfoFieldValue);
 	i.Read(reinterpret_cast<uint8_t *>(m_ncInfo.data()), nBytes);
 
 	return GetSerializedSize();
@@ -175,7 +175,7 @@ uint32_t CsClusterHeader::GetSerializedSize() const
 {
 	uint32_t size = CsHeader::GetSerializedSize();
 
-	size += SRCINFO_LEN + sizeof(T_NcCountField) + m_ncInfoSize * sizeof(T_NcInfoField);
+	size += SRCINFO_LEN + sizeof(T_NcCountField) + m_ncInfoSize * sizeof(T_NcInfoFieldValue);
 
 	return size;
 }
@@ -230,6 +230,6 @@ void CsClusterHeader::Serialize(Buffer::Iterator start) const
 	i.WriteU8(m_ncCount);
 
 	//nc info
-	uint32_t nBytes = m_ncInfoSize * sizeof(T_NcInfoField);
+	uint32_t nBytes = m_ncInfoSize * sizeof(T_NcInfoFieldValue);
 	i.Write(reinterpret_cast<const uint8_t *>(m_ncInfo.data()), nBytes);
 }
