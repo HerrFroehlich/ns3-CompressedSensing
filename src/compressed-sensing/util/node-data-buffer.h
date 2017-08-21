@@ -53,19 +53,25 @@ class NodeDataBuffer : public ns3::Object
 	* \brief writes data to this matrix buffer
 	*
 	* \param vect data vector
-	* \param meta meta information vector
 	*
 	* \return remaining size of row to be filled
 	*/
 	uint32_t WriteData(const Row<T> &vect);
 
 	/**
-	* \brief writes data from a buffer to this matrix buffer (also over multiple colums)
+	* \brief writes data from a vector to this matrix buffer
+	*
+	* \param vect data vector
+	*
+	* \return remaining size of row to be filled
+	*/
+	uint32_t WriteData(const std::vector<T> &vect);
+
+	/**
+	* \brief writes data from a buffer to this matrix buffer
 	*
 	* \param buffer pointer to data buffer
 	* \param bufSize size of buffer
-	* \param meta pointer to meta information buffer
-	* \param metaSize size of buffer
 	*
 	* \return remaining size of internal buffer matrix
 	*/
@@ -75,7 +81,6 @@ class NodeDataBuffer : public ns3::Object
 	* \brief writes a single data value to this matrix buffer
 	*
 	* \param data data value
-	* \param meta meta information
 	*
 	* \return remaining size of row to be filled
 	*/
@@ -253,6 +258,12 @@ uint32_t NodeDataBuffer<T>::WriteData(const Row<T> &vect)
 }
 
 template <typename T>
+uint32_t NodeDataBuffer<T>::WriteData(const std::vector<T> &vect)
+{
+	return WriteData(conv_to<Row<T>>::from(vect));
+}
+
+template <typename T>
 uint32_t NodeDataBuffer<T>::WriteData(const T &data)
 {
 	Row<T> dataVect(1);
@@ -264,31 +275,10 @@ template <typename T>
 uint32_t NodeDataBuffer<T>::WriteData(const T *buffer, const uint32_t &bufSize)
 {
 	NS_ASSERT(buffer); //null pointer check
-	//calculate remaining space
-	uint32_t space = (m_nRow - m_rowWrIdx) * (m_nCol) + m_nCol - m_colWrIdx;
-	NS_ASSERT_MSG(bufSize <= space, "Not enough space in buffer!");
+	NS_ASSERT_MSG(bufSize <= m_nCol, " Buffer size  must be less/equal N!");
 
-	T *matMem_ptr = m_dataMat.memptr(); // here data is stored in a column by column order
-										//	T *bufEnd_ptr = buffer + bufSize;
-	for (uint32_t i = 0; i < bufSize; i++)
-	{
-		uint32_t matMemStart = m_nRow * m_colWrIdx + m_rowWrIdx;
-		*(matMem_ptr + matMemStart) = *(buffer + i);
-
-		m_colWrIdx++; //check if row was written entirely
-		if (m_nCol == m_colWrIdx)
-		{
-			m_rowWrIdx++;
-			if (m_rowWrIdx == m_nRow)
-			{
-				m_isFull = true;
-				return 0;
-			}
-			m_colWrIdx = 0;
-		}
-	}
-	space -= bufSize;
-	return space;
+	const Row<T> vect(const_cast<T *>(buffer), bufSize, false);
+	return WriteData(vect);
 }
 
 template <typename T>
