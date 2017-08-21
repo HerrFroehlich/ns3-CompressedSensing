@@ -207,8 +207,8 @@ bool CsSrcApp::CompressNext()
 		return false;
 	}
 
-	double xData[m_n] = {0.0};
-	double *yData = new double[m_m];
+	T_PktData xData[m_n] = {0.0};
+	T_PktData *yData = new T_PktData[m_m];
 	m_fdata->ReadNext(xData, m_n);
 	m_compR->Compress(xData, m_n, yData, m_m);
 
@@ -251,17 +251,33 @@ void CsSrcApp::CreateCsPackets()
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
+void CsSrcApp::WriteBcPacketList(Ptr<Packet> pkt)
+{
+	NS_LOG_FUNCTION(this);
+	m_bcPackets.push_back(pkt);
+
+	//restart transmission if new packets and not already sending
+	if (HasBcPackets() && !IsBroadcasting())
+	{
+		ScheduleBc(MilliSeconds(0.0));
+	}
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 void CsSrcApp::WriteBcPacketList(const std::vector<Ptr<Packet>> &pktList)
 {
-	// NS_LOG_FUNCTION(this);
-	// if (HasBcPackets())
-	// 	m_bcPackets.insert(m_bcPackets.begin() + pktList.size() - 1, pktList.begin(), pktList.end());
-	// else
-	// 	m_bcPackets = pktList;
+	NS_LOG_FUNCTION(this);
 	if (HasBcPackets())
 		m_bcPackets.insert(m_bcPackets.end(), pktList.begin(), pktList.end());
 	else
 		m_bcPackets = pktList;
+
+	//restart transmission if new packets and not already sending
+	if (HasBcPackets() && !IsBroadcasting())
+	{
+		ScheduleBc(MilliSeconds(0.0));
+	}
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -270,7 +286,16 @@ uint32_t CsSrcApp::GetMaxPayloadSizeByte()
 {
 	NS_LOG_FUNCTION(this);
 
-	return m_m * sizeof(double);
+	return GetMaxPayloadSize() * sizeof(T_PktData);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+uint32_t CsSrcApp::GetMaxPayloadSize()
+{
+	NS_LOG_FUNCTION(this);
+
+	return m_m;
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -282,7 +307,7 @@ bool CsSrcApp::HasBcPackets()
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-bool CsSrcApp::IsSending()
+bool CsSrcApp::IsBroadcasting()
 {
 	return m_sendEvent.IsRunning();
 }
@@ -337,11 +362,6 @@ void CsSrcApp::Measure()
 	{
 		CreateCsPackets();
 		m_measEvent = Simulator::Schedule(m_measInterval, &CsSrcApp::Measure, this);
-	}
-	//restart transmission if new packets and not already sending
-	if (HasBcPackets() && m_sendEvent.IsExpired())
-	{
-		ScheduleBc(MilliSeconds(0.0));
 	}
 }
 

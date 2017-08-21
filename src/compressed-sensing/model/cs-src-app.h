@@ -124,7 +124,7 @@ class CsSrcApp : public Application
 	virtual void StartApplication();
 	virtual void StopApplication();
 
-  protected:;
+  protected:
 
 	/**
 	* \brief tries to compress the next Y and with that  to 
@@ -135,13 +135,25 @@ class CsSrcApp : public Application
 	virtual bool CompressNext();
 
 	/**
-	* \brief create new packets with a CsHeader and payload
+	* \brief create new packets with a CsHeader and payload and broadcasts them
+	*
 	*/
 	virtual void CreateCsPackets();
 
 	/**
-	* \brief writes to the broad cast packet list 
-	* The last package in the vector will be send first
+	* \brief writes a packet to the broadcast packet list (FIFO)
+	*
+	* Initiates transmission if the NetDevice is idle.
+	*
+	* \param pkt pointer to packet which will be transmitted
+	*
+	*/
+	void WriteBcPacketList(Ptr<Packet> pkt);
+
+	/**
+	* \brief writes a packet list to the broadcast packet list (FIFO)
+	*
+	* Initiates transmission if the NetDevice is idle.
 	*
 	* \param pktList vector containing packets (Ptr<Packet>), which will be transmitted
 	*
@@ -149,15 +161,22 @@ class CsSrcApp : public Application
 	void WriteBcPacketList(const std::vector<Ptr<Packet>> &pktList);
 
 	/**
-	* \brief gets the maximum payload size
+	* \brief gets the maximum payload size in byte
 	*
 	* CsSrcApp will packets will have a fixed sized of m*size(T_PktData), so that one compressed measurement fits in one packet.
-	* 
-	* \param pktSize maximum packet size
 	*
 	* \return calculated packetSize
 	*/
 	virtual uint32_t GetMaxPayloadSizeByte();
+
+	/**
+	* \brief gets the maximum payload size as NOF values of type T_PktData
+	*
+	* CsSrcApp will packets will have a fixed sized of m, so that one compressed measurement fits in one packet.
+	*
+	* \return calculated packetSize
+	*/
+	virtual uint32_t GetMaxPayloadSize();
 
 	/**
 	* \brief checks if has queued packets
@@ -179,7 +198,7 @@ class CsSrcApp : public Application
 	*
 	* \return true when packets are send
 	*/
-	bool IsSending();
+	bool IsBroadcasting();
 
 	SerialDataBuffer<double> m_yR; /**< buffers for  compressed real meas. vector */
 	CsHeader::T_IdField m_nodeId, m_clusterId;
@@ -191,6 +210,7 @@ class CsSrcApp : public Application
 		m_m,			/**< length of compressed measurment vector*/
 		m_sent;			/**< NOF packets already sent*/
 	Ptr<CsNode> m_node; /**< aggretated node*/
+	TracedCallback<Ptr<const Packet>> m_txTrace;
   private:
 	/**
 	* \brief sends a packet with compressed source data  via all devices in TX-device list
@@ -224,7 +244,7 @@ class CsSrcApp : public Application
 	Time m_pktInterval, /**< Packet inter-send time*/
 		m_measInterval; /**< Measurment sequence interval*/
 	EventId m_sendEvent, m_schedEvent, m_measEvent;
-	TracedCallback<Ptr<const Packet>> m_txTrace, m_dropTrace; /**< callback to call when sending/ packet is dropped*/
+	TracedCallback<Ptr<const Packet>> m_dropTrace; /**< callback to call when sending/ packet is dropped*/
 };
 
 #endif //CS_SRCAPP_H
