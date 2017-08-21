@@ -254,6 +254,8 @@ int main(int argc, char *argv[])
 	comp->TraceConnectWithoutContext("Complete", MakeCallback(&compressCb));
 	clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
 
+	//disable network coding
+	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
 	//error model
 	Ptr<RateErrorModel> errModel = CreateObject<RateErrorModel>();
 	if (rateErr > 0.0)
@@ -376,7 +378,7 @@ int main(int argc, char *argv[])
 
 	NS_LOG_INFO("Starting Simulation...");
 	clusterApps.Start(Seconds(0.));
-	//	Simulator::Stop(Seconds(30));
+	Simulator::Stop(Seconds(60));
 	Simulator::Run();
 	Simulator::Destroy();
 
