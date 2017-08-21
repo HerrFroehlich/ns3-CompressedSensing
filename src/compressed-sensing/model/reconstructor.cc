@@ -68,29 +68,37 @@ void Reconstructor::AddCluster(Ptr<CsCluster> cluster)
 
 	m_clusterInfoMap.emplace(id, cluster);
 
+	//adjusting NC matrix
+	uint32_t rows = m_ncMatrixBuf.nRows();
+	rows += cluster->GetCompression(CsCluster::E_COMPR_DIMS::l);
+	m_ncMatrixBuf.Resize(rows, CsClusterHeader::GetNcInfoSize());
+
+	//adjusting Input buffer
+	uint32_t cols = m_inBuf.nCols();
+	if(cols < cluster->GetCompression(CsCluster::E_COMPR_DIMS::m))
+		cols = cluster->GetCompression(CsCluster::E_COMPR_DIMS::m);
+	rows = m_inBuf.nRows() + cluster->GetCompression(CsCluster::E_COMPR_DIMS::l);	
+	m_inBuf.Resize(rows, cols);
+
 	m_nClusters++;
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-uint32_t Reconstructor::WriteData(CsHeader::T_IdField clusterId, const double *buffer, const uint32_t bufSize)
+void Reconstructor::WriteData(const double *buffer, const uint32_t bufSize,
+							  const CsClusterHeader::T_NcInfoField &ncCoeff)
 {
-	NS_LOG_FUNCTION(this << clusterId << buffer << bufSize);
+	NS_LOG_FUNCTION(this << buffer << bufSize <<&ncCoeff);
 
-	ClusterInfo info = m_clusterInfoMap.at(clusterId);
-	Ptr<T_InBuffer> nodeBuf = info.inBuf;
-	uint32_t space = nodeBuf->WriteData(buffer, bufSize);
-
-	return space;
-}
-
-/*-----------------------------------------------------------------------------------------------------------------------*/
-
-uint32_t Reconstructor::WriteData(CsHeader::T_IdField clusterId, const std::vector<double> &vec)
-{
-	NS_LOG_FUNCTION(this << clusterId << &vec);
-
-	return WriteData(clusterId, vec.data(), vec.size());
+	uint32_t space = m_inBuf.WriteData(buffer, bufSize);
+	if(space)
+	{
+		NS_LOG_WARN("Incomplete row, filling with zeros!");
+		double pad[space] = {0.0};
+		m_inBuf.WriteData(pad, space);
+	}
+	space = m_ncMatrixBuf.WriteData(ncCoeff);
+	NS_ASSERT_MSG(!space, "Incomplete network coding information");
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -114,7 +122,8 @@ void Reconstructor::Reset(uint32_t seq)
 	{
 		ClusterInfo &info = entry.second;
 		info.AddNewStreams(m_seq);
-		info.inBuf->Reset();
+		m_inBuf.Reset();
+		m_ncMatrixBuf.Reset();
 	}
 }
 
@@ -177,9 +186,8 @@ klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor::GetASpat(const Recon
 {
 	NS_LOG_FUNCTION(this << &info);
 
-	uint32_t nMeas = info.inBuf->GetWrRow();
 	//get phi
-	m_ranMatSpat->SetSize(nMeas, info.nNodes, info.clSeed);
+	m_ranMatSpat->SetSize(info.l, info.nNodes, info.clSeed);
 	klab::TSmartPointer<kl1p::TOperator<double>> Phi = m_ranMatSpat;
 
 	//get B
@@ -286,18 +294,32 @@ void Reconstructor::WriteRecTemp(Ptr<DataStream<double>> stream, const Col<doubl
 void Reconstructor::ReconstructSpat()
 {
 	NS_LOG_FUNCTION(this);
-	/*for now we reconstructe each cluster separetly,
-	* later we will do that jointly*/
+
+	//get N
+	klab::TSmartPointer<kl1p::TOperator<double>> N = new kl1p::TMatrixOperator<double>(m_ncMatrixBuf.ReadAll());
+
+	//get operator array
+	kl1p::TBlockDiagonalOperator<double>::TOperatorArray blockA;
+	blockA.reserve(m_nClusters);
 	for (auto const &entry : m_clusterInfoMap)
 	{
 		ClusterInfo info = entry.second;
+		blockA.push_back(GetASpat(info));
+	}
+	//sensing block matrix A
+	klab::TSmartPointer<TOperator<double>> A = new TBlockDiagonalOperator<double>(blockA);
+	//stored input data
+	Mat<double> U = m_inBuf.ReadAll();
+	// reconstruct jointly
+	Mat<double> Y = m_algoSpat->Run(U, N*A);
 
-		klab::TSmartPointer<kl1p::TOperator<double>> A = GetASpat(info);
-		Mat<double> Z = info.inBuf->ReadAll();
+	uint32_t idxL = 0;
+	for (auto const &entry : m_clusterInfoMap)
+	{
+		const ClusterInfo &info = entry.second;
 
-		Mat<double> Y = m_algoSpat->Run(Z, A);
-
-		WriteRecSpat(info, Y);
+		uint32_t idxU = idxL + info.nNodes - 1;
+		WriteRecSpat(info, Y.rows(idxL, idxU));
 	}
 }
 

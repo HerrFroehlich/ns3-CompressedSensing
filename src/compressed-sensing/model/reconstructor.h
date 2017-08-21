@@ -72,7 +72,7 @@ class RecMatrix : public Object
 * - \f$\Psi^{T}\f$ is the temporal transformation matrix, which can be either real or complex
 * - \f$ \Theta_{jk} \f$ atom values, when using \f$\Psi^{T}\f$\n
 *
-* Again if a transformation matrix \f$\Psi^{T}\f$  is used, we get \f$X_{jk}\f$ by doing f$Y_{jk} = \Psi^{T} \Theta_k\f$.
+* Again if a transformation matrix \f$\Psi^{T}\f$  is used, we get \f$X_{jk}\f$ by doing \f$Y_{jk} = \Psi^{T} \Theta_k\f$.
 * The spatial and temporal reconstruction results are written to a DataStream to the clusters/nodes to enable an evaluation outside
 * of this class. When the Reconstructor is resetted, the input buffers are cleared and a new run starts by appending
 * a new DataStream to the clusters/nodes. The name of the DataStream instances is generated from a given run number.
@@ -94,7 +94,7 @@ class Reconstructor : public ns3::Object
 	void ReconstructAll();
 
 	/**
-	* \brief Adds a cluster whose node's measurement data shall be reconstructed
+	* \brief Adds a cluster whose nodes measurement data shall be reconstructed
 	*
 	* \param cluster pointer to a CsCluster
 	*
@@ -102,25 +102,20 @@ class Reconstructor : public ns3::Object
 	void AddCluster(Ptr<CsCluster> cluster);
 
 	/**
-	* \brief writes from data buffer to a cluster's NodeDataBuffer
+	* \brief writes data from vector to this NodeDataBuffer along with network coding coefficients
+	*
+	* If there are not enough values in the buffer to fill a complete row of the buffered matrix U,
+	* the remaining values are filled with zeros. The size of the vector containing the network coding coefficients
+	* must fill a full row of the NC matrix, else an error is thrown.
 	*
 	* \param clusterId	8bit-ID of the cluster
 	* \param buffer pointer to data
 	* \param bufSize  size of data buffer	
+	* \param ncCoeff vector with network coding coefficients
 	*
-	* \return remaining space in NodeDataBuffer
 	*/
-	uint32_t WriteData(CsHeader::T_IdField clusterId, const double *buffer, const uint32_t bufSize);
-
-	/**
-	* \brief writes from data buffer to this NodeDataBuffer
-	*
-	* \param clusterId	8bit-ID  of the cluster
-	* \param vec vector containing data	
-	*
-	* \return remaining space in buffer
-	*/
-	uint32_t WriteData(CsHeader::T_IdField clusterId, const std::vector<double> &vec);
+	void WriteData(const double *buffer, const uint32_t bufSize,
+				   const CsClusterHeader::T_NcInfoField &ncCoeff);
 
 	/**
 	* \brief sets the precoding entries
@@ -202,8 +197,6 @@ class Reconstructor : public ns3::Object
 	void SetRecMatTemp(Ptr<RecMatrix> recMat);
 
   private:
-	//internal typedefs
-	typedef NodeDataBuffer<double> T_InBuffer; /**< input NodeDataBuffer with doubles*/
 
 	/**
 	* \brief Class containing info on each cluster
@@ -221,7 +214,6 @@ class Reconstructor : public ns3::Object
 										 l(cl->GetCompression(CsCluster::E_COMPR_DIMS::l)),
 										 nNodes(cl->GetN()),
 										 clSeed(cl->GetClusterSeed()),
-										 inBuf(CreateObject<T_InBuffer>(l, m)),
 										 spatRecBuf(CreateObject<MatBuffer<double>>(nNodes, m)),
 										 precode(new SpatialPrecodingMatrix<double>(nNodes))
 		{
@@ -256,7 +248,6 @@ class Reconstructor : public ns3::Object
 		uint32_t n, m, l,											 /**< compression dimensions getters*/
 			nNodes,													 /**< NOF nodes in this cluster*/
 			clSeed;													 /**< seed of the cluster node*/
-		Ptr<T_InBuffer> inBuf;										 /**< input data of each node*/
 		Ptr<MatBuffer<double>> spatRecBuf;							 /**< data of cluster after spatial reconstruction*/
 		Ptr<DataStream<double>> clStream;							 /**< cluster stream, where spatial reconstruction results are written to*/
 		std::vector<Ptr<DataStream<double>>> streams;				 /**< node streams, ordered by node id, where temporal reconstruction results are written to*/
@@ -399,6 +390,8 @@ class Reconstructor : public ns3::Object
 	//internal
 	uint32_t m_seq; /**< current measurment sequence*/
 	bool m_calcSnr;	/**< Calculate SNR directly?*/
+	NodeDataBuffer<double> m_ncMatrixBuf; /**< buffer with NC matrix */
+	NodeDataBuffer<double> m_inBuf; 	 /**< input data buffer*/
 
 	//clusters
 	uint32_t m_nClusters;										 /**< NOF clusters from which we are gathering data*/
