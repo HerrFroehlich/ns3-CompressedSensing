@@ -107,13 +107,35 @@ class MatBuffer : public ns3::Object
 	*
 	* \return a const reference to the buffered data as a matrix
 	*/
-	const Mat<T>& Read();
+	const Mat<T> &Read();
 
 	/**
 	* \brief reads the buffer matrix to an external buffer(ordered column by column)
 	*
 	*/
 	void Read(T *buffer, uint32_t bufSize);
+
+	/**
+	* \brief reads a column at the given index
+	*
+	* Asserts that index does not exceed the number of columns
+	*
+	* \param colIdx column index
+	* \param buffer pointer to input buffer
+	* \param bufSize size of buffer
+	*/
+	void ReadCol(uint32_t colIdx, T *buffer, uint32_t bufSize);
+
+	/**
+	* \brief reads a row at the given index
+	*
+	* Asserts that index does not exceed the number of rows
+	*
+	* \param rowIdx row index
+	* \param buffer pointer to input buffer
+	* \param bufSize size of buffer
+	*/
+	void ReadRow(uint32_t rowIdx, T *buffer, uint32_t bufSize);
 
   private:
 	Mat<T> m_dataMat; /**< saved data in matrix form*/
@@ -196,7 +218,7 @@ void MatBuffer<T>::Write(const T *buffer, uint32_t bufSize)
 // }
 
 template <typename T>
-const Mat<T>& MatBuffer<T>::Read()
+const Mat<T> &MatBuffer<T>::Read()
 {
 	return m_dataMat;
 }
@@ -206,6 +228,32 @@ void MatBuffer<T>::Read(T *buffer, uint32_t bufSize)
 {
 	NS_ASSERT(buffer); // null pointer check
 	NS_ASSERT_MSG(bufSize == nElem(), "NOF elements not matching!");
-	copy(buffer, buffer+bufSize, m_dataMat.m_memPtr());
+	std::copy(buffer, buffer + bufSize, m_dataMat.memptr());
+}
+
+template <typename T>
+void MatBuffer<T>::ReadCol(uint32_t colIdx, T *buffer, uint32_t bufSize)
+{
+	NS_ASSERT(buffer); // null pointer check
+	NS_ASSERT_MSG(colIdx < nCols(), "Index exceeds NOF columns!");
+	Col<T> col = m_dataMat.col(colIdx);
+
+	if (bufSize < nRows())
+		std::copy(buffer, buffer + bufSize, col.memptr());
+	else
+		std::copy(buffer, buffer + nRows(), col.memptr());
+}
+
+template <typename T>
+void MatBuffer<T>::ReadRow(uint32_t rowIdx, T *buffer, uint32_t bufSize)
+{
+	NS_ASSERT(buffer); // null pointer check
+	NS_ASSERT_MSG(rowIdx < nRows(), "Index exceeds NOF rows!");
+	Row<T> row = m_dataMat.row(rowIdx);
+
+	if (bufSize < nCols())
+		std::copy(buffer, buffer + bufSize, row.memptr());
+	else
+		std::copy(buffer, buffer + nCols(), row.memptr());
 }
 #endif //MAT_BUFFER_H
