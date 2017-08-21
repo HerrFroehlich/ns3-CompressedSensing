@@ -22,15 +22,16 @@ CsSrcApp::GetTypeId(void)
 							.SetParent<Application>()
 							.SetGroupName("CompressedSensing")
 							.AddConstructor<CsSrcApp>()
-							.AddAttribute("Interval",
+							.AddAttribute("PktInterval",
 										  "The time to wait between packets",
-										  TimeValue(MilliSeconds(100)),
-										  MakeTimeAccessor(&CsSrcApp::m_interval),
+										  TimeValue(MilliSeconds(1)),
+										  MakeTimeAccessor(&CsSrcApp::m_pktInterval),
 										  MakeTimeChecker(Seconds(0)))
-							// .AddAttribute("PacketSize", "Maximum size of outbound packets' payload in bytes",
-							// 			  UintegerValue(8),
-							// 			  MakeUintegerAccessor(&CsSrcApp::m_packetSize),
-							// 			  MakeUintegerChecker<uint32_t>(8))
+							.AddAttribute("MeasInterval",
+										  "Measurment sequence interval",
+										  TimeValue(MilliSeconds(1000)),
+										  MakeTimeAccessor(&CsSrcApp::m_measInterval),
+										  MakeTimeChecker(Seconds(0)))
 							.AddAttribute("n", "Length of original measurement vector",
 										  UintegerValue(256),
 										  MakeUintegerAccessor(&CsSrcApp::m_n),
@@ -64,15 +65,10 @@ CsSrcApp::GetTypeId(void)
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
 CsSrcApp::CsSrcApp() : m_yR(0), m_nodeId(0), m_clusterId(0),
-					   m_nextSeq(0), m_seed(1),
-					   m_n(0), m_m(0),
-					   //    m_nDevices(0), m_nTxDevices(0),
-					   // m_nMeas(0), // m_nPackets(0),
-					   m_sent(0),
-					   m_running(false),
-					   m_isSetup(false),
-					   //    m_txPackets(0),
-					   m_sendEvent(EventId())
+					   m_nextSeq(0), m_seed(1), m_n(0), m_m(0),
+					   m_sent(0), m_running(false), m_isSetup(false),
+					   m_sendEvent(EventId()), m_schedEvent(EventId()),
+					   m_measEvent(EventId())
 
 {
 	NS_LOG_FUNCTION(this);
@@ -81,15 +77,10 @@ CsSrcApp::CsSrcApp() : m_yR(0), m_nodeId(0), m_clusterId(0),
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
 CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yR(m), m_nodeId(0), m_clusterId(0),
-											 m_nextSeq(0), m_seed(1),
-											 m_n(n), m_m(m),
-											 //  m_nDevices(0), m_nTxDevices(0),
-											 // m_nMeas(0), // m_nPackets(0),
-											 m_sent(0),
-											 m_running(false),
-											 m_isSetup(false),
-											 // m_txPackets(0),
-											 m_sendEvent(EventId())
+											 m_nextSeq(0), m_seed(1), m_n(n), m_m(m),
+											 m_sent(0), m_running(false), m_isSetup(false),
+											 m_sendEvent(EventId()), m_schedEvent(EventId()),
+											 m_measEvent(EventId())
 {
 	NS_LOG_FUNCTION(this << n << m);
 }
@@ -178,18 +169,9 @@ void CsSrcApp::StartApplication()
 	NS_LOG_FUNCTION(this);
 
 	NS_ASSERT_MSG(m_isSetup, "Run Setup first!");
-
-	/*--------  create all src packets --------*/
-	while (CompressNext())
-	{
-		CreateCsPackets();
-	}
-
 	m_running = true;
-	if (HasPackets())
-	{
-		ScheduleTx(MilliSeconds(0.0));
-	}
+
+	Measure();
 }
 
 void CsSrcApp::StopApplication()
@@ -197,27 +179,9 @@ void CsSrcApp::StopApplication()
 	NS_LOG_FUNCTION(this);
 
 	Simulator::Cancel(m_sendEvent);
+	Simulator::Cancel(m_schedEvent);
+	Simulator::Cancel(m_measEvent);
 	m_running = false;
-}
-
-/*-----------------------------------------------------------------------------------------------------------------------*/
-
-void CsSrcApp::SendToAll(Ptr<Packet> p)
-{
-	NS_LOG_FUNCTION(this << p);
-	NS_ASSERT(m_sendEvent.IsExpired());
-
-	Ptr<NetDevice> device;
-
-	m_txTrace(p);
-	NetDeviceContainer devices = m_node->GetTxDevices();
-	for (auto it = devices.Begin(); it != devices.End(); it++)
-	{
-		// device = m_node->GetDevice(m_isTxDevice[i]);
-		//send assuming MySimpleNetDevice thus invalid Address
-		// device->Send(p, Address(), 0);
-		(*it)->Send(p, Address(), 0);
-	}
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -266,7 +230,7 @@ void CsSrcApp::CreateCsPackets()
 	// uint32_t nPacketsNow = 1;
 	std::vector<Ptr<Packet>> pktList;
 
-	uint32_t payloadSize = GetMaxPayloadSize();
+	uint32_t payloadSize = GetMaxPayloadSizeByte();
 
 	CsHeader header;
 	header.SetClusterId(m_clusterId);
@@ -280,30 +244,29 @@ void CsSrcApp::CreateCsPackets()
 	Ptr<Packet> p = Create<Packet>(reinterpret_cast<const uint8_t *>(m_yR.GetMem()), payloadSize);
 	p->AddHeader(header);
 	pktList.push_back(p);
-	WriteTxPacketList(pktList);
+	WriteBcPacketList(pktList);
 	/*--------  Update members  --------*/
 	m_nextSeq++;
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-void CsSrcApp::WriteTxPacketList(const std::vector<Ptr<Packet>> &pktList)
+void CsSrcApp::WriteBcPacketList(const std::vector<Ptr<Packet>> &pktList)
 {
 	// NS_LOG_FUNCTION(this);
-	// if (HasPackets())
-	// 	m_txPackets.insert(m_txPackets.begin() + pktList.size() - 1, pktList.begin(), pktList.end());
+	// if (HasBcPackets())
+	// 	m_bcPackets.insert(m_bcPackets.begin() + pktList.size() - 1, pktList.begin(), pktList.end());
 	// else
-	// 	m_txPackets = pktList;
-	if (HasPackets())
-		m_txPackets.insert(m_txPackets.end(), pktList.begin(), pktList.end());
+	// 	m_bcPackets = pktList;
+	if (HasBcPackets())
+		m_bcPackets.insert(m_bcPackets.end(), pktList.begin(), pktList.end());
 	else
-		m_txPackets = pktList;
+		m_bcPackets = pktList;
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-
-uint32_t CsSrcApp::GetMaxPayloadSize()
+uint32_t CsSrcApp::GetMaxPayloadSizeByte()
 {
 	NS_LOG_FUNCTION(this);
 
@@ -312,14 +275,12 @@ uint32_t CsSrcApp::GetMaxPayloadSize()
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-
-bool CsSrcApp::HasPackets()
+bool CsSrcApp::HasBcPackets()
 {
-	return !m_txPackets.empty();
+	return !m_bcPackets.empty();
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
-
 
 bool CsSrcApp::IsSending()
 {
@@ -328,36 +289,60 @@ bool CsSrcApp::IsSending()
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-void CsSrcApp::SendPacket(Ptr<Packet> p)
+void CsSrcApp::Broadcast(Ptr<Packet> p)
 {
 	NS_LOG_FUNCTION(this << p);
+	NS_ASSERT(m_sendEvent.IsExpired());
 
-	SendToAll(p);
+	//send via all net devices
+	m_txTrace(p);
+	NetDeviceContainer devices = m_node->GetTxDevices();
+	for (auto it = devices.Begin(); it != devices.End(); it++)
+	{
+		(*it)->Send(p, Address(), 0);
+	}
+
 	// new tx?
 	m_sent++;
-	if (HasPackets())
+	if (HasBcPackets())
 	{
-		ScheduleTx(m_interval);
+		ScheduleBc(m_pktInterval);
 	}
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-void CsSrcApp::ScheduleTx(Time dt)
+void CsSrcApp::ScheduleBc(Time dt)
 {
 	NS_LOG_FUNCTION(this << dt);
-	NS_ASSERT_MSG(HasPackets(), "No packets to schedule!");
+	NS_ASSERT_MSG(HasBcPackets(), "No packets to schedule!");
 	NS_ASSERT_MSG(m_sendEvent.IsExpired(), "Already sending!");
 
-	Ptr<Packet> pkt = m_txPackets.front();
-	m_txPackets.erase(m_txPackets.begin());
+	Ptr<Packet> pkt = m_bcPackets.front();
+	m_bcPackets.erase(m_bcPackets.begin());
 
 	//schedule send
 	if (m_ranTx->GetValue() < m_txProb)
-		m_sendEvent = Simulator::Schedule(dt, &CsSrcApp::SendPacket, this, pkt);
-	else if (HasPackets())
-		Simulator::Schedule(dt, &CsSrcApp::ScheduleTx, this, m_interval);
+		m_sendEvent = Simulator::Schedule(dt, &CsSrcApp::Broadcast, this, pkt);
+	else if (HasBcPackets())
+		m_schedEvent = Simulator::Schedule(m_pktInterval, &CsSrcApp::ScheduleBc, this, m_pktInterval);
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
+void CsSrcApp::Measure()
+{
+	NS_LOG_FUNCTION(this);
+	if (CompressNext())
+	{
+		CreateCsPackets();
+		m_measEvent = Simulator::Schedule(m_measInterval, &CsSrcApp::Measure, this);
+	}
+	//restart transmission if new packets and not already sending
+	if (HasBcPackets() && m_sendEvent.IsExpired())
+	{
+		ScheduleBc(MilliSeconds(0.0));
+	}
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/

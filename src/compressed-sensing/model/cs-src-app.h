@@ -39,7 +39,7 @@ using namespace ns3;
 class CsSrcApp : public Application
 {
   public:
-	typedef double T_PktData;			   /**< package data type*/
+	typedef double T_PktData; /**< package data type*/
 
 	static TypeId GetTypeId(void);
 
@@ -124,13 +124,7 @@ class CsSrcApp : public Application
 	virtual void StartApplication();
 	virtual void StopApplication();
 
-  protected:
-	/**
-	* \brief send a packet via all tx devices
-	*
-	* \param p packet to send
-	*/
-	void SendToAll(Ptr<Packet> p);
+  protected:;
 
 	/**
 	* \brief tries to compress the next Y and with that  to 
@@ -146,39 +140,39 @@ class CsSrcApp : public Application
 	virtual void CreateCsPackets();
 
 	/**
-	* \brief writes to the TX packet list 
+	* \brief writes to the broad cast packet list 
 	* The last package in the vector will be send first
 	*
 	* \param pktList vector containing packets (Ptr<Packet>), which will be transmitted
 	*
 	*/
-	void WriteTxPacketList(const std::vector<Ptr<Packet>> &pktList);
+	void WriteBcPacketList(const std::vector<Ptr<Packet>> &pktList);
 
 	/**
 	* \brief gets the maximum payload size
+	*
 	* CsSrcApp will packets will have a fixed sized of m*size(T_PktData), so that one compressed measurement fits in one packet.
-	* So this function provides the option for subclasses to calculate alternative sizes (e.g splitting Y over several packets).
 	* 
 	* \param pktSize maximum packet size
 	*
 	* \return calculated packetSize
 	*/
-	virtual uint32_t GetMaxPayloadSize();
+	virtual uint32_t GetMaxPayloadSizeByte();
 
 	/**
 	* \brief checks if has queued packets
 	*	
 	* \return true if there are packets queued
 	*/
-	bool HasPackets();
+	bool HasBcPackets();
 
 	/**
-	* \brief schedules a transmit event for the simulator
+	* \brief schedules a transmit event for the simulator, broadcasting over all tx devices
 	*
 	* \param dt Time to next transmit event   
 	*
 	*/
-	void ScheduleTx(Time dt);
+	void ScheduleBc(Time dt);
 
 	/**
 	* \brief check if application is already sending packets
@@ -192,36 +186,44 @@ class CsSrcApp : public Application
 	CsHeader::T_SeqField m_nextSeq; /**< next sequence!*/
 
 	uint32_t
-		m_seed, /**< seed used for generating the random sensing matrix*/
-		m_n,	/**< length of an original measurement vector*/
-		m_m,	/**< length of compressed measurment vector*/
+		m_seed,			/**< seed used for generating the random sensing matrix*/
+		m_n,			/**< length of an original measurement vector*/
+		m_m,			/**< length of compressed measurment vector*/
 		m_sent;			/**< NOF packets already sent*/
 	Ptr<CsNode> m_node; /**< aggretated node*/
   private:
 	/**
 	* \brief sends a packet with compressed source data  via all devices in TX-device list
-	* if there are packets remaining in m_txPackets this will call another ScheduleTx
+	* if there are packets remaining in m_bcPackets this will call another ScheduleBc
 	*
 	* \param p packet to send
 	*
 	*/
-	void SendPacket(Ptr<Packet> p);
+	void Broadcast(Ptr<Packet> p);
+
+	/**
+	* \brief Conducts a measurement and compresses temporally
+	*
+	* This measurement is called every measurement interval until no more data is left in buffer
+	*
+	*/
+	void Measure();
 
 	double m_txProb; /**< propability to send a packet*/
 
 	bool m_running,
 		m_isSetup;
 
-	Ptr<SerialDataBuffer<double>> m_fdata; /**< data from file*/
-	Ptr<CompressorTemp> m_compR;		   /**< compressor for real*/
-	Ptr<RandomVariableStream> m_ranTx;	 /**< random variable stream, to determine when to send*/
-	// std::vector<uint32_t> m_isTxDevice;   /**< determine if device is used for sending */
-	std::vector<Ptr<Packet>> m_txPackets; /**< packets to send next*/
-	Ptr<DataStream<double>> m_streamY,	/**< DataStream storing compression results*/
-		m_streamX;						  /**< DataStream storing original measurements*/
+	Ptr<SerialDataBuffer<double>> m_fdata;	/**< data from file*/
+	Ptr<CompressorTemp> m_compR;			/**< compressor for real*/
+	Ptr<RandomVariableStream> m_ranTx;		/**< random variable stream, to determine when to send*/
+	std::vector<Ptr<Packet>> m_bcPackets;	/**< packets to broadcast next*/
+	Ptr<DataStream<double>> m_streamY,	 	/**< DataStream storing compression results*/
+		m_streamX;							/**< DataStream storing original measurements*/
 
-	Time m_interval; /**< Packet inter-send time*/
-	EventId m_sendEvent;
+	Time m_pktInterval, /**< Packet inter-send time*/
+		m_measInterval; /**< Measurment sequence interval*/
+	EventId m_sendEvent, m_schedEvent, m_measEvent;
 	TracedCallback<Ptr<const Packet>> m_txTrace, m_dropTrace; /**< callback to call when sending/ packet is dropped*/
 };
 
