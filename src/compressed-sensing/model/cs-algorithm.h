@@ -48,7 +48,6 @@ class CsAlgorithm : public ns3::Object
 	* \return the reconstructed X
 	*/
 	virtual Mat<double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A) = 0;
-	virtual Mat<cx_double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<cx_double>> A) = 0;
 
   protected:
 	/**
@@ -120,7 +119,6 @@ class CsAlgorithm_OMP : public CsAlgorithm
 
 	/*inherited from CsAlgorithm*/
 	virtual Mat<double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A);
-	virtual Mat<cx_double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<cx_double>> A);
 
   private:
 	uint32_t m_k; /**< sparsity of reconstructed signal, if 0 or > n -> will be set to \f$k = \frac{m}{\log(n)} < n\f$*/
@@ -141,7 +139,6 @@ class CsAlgorithm_BP : public CsAlgorithm
 
 	/*inherited from CsAlgorithm*/
 	virtual Mat<double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A);
-	virtual Mat<cx_double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<cx_double>> A);
 };
 
 /**
@@ -150,6 +147,9 @@ class CsAlgorithm_BP : public CsAlgorithm
 *
 * \brief AMP solver algorithm
 *
+* When running the matrix operator A is normalized by 1/sqrt(m), as AMP requires this.
+* The result of the algorithm is also scaled correctly to match the actual A.
+* Consequently it is not nescessary to do the normalization on A before calling Run.
 */
 class CsAlgorithm_AMP : public CsAlgorithm
 {
@@ -159,7 +159,6 @@ class CsAlgorithm_AMP : public CsAlgorithm
 
 	/*inherited from CsAlgorithm*/
 	virtual Mat<double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A);
-	virtual Mat<cx_double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<cx_double>> A);
 };
 
 #endif //CS_ALGORITHM_H

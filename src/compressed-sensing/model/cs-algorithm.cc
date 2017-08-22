@@ -105,58 +105,6 @@ Mat<double> CsAlgorithm_OMP::Run(const Mat<double> &Y, const klab::TSmartPointer
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-Mat<cx_double> CsAlgorithm_OMP::Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<cx_double>> A)
-{
-	NS_LOG_FUNCTION(this << &Y << &A);
-	NS_ASSERT_MSG(!Y.is_empty(), "Y is empty, not able to reconstruct!");
-
-	/*--------  Init  --------*/
-
-	//SystemWallClockMs wallClock;
-	klab::KTimer wallClock;
-	int64_t time = 0;
-
-	uint32_t k = m_k,
-			 m = Y.n_rows,
-			 vecLen = Y.n_cols,
-			 n = A->n(),
-			 maxIter = GetMaxIter(),
-			 iter = 0;
-
-	kl1p::TOMPSolver<double, cx_double> omp(GetTolerance());
-
-	Mat<cx_double> X(n, vecLen);
-	Mat<cx_double> Yc = conv_to<Mat<cx_double>>::from(Y); //complex version of Y
-
-	/*--------  Solve  --------*/
-	if (k == 0)
-		k = m / log10(n);
-	if (maxIter)
-		omp.setIterationLimit(maxIter);
-
-	try
-	{
-		wallClock.start();
-		for (uint32_t i = 0; i < vecLen; i++)
-		{
-			Col<cx_double> xVec;
-			omp.solve(Yc.col(i), A, k, xVec);
-			X.col(i) = xVec;
-			iter += omp.iterations();
-		}
-		wallClock.stop();
-		time = wallClock.durationInMilliseconds();
-		CallCompleteCb(time, iter);
-	}
-	catch (const klab::KException &e)
-	{
-		CallErrorCb(e);
-	};
-	return X;
-}
-
-/*-----------------------------------------------------------------------------------------------------------------------*/
-
 NS_OBJECT_ENSURE_REGISTERED(CsAlgorithm_BP);
 ns3::TypeId CsAlgorithm_BP::GetTypeId()
 {
@@ -222,55 +170,6 @@ Mat<double> CsAlgorithm_BP::Run(const Mat<double> &Y, const klab::TSmartPointer<
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-Mat<cx_double> CsAlgorithm_BP::Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<cx_double>> A)
-{
-	NS_LOG_FUNCTION(this << &Y << &A);
-	NS_ASSERT_MSG(!Y.is_empty(), "Y is empty, not able to reconstruct!");
-
-	/*--------  Init  --------*/
-
-	//SystemWallClockMs wallClock;
-	klab::KTimer wallClock;
-	int64_t time = 0;
-
-	uint32_t vecLen = Y.n_cols,
-			 n = A->n(),
-			 maxIter = GetMaxIter(),
-			 iter = 0;
-
-	kl1p::TBasisPursuitSolver<double, cx_double> bp(GetTolerance());
-
-	Mat<cx_double> X(n, vecLen);
-	Mat<cx_double> Yc = conv_to<Mat<cx_double>>::from(Y); //complex version of Y
-
-	/*--------  Solve  --------*/
-
-	if (maxIter)
-		bp.setIterationLimit(maxIter);
-
-	try
-	{
-		wallClock.start();
-		for (uint32_t i = 0; i < vecLen; i++)
-		{
-			Col<cx_double> xVec;
-			bp.solve(Yc.col(i), A, xVec);
-			X.col(i) = xVec;
-			iter += bp.iterations();
-		}
-		wallClock.stop();
-		time = wallClock.durationInMilliseconds();
-		CallCompleteCb(time, iter);
-	}
-	catch (const klab::KException &e)
-	{
-		CallErrorCb(e);
-	};
-	return X;
-}
-
-/*-----------------------------------------------------------------------------------------------------------------------*/
-
 NS_OBJECT_ENSURE_REGISTERED(CsAlgorithm_AMP);
 ns3::TypeId CsAlgorithm_AMP::GetTypeId()
 {
@@ -292,7 +191,8 @@ Mat<double> CsAlgorithm_AMP::Run(const Mat<double> &Y, const klab::TSmartPointer
 	NS_LOG_FUNCTION(this << &Y << &A);
 	NS_ASSERT_MSG(!Y.is_empty(), "Y is empty, not able to reconstruct!");
 	/*--------  Init  --------*/
-
+	 klab::TSmartPointer<kl1p::TOperator<double>> Anorm  = new kl1p::TScalingOperator<double>(A, 1.0/klab::Sqrt(A->m()));	// Pseudo-normalization of the matrix
+	//klab::TSmartPointer<kl1p::TOperator<double>> Anorm  = A;	// Pseudo-normalization of the matrix
 	//SystemWallClockMs wallClock;
 	klab::KTimer wallClock;
 	int64_t time = 0;
@@ -317,57 +217,9 @@ Mat<double> CsAlgorithm_AMP::Run(const Mat<double> &Y, const klab::TSmartPointer
 		for (uint32_t i = 0; i < vecLen; i++)
 		{
 			Col<double> xVec;
-			amp.solve(Y.col(i), A, xVec);
-			X.col(i) = xVec;
-			iter += amp.iterations();
-		}
-		wallClock.stop();
-		time = wallClock.durationInMilliseconds();
-		CallCompleteCb(time, iter);
-	}
-	catch (const klab::KException &e)
-	{
-		CallErrorCb(e);
-	};
-	return X;
-}
-
-/*-----------------------------------------------------------------------------------------------------------------------*/
-
-Mat<cx_double> CsAlgorithm_AMP::Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<cx_double>> A)
-{
-	NS_LOG_FUNCTION(this << &Y << &A);
-	NS_ASSERT_MSG(!Y.is_empty(), "Y is empty, not able to reconstruct!");
-
-	/*--------  Init  --------*/
-
-	//SystemWallClockMs wallClock;
-	klab::KTimer wallClock;
-	int64_t time = 0;
-
-	uint32_t vecLen = Y.n_cols,
-			 n = A->n(),
-			 maxIter = GetMaxIter(),
-			 iter = 0;
-
-	kl1p::TAMPSolver<double, cx_double> amp(GetTolerance());
-
-	Mat<cx_double> X(n, vecLen);
-	Mat<cx_double> Yc = conv_to<Mat<cx_double>>::from(Y); //complex version of Y
-
-	/*--------  Solve  --------*/
-
-	if (maxIter)
-		amp.setIterationLimit(maxIter);
-
-	try
-	{
-		wallClock.start();
-		for (uint32_t i = 0; i < vecLen; i++)
-		{
-			Col<cx_double> xVec;
-			amp.solve(Yc.col(i), A, xVec);
-			X.col(i) = xVec;
+			amp.solve(Y.col(i), Anorm, xVec);
+			X.col(i) = xVec/klab::Sqrt(A->m()); //since we normalized before
+			//X.col(i) = xVec;
 			iter += amp.iterations();
 		}
 		wallClock.stop();
