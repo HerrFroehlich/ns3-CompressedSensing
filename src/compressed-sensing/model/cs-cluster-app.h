@@ -87,25 +87,40 @@ public:
 	*/
   void SetSpatialCompressDim(uint32_t nNodes, uint32_t l);
 
+
   //inherited from Application
   virtual void StartApplication();
   virtual void StopApplication();
 
 protected:
   //inherited from CsSrcApp
-  virtual bool CompressNext();
-
-  /**
-  * \brief create new packets with a CsHeader and payload
-  *
-  * If 
-  *
-	*/
   virtual void CreateCsPackets();
+
   virtual uint32_t GetMaxPayloadSizeByte();
   virtual uint32_t GetMaxPayloadSize();
 
 private:
+
+  /**
+  * \brief compresses the next Z spatially 
+  *
+  * Adds the nodes own temporally compressed data if existent.
+  * Sets the internal source info field depending on which source ndoes where used during compression,
+  * which is needed for the CsClusterHeader header. 
+  *
+  * \return true when compression was successfull
+  */
+  bool CompressNextSpat();
+
+  /**
+  * \brief create new packets with a CsClusterHeader and payload to send to other cluster nodes/sink
+  *
+  * If NC is enabled the packcets are written to the NC packet buffered.
+  * Else the packets are scheduled for broadcast.
+  *
+	*/
+ void CreateCsClusterPackets();
+ 
   /**
   * \brief merge this clusters data with the data from others using RLNC
   *

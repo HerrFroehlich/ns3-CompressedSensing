@@ -40,7 +40,7 @@ CsClusterApp::GetTypeId(void)
 										  MakeTimeChecker(Seconds(0)))
 							.AddAttribute("NcEnable", "Enable Network coding?",
 										  BooleanValue(true),
-										  MakeUintegerAccessor(&CsClusterApp::m_ncEnable),
+										  MakeBooleanAccessor(&CsClusterApp::m_ncEnable),
 										  MakeBooleanChecker())
 							.AddAttribute("NcMax", "Network coding: maximum NOF recombinations",
 										  UintegerValue(10),
@@ -163,6 +163,7 @@ void CsClusterApp::StartApplication()
 	NS_LOG_FUNCTION(this);
 
 	NS_ASSERT_MSG(m_isSetup, "Run Setup first!");
+	CsSrcApp::StartApplication(); //start measurement cycle
 	m_running = true;
 	if (m_ncEnable)
 		m_ncEvent = Simulator::Schedule(m_ncInterval, &CsClusterApp::RLNetworkCoding, this, m_ncInterval);
@@ -183,14 +184,15 @@ void CsClusterApp::StopApplication()
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-bool CsClusterApp::CompressNext()
+bool CsClusterApp::CompressNextSpat()
 {
 	NS_LOG_FUNCTION(this);
 
 	//prepare source data
-	if (CsSrcApp::CompressNext())
+	if (m_yTemp.GetNWritten() == m_m)
 	{
 		m_srcDataBuffer.WriteData(m_yTemp.GetMem(), m_m, m_node->GetNodeId());
+		m_yTemp.Clear(); // so we now if it was written to again
 	}
 	m_srcDataBuffer.SortByMeta();
 
@@ -219,7 +221,7 @@ bool CsClusterApp::CompressNext()
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-void CsClusterApp::CreateCsPackets()
+void CsClusterApp::CreateCsClusterPackets()
 {
 	NS_LOG_FUNCTION(this);
 
@@ -428,9 +430,9 @@ bool CsClusterApp::ReceiveCluster(const Ptr<const Packet> p)
 void CsClusterApp::StartNewSeq(CsHeader::T_SeqField seq)
 {
 	NS_LOG_FUNCTION(this << seq);
-	if (CompressNext())
+	if (CompressNextSpat())
 	{
-		CreateCsPackets();
+		CreateCsClusterPackets();
 	}
 	m_srcDataBuffer.Reset();
 	m_nextSeq = seq;
@@ -453,11 +455,11 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 		coeffs.push_back(c);
 	}
 
-	//normalize to sum(coeff) = 1
-	for (uint32_t i = 0; i < pktList.size(); i++)
-	{
-		coeffs.at(i) /= sum;
-	}
+	// //normalize to sum(coeff) = 1
+	// for (uint32_t i = 0; i < pktList.size(); i++)
+	// {
+	// 	coeffs.at(i) /= sum;
+	// }
 
 	//calculate NC packet
 
@@ -470,10 +472,11 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 	{
 		//get header information and packet data
 		CsClusterHeader header;
-		pkt->PeekHeader(header);
+		Ptr<Packet> p = pkt->Copy();
+		p->RemoveHeader(header);
 		CsClusterHeader::T_NcInfoField pktNcInfo = header.GetNcInfo();
 		T_PktData pktData[nValues];
-		pkt->CopyData(reinterpret_cast<uint8_t *>(pktData), nBytes);
+		p->CopyData(reinterpret_cast<uint8_t *>(pktData), nBytes);
 
 		//multiply each data value with the coefficient;
 		T_Coeff c = coeffs.back();
@@ -501,4 +504,11 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 	ncPkt->AddHeader(header);
 
 	return ncPkt;
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void CsClusterApp::CreateCsPackets()
+{
+	
 }
