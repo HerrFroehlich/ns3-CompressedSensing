@@ -144,7 +144,7 @@ void CsClusterApp::SetSpatialCompressDim(uint32_t nNodes, uint32_t l)
 	m_nNodes = nNodes;
 
 	m_zData.Resize(m_l, m_m);
-	// m_yR.Resize(m);
+	// m_yTemp.Resize(m);
 	m_comp->Setup(m_seed, m_nNodes, m_l, m_m);
 }
 
@@ -190,7 +190,7 @@ bool CsClusterApp::CompressNext()
 	//prepare source data
 	if (CsSrcApp::CompressNext())
 	{
-		m_srcDataBuffer.WriteData(m_yR.GetMem(), m_m, m_node->GetNodeId());
+		m_srcDataBuffer.WriteData(m_yTemp.GetMem(), m_m, m_node->GetNodeId());
 	}
 	m_srcDataBuffer.SortByMeta();
 
@@ -277,7 +277,7 @@ void CsClusterApp::RLNetworkCoding(Time dt)
 	NS_LOG_FUNCTION(this);
 
 	//if we have still packets to combine
-	while (m_ncPktBuffer.size() > 1)
+	while (m_ncPktBuffer.size())
 	{
 		/*--------  get packets of same measurement sequence  --------*/
 		CsClusterHeader header;

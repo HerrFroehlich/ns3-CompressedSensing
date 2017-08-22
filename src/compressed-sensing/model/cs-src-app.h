@@ -125,7 +125,6 @@ class CsSrcApp : public Application
 	virtual void StopApplication();
 
   protected:
-
 	/**
 	* \brief tries to compress the next Y and with that  to 
 	* The base class does temporal compression here. 
@@ -200,17 +199,17 @@ class CsSrcApp : public Application
 	*/
 	bool IsBroadcasting();
 
-	SerialDataBuffer<double> m_yR; /**< buffers for  compressed real meas. vector */
+	SerialDataBuffer<double> m_yTemp; /**< buffers for temporal compressed real meas. vector */
 	CsHeader::T_IdField m_nodeId, m_clusterId;
 	CsHeader::T_SeqField m_nextSeq; /**< next sequence!*/
 
-	uint32_t
-		m_seed,			/**< seed used for generating the random sensing matrix*/
+	uint32_t m_seed,	/**< seed used for generating the random sensing matrix*/
 		m_n,			/**< length of an original measurement vector*/
 		m_m,			/**< length of compressed measurment vector*/
 		m_sent;			/**< NOF packets already sent*/
 	Ptr<CsNode> m_node; /**< aggretated node*/
 	TracedCallback<Ptr<const Packet>> m_txTrace;
+
   private:
 	/**
 	* \brief sends a packet with compressed source data  via all devices in TX-device list
@@ -234,12 +233,12 @@ class CsSrcApp : public Application
 	bool m_running,
 		m_isSetup;
 
-	Ptr<SerialDataBuffer<double>> m_fdata;	/**< data from file*/
-	Ptr<CompressorTemp> m_compR;			/**< compressor for real*/
-	Ptr<RandomVariableStream> m_ranTx;		/**< random variable stream, to determine when to send*/
-	std::vector<Ptr<Packet>> m_bcPackets;	/**< packets to broadcast next*/
-	Ptr<DataStream<double>> m_streamY,	 	/**< DataStream storing compression results*/
-		m_streamX;							/**< DataStream storing original measurements*/
+	Ptr<SerialDataBuffer<double>> m_fdata; /**< data from file*/
+	Ptr<CompressorTemp> m_compTemp;		   /**< compressor for real*/
+	Ptr<RandomVariableStream> m_ranTx;	 /**< random variable stream, to determine when to send*/
+	std::vector<Ptr<Packet>> m_bcPackets;  /**< packets to broadcast next*/
+	Ptr<DataStream<double>> m_streamY,	 /**< DataStream storing compression results*/
+		m_streamX;						   /**< DataStream storing original measurements*/
 
 	Time m_pktInterval, /**< Packet inter-send time*/
 		m_measInterval; /**< Measurment sequence interval*/

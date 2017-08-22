@@ -64,7 +64,7 @@ CsSrcApp::GetTypeId(void)
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-CsSrcApp::CsSrcApp() : m_yR(0), m_nodeId(0), m_clusterId(0),
+CsSrcApp::CsSrcApp() : m_yTemp(0), m_nodeId(0), m_clusterId(0),
 					   m_nextSeq(0), m_seed(1), m_n(0), m_m(0),
 					   m_sent(0), m_running(false), m_isSetup(false),
 					   m_sendEvent(EventId()), m_schedEvent(EventId()),
@@ -76,7 +76,7 @@ CsSrcApp::CsSrcApp() : m_yR(0), m_nodeId(0), m_clusterId(0),
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yR(m), m_nodeId(0), m_clusterId(0),
+CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yTemp(m), m_nodeId(0), m_clusterId(0),
 											 m_nextSeq(0), m_seed(1), m_n(n), m_m(m),
 											 m_sent(0), m_running(false), m_isSetup(false),
 											 m_sendEvent(EventId()), m_schedEvent(EventId()),
@@ -103,9 +103,9 @@ void CsSrcApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
 	m_fdata = input;
 
 	//setup compressor
-	if (!m_compR)
-		m_compR = CreateObject<CompressorTemp>();
-	m_compR->Setup(m_seed, m_n, m_m);
+	if (!m_compTemp)
+		m_compTemp = CreateObject<CompressorTemp>();
+	m_compTemp->Setup(m_seed, m_n, m_m);
 
 	//get streams from node
 	m_streamY = m_node->GetStreamByName(CsNode::STREAMNAME_COMPR);
@@ -123,8 +123,8 @@ void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp> comp)
 
 	if (comp)
 	{
-		m_compR = CopyObject(comp);
-		m_compR->Setup(m_seed, m_n, m_m);
+		m_compTemp = CopyObject(comp);
+		m_compTemp->Setup(m_seed, m_n, m_m);
 	}
 }
 
@@ -133,7 +133,7 @@ void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp> comp)
 Ptr<CompressorTemp> CsSrcApp::GetTempCompressor() const
 {
 	NS_LOG_FUNCTION(this);
-	return m_compR;
+	return m_compTemp;
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -146,10 +146,10 @@ void CsSrcApp::SetTempCompressDim(uint32_t n, uint32_t m)
 	m_n = n;
 	m_m = m;
 
-	// m_yR.Resize(m);
+	// m_yTemp.Resize(m);
 
-	if (!m_compR)
-		m_compR->Setup(m_seed, m_n, m_m);
+	if (!m_compTemp)
+		m_compTemp->Setup(m_seed, m_n, m_m);
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -194,7 +194,7 @@ bool CsSrcApp::CompressNext()
 
 	uint32_t remain = m_fdata->GetRemaining();
 
-	if (!m_compR)
+	if (!m_compTemp)
 	{
 		NS_LOG_ERROR("Src Node" << int(m_nodeId) << " has no valid compressor attached!");
 		return false;
@@ -207,16 +207,16 @@ bool CsSrcApp::CompressNext()
 		return false;
 	}
 
-	T_PktData xData[m_n] = {0.0};
-	T_PktData *yData = new T_PktData[m_m];
+	double xData[m_n] = {0.0};
+	double *yData = new double[m_m];
 	m_fdata->ReadNext(xData, m_n);
-	m_compR->Compress(xData, m_n, yData, m_m);
+	m_compTemp->Compress(xData, m_n, yData, m_m);
 
 	// write to stream
 	m_streamY->CreateBuffer(yData, m_m);
 	m_streamX->CreateBuffer(xData, m_n);
 
-	m_yR.MoveMem(yData, m_m);
+	m_yTemp.MoveMem(yData, m_m);
 
 	return true;
 }
@@ -238,10 +238,10 @@ void CsSrcApp::CreateCsPackets()
 	header.SetSeq(m_nextSeq);
 	header.SetDataSize(payloadSize);
 	// double yData[m_m];
-	// m_yR.ReadNext(yData, m_m);
+	// m_yTemp.ReadNext(yData, m_m);
 
 	// Ptr<Packet> p = Create<Packet>(reinterpret_cast<uint8_t *>(yData), payloadSize);
-	Ptr<Packet> p = Create<Packet>(reinterpret_cast<const uint8_t *>(m_yR.GetMem()), payloadSize);
+	Ptr<Packet> p = Create<Packet>(reinterpret_cast<const uint8_t *>(m_yTemp.GetMem()), payloadSize);
 	p->AddHeader(header);
 	pktList.push_back(p);
 	WriteBcPacketList(pktList);
