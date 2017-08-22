@@ -228,7 +228,7 @@ void MatBuffer<T>::Read(T *buffer, uint32_t bufSize)
 {
 	NS_ASSERT(buffer); // null pointer check
 	NS_ASSERT_MSG(bufSize == nElem(), "NOF elements not matching!");
-	std::copy(buffer, buffer + bufSize, m_dataMat.memptr());
+	std::copy(m_dataMat.memptr(), m_dataMat.memptr() + bufSize, buffer);
 }
 
 template <typename T>
@@ -239,9 +239,9 @@ void MatBuffer<T>::ReadCol(uint32_t colIdx, T *buffer, uint32_t bufSize)
 	Col<T> col = m_dataMat.col(colIdx);
 
 	if (bufSize < nRows())
-		std::copy(buffer, buffer + bufSize, col.memptr());
+		std::copy(col.memptr(), col.memptr() + bufSize, buffer);
 	else
-		std::copy(buffer, buffer + nRows(), col.memptr());
+		std::copy(col.memptr(), col.memptr() + nRows(), buffer);
 }
 
 template <typename T>
@@ -252,8 +252,8 @@ void MatBuffer<T>::ReadRow(uint32_t rowIdx, T *buffer, uint32_t bufSize)
 	Row<T> row = m_dataMat.row(rowIdx);
 
 	if (bufSize < nCols())
-		std::copy(buffer, buffer + bufSize, row.memptr());
+		std::copy(row.memptr(), row.memptr() + bufSize, buffer);
 	else
-		std::copy(buffer, buffer + nCols(), row.memptr());
+		std::copy(row.memptr(), row.memptr() + nCols(), buffer);
 }
 #endif //MAT_BUFFER_H
