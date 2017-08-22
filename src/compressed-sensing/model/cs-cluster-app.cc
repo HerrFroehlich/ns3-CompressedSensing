@@ -446,35 +446,36 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 	using T_Coeff = CsClusterHeader::T_NcInfoFieldValue;
 	//get coefficients
 	std::vector<T_Coeff> coeffs;
-	T_Coeff sum;
 	coeffs.reserve(pktList.size());
 	for (size_t i = 0; i < pktList.size(); i++)
 	{
 		T_Coeff c = m_ranNc->GetValue();
-		sum += c;
 		coeffs.push_back(c);
 	}
-
-	// //normalize to sum(coeff) = 1
-	// for (uint32_t i = 0; i < pktList.size(); i++)
-	// {
-	// 	coeffs.at(i) /= sum;
-	// }
 
 	//calculate NC packet
 
 	uint32_t nBytes = GetMaxPayloadSizeByte(),
 			 nValues = GetMaxPayloadSize();
 	T_PktData dataBuf[nValues] = {0.0};
-	CsClusterHeader::T_NcInfoField ncInfo(CsClusterHeader::GetNcInfoSize(), 0.0); // empty nc info field
 
+	//new header
+	CsClusterHeader headerNew;
+	CsClusterHeader::T_NcInfoField ncInfo(CsClusterHeader::GetNcInfoSize(), 0.0); // empty nc info field
+	CsClusterHeader::T_NcCountField ncCountMax = 0;
+
+	headerNew.SetSrcInfo(m_srcInfo); // TODO: preserving this information when doing NC
 	for (const auto &pkt : pktList)
 	{
 		//get header information and packet data
-		CsClusterHeader header;
+		CsClusterHeader h;
 		Ptr<Packet> p = pkt->Copy();
-		p->RemoveHeader(header);
-		CsClusterHeader::T_NcInfoField pktNcInfo = header.GetNcInfo();
+		p->RemoveHeader(h);
+		CsClusterHeader::T_NcInfoField pktNcInfo = h.GetNcInfo();
+		
+		if(h.GetNcCount > ncCountMax) // set ncCount to maximum of all packets
+			ncCountMax = h.GetNcCount;
+			
 		T_PktData pktData[nValues];
 		p->CopyData(reinterpret_cast<uint8_t *>(pktData), nBytes);
 
@@ -494,14 +495,13 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 	}
 	//create new packet and add header
 	Ptr<Packet> ncPkt = Create<Packet>(reinterpret_cast<const uint8_t *>(dataBuf), nBytes);
-	CsClusterHeader header;
-	header.SetClusterId(m_clusterId);
-	header.SetNodeId(m_nodeId);
-	header.SetDataSize(nBytes);
-	header.SetSrcInfo(m_srcInfo); // TODO: preserving this information when doing NC
-	header.SetSeq(seq);
-	header.SetNcInfo(ncInfo);
-	ncPkt->AddHeader(header);
+	headerNew.SetClusterId(m_clusterId);
+	headerNew.SetNodeId(m_nodeId);
+	headerNew.SetDataSize(nBytes);
+	headerNew.SetSeq(seq);
+	headerNew.SetNcInfo(ncInfo);
+	headerNew.SetNcCount(ncCountMax);
+	ncPkt->AddHeader(headerNew);
 
 	return ncPkt;
 }
