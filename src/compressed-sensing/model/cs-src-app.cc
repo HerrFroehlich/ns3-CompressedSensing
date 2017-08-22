@@ -186,7 +186,7 @@ void CsSrcApp::StopApplication()
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-bool CsSrcApp::CompressNext()
+bool CsSrcApp::CompressNextTemp()
 {
 	NS_LOG_FUNCTION(this);
 
@@ -358,7 +358,7 @@ void CsSrcApp::ScheduleBc(Time dt)
 void CsSrcApp::Measure()
 {
 	NS_LOG_FUNCTION(this);
-	if (CompressNext())
+	if (CompressNextTemp())
 	{
 		CreateCsPackets();
 		m_measEvent = Simulator::Schedule(m_measInterval, &CsSrcApp::Measure, this);

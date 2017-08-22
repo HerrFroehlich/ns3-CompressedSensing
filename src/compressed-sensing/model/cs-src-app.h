@@ -125,13 +125,6 @@ class CsSrcApp : public Application
 	virtual void StopApplication();
 
   protected:
-	/**
-	* \brief tries to compress the next Y and with that  to 
-	* The base class does temporal compression here. 
-	*
-	* \return true when a new Y could be compressed
-	*/
-	virtual bool CompressNext();
 
 	/**
 	* \brief create new packets with a CsHeader and payload and broadcasts them
@@ -212,6 +205,15 @@ class CsSrcApp : public Application
 
   private:
 	/**
+	* \brief tries to compress the next Y temporally  
+	*
+	* Checks whether there is enough data left to compress.
+	*
+	* \return true when a new Y could be compressed
+	*/
+	bool CompressNextTemp();
+
+	/**
 	* \brief sends a packet with compressed source data  via all devices in TX-device list
 	* if there are packets remaining in m_bcPackets this will call another ScheduleBc
 	*
@@ -221,9 +223,9 @@ class CsSrcApp : public Application
 	void Broadcast(Ptr<Packet> p);
 
 	/**
-	* \brief Conducts a measurement and compresses temporally
+	* \brief Conducts a virtual measurement, compresses temporally  and creates new packets
 	*
-	* This measurement is called every measurement interval until no more data is left in buffer
+	* This method is called every measurement interval until no more data is left in buffer
 	*
 	*/
 	void Measure();
@@ -234,7 +236,7 @@ class CsSrcApp : public Application
 		m_isSetup;
 
 	Ptr<SerialDataBuffer<double>> m_fdata; /**< data from file*/
-	Ptr<CompressorTemp> m_compTemp;		   /**< compressor for real*/
+	Ptr<CompressorTemp> m_compTemp;		   /**< compressor*/
 	Ptr<RandomVariableStream> m_ranTx;	 /**< random variable stream, to determine when to send*/
 	std::vector<Ptr<Packet>> m_bcPackets;  /**< packets to broadcast next*/
 	Ptr<DataStream<double>> m_streamY,	 /**< DataStream storing compression results*/
