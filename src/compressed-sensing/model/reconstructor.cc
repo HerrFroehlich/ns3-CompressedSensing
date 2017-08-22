@@ -304,6 +304,7 @@ void Reconstructor::ReconstructSpat()
 
 	//get N
 	klab::TSmartPointer<kl1p::TOperator<double>> N = new kl1p::TMatrixOperator<double>(m_ncMatrixBuf.ReadAll());
+	N = new kl1p::TScalingOperator<double>(N, 1.0/klab::Sqrt(N->m()));
 
 	//get operator array
 	kl1p::TBlockDiagonalOperator<double>::TOperatorArray blockA;
@@ -316,7 +317,7 @@ void Reconstructor::ReconstructSpat()
 	//sensing block matrix A
 	klab::TSmartPointer<TOperator<double>> A = new TBlockDiagonalOperator<double>(blockA);
 	//stored input data
-	Mat<double> U = m_inBuf.ReadAll();
+	Mat<double> U = m_inBuf.ReadAll()/klab::Sqrt(N->m()); //since we scaled N before
 	// reconstruct jointly
 	Mat<double> Y = m_algoSpat->Run(U, N*A);
 
