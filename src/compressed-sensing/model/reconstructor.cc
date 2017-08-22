@@ -103,6 +103,13 @@ void Reconstructor::WriteData(const double *buffer, const uint32_t bufSize,
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
+bool Reconstructor::InBufIsFull() const
+{
+	return m_inBuf.IsFull();
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 void Reconstructor::SetPrecodeEntries(CsHeader::T_IdField clusterId, const std::vector<bool> &entries)
 {
 	NS_LOG_FUNCTION(this << clusterId << &entries);

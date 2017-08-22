@@ -118,6 +118,13 @@ class Reconstructor : public ns3::Object
 				   const CsClusterHeader::T_NcInfoField &ncCoeff);
 
 	/**
+	* \brief checks if the input buffer is full
+	*
+	* \return true when the input buffer is full
+	*/
+	bool InBufIsFull() const;
+
+	/**
 	* \brief sets the precoding entries
 	*
 	* The vector entries may be of any size, but only
