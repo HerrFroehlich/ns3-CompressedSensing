@@ -38,9 +38,10 @@ class CsSinkApp : public Application
 
 	enum E_DropCause
 	{
-		NOT_A_CLUSTER,  /**< received data from non cluster node  */
-		EXPIRED_SEQ,       /**< received old sequence number*/
-		UNKNOWN_CLUSTER /**< received from cluster which was not registered with AddCluster*/
+		NOT_A_CLUSTER,   /**< received data from non cluster node  */
+		EXPIRED_SEQ,	 /**< received old sequence number*/
+		UNKNOWN_CLUSTER, /**< received from cluster which was not registered with AddCluster*/
+		REC_BUF_FULL	 /**< Reconstructor input buffer is already full*/
 	};
 	typedef void (*RxDropCallback)(Ptr<const Packet>, E_DropCause); /**< callback signature:  dropping a received packet*/
 	static TypeId GetTypeId(void);
@@ -99,8 +100,9 @@ class CsSinkApp : public Application
 	*
 	* \param p	Pointer to Packet
 	*
+	* \return true when packet data could be buffered 
 	*/
-	void BufferPacketData(Ptr<const Packet> p);
+	bool BufferPacketData(Ptr<const Packet> p);
 
 	/**
 	* \brief prepares  for reconstructing  a new measurement sequence	
