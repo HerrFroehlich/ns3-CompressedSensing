@@ -1,20 +1,20 @@
 /**
-* \file cs-cluster-header.j
+* \file cs-cluster-header.h
 *
 * \author Tobias Waurick
 * \date 17.08.17
 *
 */
 
-#ifndef CS_CLUSTER_HEADER
-#define CS_CLUSTER_HEADER
+#ifndef CS_CLUSTER_HEADER_H
+#define CS_CLUSTER_HEADER_H
 
 #include "cs-header.h"
 
 #define BYTE_NVAL 256			  /**< NOF values represented by one byte*/
 #define BYTE_NVAL_DIV_BYTE_LEN 32 /**< BYTE_NVAL divided by BYTE_LEN*/
 /**
-* \ingroup compsens
+* \ingroup csNet
 * \class CsClusterHeader
 *
 * \brief an extension of the CsHeader for cluster head nodes 
@@ -22,7 +22,7 @@
 * Before using the CsHeader for cluster heads the static SetupCl function must be called, which is asserted in some methods. 
 *
 * For a cluster node the header is extended by the following fields:
-* - 256 bit SrcInfo : indicates which source nodes were compressed, 1bit describing one node, the LSB bit representing the nodeID 0\n
+* - L*256 bit SrcInfo : indicates which source nodes were compressed, 1bit describing one node, the LSB bit representing the nodeID 0\n
 * -   8 bit	NcCnt	: counter, storing the number of recombinations of the packet
 * -   x bit NcInfo  : information on the process of the network coding coefficients during recombinations in the network.\n
 * 					  The size of the network coding information field varies depending on the NOF clusters and their spatial compression, it has to be set explicitly.
@@ -43,7 +43,7 @@ class CsClusterHeader : public CsHeader
 	typedef double T_NcInfoFieldValue;					/**< type of the values in the network coding information field*/
 	typedef std::vector<double> T_NcInfoField;			/**< type of the network coding information field*/
 	typedef uint8_t T_NcCountField;						/**< type of the recombination counter*/
-	typedef std::bitset<SRCINFO_BITLEN> T_SrcInfoField; /**< type of the source information field*/
+	typedef std::bitset<SRCINFO_BITLEN> T_SrcInfoField; /**< type of the source information field for each cluster*/
 
 	CsClusterHeader();
 
@@ -51,17 +51,30 @@ class CsClusterHeader : public CsHeader
 	* \brief adds information on source nodes used in cluster compression from a bitset
 	*
 	* \param set bitset to set
+	* \param clusterId ID of cluster
 	*
 	*/
-	void SetSrcInfo(const T_SrcInfoField &set);
+	void SetSrcInfo(const T_SrcInfoField &set, uint32_t clusterId);
 
 	/**
 	* \brief gets the information on source nodes used in cluster compression
 	*
-	* \return bit set containing the info
+	* \param clusterId ID of cluster
+	*
+	* \return bit set containing the infoset
 	*
 	*/
-	T_SrcInfoField GetSrcInfo() const;
+	T_SrcInfoField GetSrcInfo(uint32_t clusterId) const;
+
+	/**
+	* \brief checks if source information was set for the ID
+	*
+	* source information is considered set, if at least one bit is set to 1
+	*
+	* \return true  if source information was set for the ID
+	*
+	*/
+	bool IsSrcInfoSet(uint32_t clusterId) const;
 
 	/**
 	* \brief setups the CsHeader by calculating and setting the size of the network coding information field and the NOF clusters
@@ -126,10 +139,12 @@ class CsClusterHeader : public CsHeader
 	T_NcInfoField GetNcInfo() const;
 
 	/**
-	* \brief incremenents the network coding recombination counter
+	* \brief sets the network coding recombination counter
+	*
+	* \param cnt new count
 	*
 	*/
-	void IncrNcCount();
+	void SetNcCount(uint32_t cnt);
 
 	/**
 	* \brief gets the value of the network coding recombination counter field
@@ -162,14 +177,15 @@ class CsClusterHeader : public CsHeader
   private:
 	//static variables
 	static bool m_isSetup;
-	static uint32_t m_ncInfoSize;	  /**< size of the network coding information field (NOF values)*/
-	static uint32_t m_maxClusters;	 /**< maximum NOF clusters*/
-	static std::vector<uint32_t> m_lk; /**< vector with the spatial compression dimension of each cluster head*/
+	static uint32_t m_ncInfoSize;				   /**< size of the network coding information field (NOF values)*/
+	static uint32_t m_maxClusters;				   /**< maximum NOF clusters*/
+	static std::vector<uint32_t> m_lk;			   /**< vector with the spatial compression dimension of each cluster head*/
 
 	//variables
-	T_NcCountField m_ncCount;
-	T_SrcInfoField m_srcInfo; /**< info about source nodes*/
-	T_NcInfoField m_ncInfo;   /**< network coding information field*/
+	T_NcCountField m_ncCount; /**< network combination counter*/
+	//T_SrcInfoField m_srcInfo; /**< info about source nodes*/
+	std::vector<T_SrcInfoField> m_srcInfo; /**< info about source nodes of each cluster*/
+	T_NcInfoField m_ncInfo;				   /**< network coding information field*/
 };
 
-#endif //CS_CLUSTER_HEADER
+#endif //CS_CLUSTER_HEADER_H

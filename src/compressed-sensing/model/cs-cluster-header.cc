@@ -17,33 +17,44 @@ uint32_t CsClusterHeader::m_ncInfoSize = 0;
 uint32_t CsClusterHeader::m_maxClusters = 0;
 std::vector<uint32_t> CsClusterHeader::m_lk;
 
-CsClusterHeader::CsClusterHeader() : m_ncCount(0), m_srcInfo(), m_ncInfo(m_ncInfoSize)
+CsClusterHeader::CsClusterHeader() : m_ncCount(0), m_srcInfo(m_maxClusters), m_ncInfo(m_ncInfoSize)
 {
 	CsHeader::SetNodeId(CLUSTER_NODEID);
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-void CsClusterHeader::SetSrcInfo(const T_SrcInfoField &set)
+void CsClusterHeader::SetSrcInfo(const T_SrcInfoField &set, uint32_t clusterId)
 {
-	m_srcInfo = set;
+	NS_ASSERT_MSG(clusterId < m_maxClusters, "Non-valid cluster ID!");
+	m_srcInfo.at(clusterId) = set;
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-CsClusterHeader::T_SrcInfoField CsClusterHeader::GetSrcInfo() const
+CsClusterHeader::T_SrcInfoField CsClusterHeader::GetSrcInfo(uint32_t clusterId) const
 {
-	return m_srcInfo;
+	NS_ASSERT_MSG(clusterId < m_maxClusters, "Non-valid cluster ID!");
+	return m_srcInfo.at(clusterId);
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+bool CsClusterHeader::IsSrcInfoSet(uint32_t clusterId) const
+{
+	NS_ASSERT_MSG(clusterId < m_maxClusters, "Non-valid cluster ID!");
+	return m_srcInfo.at(clusterId).any();
+}
+
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
 void CsClusterHeader::SetupCl(const std::vector<uint32_t> &lk)
 {
 	m_lk = lk;
 	m_ncInfoSize = 0;
-	for (auto it : m_lk)
+	for (auto l : lk)
 	{
-		m_ncInfoSize += it;
+		m_ncInfoSize += l;
 	}
 	m_maxClusters = m_lk.size();
 
@@ -103,9 +114,9 @@ CsClusterHeader::T_NcInfoField CsClusterHeader::GetNcInfo() const
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-void CsClusterHeader::IncrNcCount()
+void CsClusterHeader::SetNcCount(uint32_t cnt)
 {
-	m_ncCount++;
+	m_ncCount = cnt;
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -150,15 +161,17 @@ uint32_t CsClusterHeader::Deserialize(Buffer::Iterator start)
 	CsHeader::DoDeserialize(i);
 
 	//source info
-	for (uint32_t j = 0; j < SRCINFO_LEN; j++)
+	for (auto &it : m_srcInfo)
 	{
-		uint8_t byte = i.ReadU8();
-		for (size_t i = 0; i < BYTE_LEN; i++)
+		for (uint32_t j = 0; j < SRCINFO_LEN; j++)
 		{
-			m_srcInfo[i + j * BYTE_LEN] = (1 << i) & byte;
+			uint8_t byte = i.ReadU8();
+			for (size_t i = 0; i < BYTE_LEN; i++)
+			{
+				it[i + j * BYTE_LEN] = (1 << i) & byte;
+			}
 		}
 	}
-
 	//nc count
 	m_ncCount = i.ReadU8();
 
@@ -186,9 +199,19 @@ void CsClusterHeader::Print(std::ostream &os) const
 {
 
 	CsHeader::Print(os);
-	os << "Node Info: " << m_srcInfo << std::endl;
+	// os << "Node Info: " << m_srcInfo << std::endl;
+	// os << "NC Count: " << static_cast<int>(m_ncCount) << std::endl;
+	// os << "NC Info: "  << std::endl;
+
+	os << "Node Info: ";
+	for (const auto &it : m_srcInfo)
+	{
+		os << it;
+	}
+	os << std::endl;
+
 	os << "NC Count: " << static_cast<int>(m_ncCount) << std::endl;
-	os << "NC Info: "  << std::endl;
+	os << "NC Info: " << std::endl;
 
 	os << std::fixed << std::setprecision(2);
 	uint32_t j = 0;
@@ -198,7 +221,7 @@ void CsClusterHeader::Print(std::ostream &os) const
 		os << m_ncInfo.at(i) << " ";
 
 		//print a line end for each cluster head
-		if(++j > *lk)
+		if (++j > *lk)
 		{
 			j = 0;
 			lk++;
@@ -216,14 +239,18 @@ void CsClusterHeader::Serialize(Buffer::Iterator start) const
 	CsHeader::DoSerialize(i);
 
 	//source info
-	for (uint32_t j = 0; j < SRCINFO_LEN; j++)
+
+	for (const auto &it : m_srcInfo)
 	{
-		uint8_t byte = 0;
-		for (size_t i = 0; i < BYTE_LEN; i++)
+		for (uint32_t j = 0; j < SRCINFO_LEN; j++)
 		{
-			byte |= (m_srcInfo[i + j * BYTE_LEN] << i);
+			uint8_t byte = 0;
+			for (size_t i = 0; i < BYTE_LEN; i++)
+			{
+				byte |= (it[i + j * BYTE_LEN] << i);
+			}
+			i.WriteU8(byte);
 		}
-		i.WriteU8(byte);
 	}
 
 	//nc count

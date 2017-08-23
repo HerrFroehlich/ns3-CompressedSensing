@@ -235,7 +235,7 @@ void CsClusterApp::CreateCsClusterPackets()
 	header.SetClusterId(m_clusterId);
 	header.SetNodeId(m_nodeId);
 	header.SetDataSize(payloadSize);
-	header.SetSrcInfo(m_srcInfo);
+	header.SetSrcInfo(m_srcInfo, m_clusterId);
 	header.SetSeq(m_nextSeq);
 
 	for (uint32_t i = 0; i < packetsNow; i++)
@@ -464,7 +464,6 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 	CsClusterHeader::T_NcInfoField ncInfo(CsClusterHeader::GetNcInfoSize(), 0.0); // empty nc info field
 	CsClusterHeader::T_NcCountField ncCountMax = 0;
 
-	headerNew.SetSrcInfo(m_srcInfo); // TODO: preserving this information when doing NC
 	for (const auto &pkt : pktList)
 	{
 		//get header information and packet data
@@ -472,10 +471,18 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 		Ptr<Packet> p = pkt->Copy();
 		p->RemoveHeader(h);
 		CsClusterHeader::T_NcInfoField pktNcInfo = h.GetNcInfo();
-		
-		if(h.GetNcCount > ncCountMax) // set ncCount to maximum of all packets
-			ncCountMax = h.GetNcCount;
-			
+
+		if (h.GetNcCount() > ncCountMax) // set ncCount to maximum of all packets
+			ncCountMax = h.GetNcCount();
+
+		for (CsHeader::T_IdField id = 0; id < CsClusterHeader::GetMaxClusters(); id++)//preserving SrcInfo
+		{
+			if (h.IsSrcInfoSet(id))
+			{
+				CsClusterHeader::T_SrcInfoField bitset = h.GetSrcInfo(id);
+				headerNew.SetSrcInfo(bitset, id);
+			}
+		}
 		T_PktData pktData[nValues];
 		p->CopyData(reinterpret_cast<uint8_t *>(pktData), nBytes);
 
@@ -510,5 +517,4 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 
 void CsClusterApp::CreateCsPackets()
 {
-	
 }

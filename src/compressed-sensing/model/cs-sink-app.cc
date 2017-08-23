@@ -150,8 +150,8 @@ bool CsSinkApp::BufferPacketData(Ptr<const Packet> packet)
 	NS_LOG_FUNCTION(this << packet);
 
 	CsClusterHeader header;
-	
-	if(m_reconst->InBufIsFull())
+
+	if (m_reconst->InBufIsFull())
 		return false;
 
 	Ptr<Packet> p = packet->Copy(); //COW
@@ -167,15 +167,31 @@ bool CsSinkApp::BufferPacketData(Ptr<const Packet> packet)
 	delete[] data;
 
 	//set precoding
-	CsClusterHeader::T_SrcInfoField bitset = header.GetSrcInfo();
+	// CsClusterHeader::T_SrcInfoField bitset = header.GetSrcInfo();
 
-	std::vector<bool> precode;
-	precode.reserve(CsClusterHeader::SRCINFO_BITLEN);
-	for (uint32_t i = 0; i < CsClusterHeader::SRCINFO_BITLEN; i++)
+	// std::vector<bool> precode;
+	// precode.reserve(CsClusterHeader::SRCINFO_BITLEN);
+	// for (uint32_t i = 0; i < CsClusterHeader::SRCINFO_BITLEN; i++)
+	// {
+	// 	precode.push_back(bitset[i]);
+	// }
+	// m_reconst->SetPrecodeEntries(header.GetClusterId(), precode);
+
+	for (CsHeader::T_IdField id = 0; id < CsClusterHeader::GetMaxClusters(); id++)
 	{
-		precode.push_back(bitset[i]);
+		if (header.IsSrcInfoSet(id))
+		{
+			CsClusterHeader::T_SrcInfoField bitset = header.GetSrcInfo(id);
+
+			std::vector<bool> precode;
+			precode.reserve(CsClusterHeader::SRCINFO_BITLEN);
+			for (uint32_t i = 0; i < CsClusterHeader::SRCINFO_BITLEN; i++)
+			{
+				precode.push_back(bitset[i]);
+			}
+			m_reconst->SetPrecodeEntries(header.GetClusterId(), precode);
+		}
 	}
-	m_reconst->SetPrecodeEntries(header.GetClusterId(), precode);
 	return true;
 }
 
