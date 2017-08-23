@@ -18,6 +18,12 @@ using namespace ns3;
 #define BYTE_LEN 8
 /**
 * \ingroup compsens
+* \defgroup csNet Networking
+*
+* Various classes needed for the networking
+*/
+/**
+* \ingroup csNet
 * \class CsHeader
 *
 * \brief header for a clustered sensor network performing in-network compressions and recovery via compressed sensing techniques
@@ -38,9 +44,9 @@ class CsHeader : public Header
 	typedef uint8_t T_IdField;	/**< ID field type*/
 	typedef uint16_t T_SizeField; /**< size field type*/
 	typedef uint16_t T_SeqField;  /**< sequence field type*/
-	
+
 	// sizes
-	const static uint32_t MAX_SRCNODES = 255;  /**< maximum NOF source nodes*/
+	const static uint32_t MAX_SRCNODES = 255; /**< maximum NOF source nodes*/
 	/**
 	* \brief create an empty CsHeader
 	*/
@@ -140,12 +146,12 @@ class CsHeader : public Header
 	void DoSerialize(Buffer::Iterator &start) const;
 
   private:
-	static const uint32_t m_hSizeSrc = 2*sizeof(T_IdField)+sizeof(T_SeqField)+sizeof(T_SizeField);	  /**< Header size in byte for src*/
+	static const uint32_t m_hSizeSrc = 2 * sizeof(T_IdField) + sizeof(T_SeqField) + sizeof(T_SizeField); /**< Header size in byte for src*/
 	//variables
-	T_IdField m_clusterId,				   /**< 8bit cluster ID*/
-		m_nodeId;						   /**< 8bit node ID*/
-	T_SeqField m_seq;					   /**< sequence number*/
-	T_SizeField m_dataSize;				   /**< size in byte*/
+	T_IdField m_clusterId,  /**< 8bit cluster ID*/
+		m_nodeId;			/**< 8bit node ID*/
+	T_SeqField m_seq;		/**< sequence number*/
+	T_SizeField m_dataSize; /**< size in byte*/
 };
 
 #endif //CS_HEADER_H
