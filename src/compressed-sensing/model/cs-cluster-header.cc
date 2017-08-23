@@ -221,7 +221,7 @@ void CsClusterHeader::Print(std::ostream &os) const
 		os << m_ncInfo.at(i) << " ";
 
 		//print a line end for each cluster head
-		if (++j > *lk)
+		if (++j >= *lk)
 		{
 			j = 0;
 			lk++;
