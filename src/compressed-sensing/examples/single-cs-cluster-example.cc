@@ -38,6 +38,8 @@ compressCb(arma::Mat<double> matIn, arma::Mat<double> matOut)
 	if (info || verbose)
 		cout << "\n"
 			 << Simulator::Now() << " Node " << Simulator::GetContext() << " compressed.";
+	matIn.save("IOdata/suncomp", csv_ascii);
+	matOut.save("IOdata/scomp", csv_ascii);
 }
 
 static void
@@ -222,7 +224,9 @@ int main(int argc, char *argv[])
 
 	NS_LOG_INFO("Setting up...");
 
-	std::vector<uint32_t> lk(1, l);
+	// std::vector<uint32_t> lk(1, l);
+	std::vector<uint32_t> lk;
+	lk.push_back(l);
 	CsClusterHeader::SetupCl(lk);
 
 	/*********  create cluster  **********/
@@ -249,13 +253,14 @@ int main(int argc, char *argv[])
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
 
+	//disable network coding
+	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
+
 	//spatial compressor
 	Ptr<Compressor> comp = CreateObject<Compressor>();
 	comp->TraceConnectWithoutContext("Complete", MakeCallback(&compressCb));
 	clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
 
-	//disable network coding
-	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
 	//error model
 	Ptr<RateErrorModel> errModel = CreateObject<RateErrorModel>();
 	if (rateErr > 0.0)
@@ -315,8 +320,6 @@ int main(int argc, char *argv[])
 	Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
 	rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 	ranMat = CreateObject<GaussianRandomMatrix>();
-	if (ampSpat)
-		ranMat->NormalizeToM();
 
 	rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 	sinkApp->SetAttribute("Reconst", PointerValue(rec));
@@ -349,8 +352,6 @@ int main(int argc, char *argv[])
 	else if (ampSpat)
 	{
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_AMP>()));
-		Config::Set("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprSpat/RanMatrix/Norm", BooleanValue(true));
-		Config::Set("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsSrcApp/ComprTemp/RanMatrix/Norm", BooleanValue(true));
 	}
 
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_OMP/k", UintegerValue(k));
@@ -371,7 +372,7 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/RecComplete", MakeCallback(&spatRecCb));
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/RecComplete", MakeCallback(&tempRecCb));
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/RecError", MakeCallback(&recErrorCb));
-	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/RecError", MakeCallback(&recErrorCb));
+	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/RecError", MakeCallback(&recErrorCb));
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprFail", MakeCallback(&comprFailSpat));
 	Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$MySimpleNetDevice/PhyRxDrop", MakeCallback(&packetDrop));
 	/*********  Running the Simulation  **********/
