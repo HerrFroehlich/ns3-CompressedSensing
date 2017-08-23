@@ -7,7 +7,7 @@
 */
 
 /**
-* \ingroup compsens
+* \ingroup rec
 * \class SpatialPrecodingMatrix
 *
 * \brief a MxM matrix containingwith where some diagonal entries are one and the rest zero, representing the nodes sending during the spatial precoding
