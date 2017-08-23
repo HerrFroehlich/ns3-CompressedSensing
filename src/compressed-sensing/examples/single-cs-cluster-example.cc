@@ -12,7 +12,7 @@
 #define CLUSTER_ID 0
 #define DEFAULT_TOL 1e-3
 
-#define TXPROB_MODIFIER 1.1
+#define TXPROB_MODIFIER 1.0
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -38,8 +38,6 @@ compressCb(arma::Mat<double> matIn, arma::Mat<double> matOut)
 	if (info || verbose)
 		cout << "\n"
 			 << Simulator::Now() << " Node " << Simulator::GetContext() << " compressed.";
-	matIn.save("IOdata/suncomp", csv_ascii);
-	matOut.save("IOdata/scomp", csv_ascii);
 }
 
 static void
