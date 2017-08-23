@@ -8,6 +8,7 @@
 
 #ifndef CS_CLUSTER_H
 #define CS_CLUSTER_H
+#include "cs-node.h"
 #include "ns3/cs-node-container.h"
 #include "ns3/data-stream.h"
 #include "ns3/application-container.h"
@@ -16,15 +17,32 @@
 #include "cs-cluster-header.h"
 using namespace ns3;
 
+/**
+* \ingroup csNet
+* \class CsCluster
+*
+* \brief Class which describes a cluster in the network
+*
+* The CsCluster stores pointers to the cluster head and source nodes (CsNode).
+* When creating a new cluster the individual seed (from which the random sensing matrix is drawn) 
+* is chosen via the default seed creator or an optional seeder function (with signature SeedCreator) for each node.
+* Utility functions, such as iterators, are provided to access the nodes and their IDs/seeds easily.
+* Additionally the compression dimensions n, m and l are saved, where:\n
+* - n is the original NOF samples gathered of each source node each measurement intervall 
+* - m is the NOF measurements after the temporal compression at each source node
+* - l is the NOF measurment vectors after the spatial compression at the cluster head
+* It is possible to freeze the cluster, which denies adding nodes and changing the compression dimensions.
+* Inheriting from DataStreamContainer<double> one can add DataStream<double> instances to this class.  
+*/
 class CsCluster : public Object, public DataStreamContainer<double>
 {
   public:
 	typedef uint32_t (*SeedCreator)(uint32_t, CsHeader::T_IdField); /**< signature for a function with which seeds are created for a given node number*/
-	enum E_COMPR_DIMS /**< compression dimensions*/
+	enum E_COMPR_DIMS												/**< compression dimensions*/
 	{
 		n, /**< number of samples in  measurement vector per sequence for source nodes*/
 		m, /**< number of samples in  measurement vector after temporal compression for source nodes*/
-		l /**< number of measurement vectors after spatial compression for cluster node*/
+		l  /**< number of measurement vectors after spatial compression for cluster head node*/
 	};
 
 	static TypeId GetTypeId();
@@ -49,8 +67,8 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	/**
 	* \brief sets the cluster node
 	*
-	* Also set the DataStreamContainer groupName to "Clusterx", where x
-	* is the cluster ID.
+	* Also set the DataStreamContainer groupName to "Clusterx", where x is the cluster ID.
+	* Fails with an error if the cluster is frozen.
 	*
 	* \param node pointer to cluster node
 	*
@@ -77,7 +95,8 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	/**
 	* \brief adds source nodes to internal container
 	*
-	* Asserts that the number of source nodes does not exceed CsHeader::MAX_SRCNODES.
+	* Asserts that the number of source nodes does not exceed CsHeader::MAX_SRCNODES.	
+	* Fails with an error if the cluster is frozen.
 	*
 	* \param node pointer to source nodes to add	
     * \param seeder function with SeedCreator signature, which determines the seed of each node
@@ -89,6 +108,7 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	* \brief adds source nodes to internal container
 	*
 	* Asserts that the number of source nodes does not exceed CsHeader::MAX_SRCNODES.
+	* Fails with an error if the cluster is frozen.
 	*
 	* \param nodes CsNodeContainer to add
    	* \param seeder function with SeedCreator signature, which determines the seed of each node
@@ -158,6 +178,8 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	/**
 	* \brief Stores the compression parameters for this cluster
 	*
+	* Fails with an error if the cluster is frozen.
+	*
 	* \param n length of original measurement vector (source nodes)
 	* \param m length of temporally compressed vector (source nodes)
 	* \param l NOF compressed vectors(cluster node)
@@ -193,6 +215,18 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	*/
 	std::vector<uint32_t> GetSeeds() const;
 
+	/**
+	* \brief freezes the cluster and denies adding nodes and changing the compression dimensions
+	*/
+	void Freeze();
+
+	/**
+	* \brief checks whether the cluster is frozen
+	*
+	* \return true if it is frozen
+	*/
+	bool IsFrozen();
+
   private:
 	/**
 	* \brief default seed creator function
@@ -208,6 +242,7 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	Ptr<CsNode> m_clusterNode;
 	CsNodeContainer m_srcNodes, m_allNodes;
 	uint32_t m_n, m_m, m_l;
+	bool m_isFrozen;
 };
 
 #endif //CS_CLUSTER_H
