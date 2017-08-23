@@ -18,7 +18,7 @@
 using namespace ns3;
 
 /**
-* \ingroup compsens
+* \ingroup csNet
 * \defgroup csApps Applications
 *
 * Applications for Source, Cluster and Sink nodes
