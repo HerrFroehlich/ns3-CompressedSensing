@@ -26,7 +26,7 @@ SpatialPrecodingMatrix<T>::SpatialPrecodingMatrix() : m_n(0)
 
 template <typename T>
 SpatialPrecodingMatrix<T>::SpatialPrecodingMatrix(uint32_t n) : TOperator<T>(n, n),
-																m_n(n), m_diag(n, true)
+																m_n(n), m_diag(n, false)
 {
 }
 
@@ -100,6 +100,7 @@ void SpatialPrecodingMatrix<T>::toMatrix(arma::Mat<T> &out)
 {
 
 	out.set_size(m_n, m_n);
+	out.fill(static_cast<T>(0));
 	for (uint32_t i = 0; i < m_n; i++)
 	{
 		out(i, i) = m_diag.at(i);
