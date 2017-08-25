@@ -13,7 +13,7 @@
 NS_LOG_COMPONENT_DEFINE("CsSinkApp");
 NS_OBJECT_ENSURE_REGISTERED(CsSinkApp);
 
-const std::string CsSinkApp::SEQSTREAMNAME = "PacketSeq";
+//const std::string CsSinkApp::SEQSTREAMNAME = "PacketSeq";
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
@@ -83,16 +83,12 @@ void CsSinkApp::AddCluster(Ptr<CsCluster> cluster)
 	NS_LOG_FUNCTION(this << &cluster);
 
 	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
-	NS_ASSERT_MSG(cluster->GetNSrc(), "Not enough source nodes in this cluster!");
-
 	NS_ASSERT_MSG(m_reconst, "Non-valid reconstructor! Have you added it or called CreateObject?");
+	NS_ABORT_MSG_IF(!cluster->GetNSrc(), "Not enough source nodes in this cluster!");
 
 	m_reconst->AddCluster(cluster);
 
-	Ptr<CsNode> clusterNode = cluster->GetClusterNode();
-
-	//add sequence checker
-	m_seqCheck.AddCluster(cluster);
+	Ptr<CsNode> clusterNode = cluster->GetClusterHead();
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -112,15 +108,14 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 	// m_timeoutEvent = Simulator::Schedule(m_timeout, &CsSinkApp::ReconstructNext, this);
 
 	CsHeader header;
-	CsHeader::T_IdField nodeId,
-		clusterId;
+	CsHeader::T_IdField nodeId;
+	CsHeader::T_SeqField seq;
 
 	p->PeekHeader(header);
 	nodeId = header.GetNodeId();
-	clusterId = header.GetClusterId();
 
 	//check if we received from a cluster and if we know it
-	if (nodeId != CsHeader::CLUSTER_NODEID) // we do not receive from a different cluster node
+	if (nodeId != CsClusterHeader::CLUSTER_NODEID) // we do not receive from a different cluster node
 	{
 		m_rxDropTrace(p, E_DropCause::NOT_A_CLUSTER);
 		return false;
@@ -131,18 +126,18 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 	// 	return false;
 	// }
 
-	CsHeader::T_SeqField seq = header.GetSeq();
+	//check sequence
+	seq = header.GetSeq();
+	if (seq > m_seqCount)
+		StartNewSeq(seq - m_seqCount);
+	else if (seq < m_seqCount)
+	{
+		m_rxDropTrace(p, E_DropCause::EXPIRED_SEQ);
+		return false;
+	}
 
-	uint32_t seqDiff = m_seqCheck.AddNewSeq(clusterId, seq);
-
-	/*TODO: actually a new Reconstruction should take place if we have a new sequence for all cluster nodes!
-	 * -> new SeqChecker, buffer packets of new Seq
-	 */
-
-	if (seqDiff)
-		StartNewSeq(seqDiff);
-
-	BufferPacketData(p, m_seqCheck.GetNZeros(clusterId));
+	if (!BufferPacketData(p))
+		m_rxDropTrace(p, E_DropCause::REC_BUF_FULL);
 	if (++m_rxPacketsSeq >= m_minPackets)
 		ReconstructNext();
 	return true;
@@ -150,43 +145,54 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-void CsSinkApp::BufferPacketData(Ptr<const Packet> packet, uint32_t nZeros)
+bool CsSinkApp::BufferPacketData(Ptr<const Packet> packet)
 {
 	NS_LOG_FUNCTION(this << packet);
 
-	CsHeader header;
-	CsHeader::T_IdField id;
+	CsClusterHeader header;
+
+	if (m_reconst->InBufIsFull())
+		return false;
 
 	Ptr<Packet> p = packet->Copy(); //COW
 
 	p->RemoveHeader(header);
 
-	id = header.GetClusterId();
 	uint32_t size = header.GetDataSize() / sizeof(double);
 
+	//write data
 	double *data = new double[size]();
 	p->CopyData(reinterpret_cast<uint8_t *>(data), size * sizeof(double));
-
-	if (nZeros > 0) // we have to fill with zeros
-	{
-		double *zeroFill = new double[nZeros](); //zero initialized
-		m_reconst->WriteData(id, zeroFill, nZeros);
-		delete[] zeroFill;
-	}
-
-	m_reconst->WriteData(id, data, size);
+	m_reconst->WriteData(data, size, header.GetNcInfo());
 	delete[] data;
 
 	//set precoding
-	CsHeader::T_SrcInfo bitset = header.GetSrcInfo();
+	// CsClusterHeader::T_SrcInfoField bitset = header.GetSrcInfo();
 
-	std::vector<bool> precode;
-	precode.reserve(CsHeader::SRCINFO_BITLEN);
-	for (uint32_t i = 0; i < CsHeader::SRCINFO_BITLEN; i++)
+	// std::vector<bool> precode;
+	// precode.reserve(CsClusterHeader::SRCINFO_BITLEN);
+	// for (uint32_t i = 0; i < CsClusterHeader::SRCINFO_BITLEN; i++)
+	// {
+	// 	precode.push_back(bitset[i]);
+	// }
+	// m_reconst->SetPrecodeEntries(header.GetClusterId(), precode);
+
+	for (CsHeader::T_IdField id = 0; id < CsClusterHeader::GetMaxClusters(); id++)
 	{
-		precode.push_back(bitset[i]);
+		if (header.IsSrcInfoSet(id))
+		{
+			CsClusterHeader::T_SrcInfoField bitset = header.GetSrcInfo(id);
+
+			std::vector<bool> precode;
+			precode.reserve(CsClusterHeader::SRCINFO_BITLEN);
+			for (uint32_t i = 0; i < CsClusterHeader::SRCINFO_BITLEN; i++)
+			{
+				precode.push_back(bitset[i]);
+			}
+			m_reconst->SetPrecodeEntries(id, precode);
+		}
 	}
-	m_reconst->SetPrecodeEntries(id, precode);
+	return true;
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/

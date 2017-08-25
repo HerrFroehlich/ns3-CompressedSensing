@@ -26,7 +26,7 @@ SpatialPrecodingMatrix<T>::SpatialPrecodingMatrix() : m_n(0)
 
 template <typename T>
 SpatialPrecodingMatrix<T>::SpatialPrecodingMatrix(uint32_t n) : TOperator<T>(n, n),
-																m_n(n), m_diag(n, true)
+																m_n(n), m_diag(n, false)
 {
 }
 

@@ -336,6 +336,7 @@ inline klab::DoubleReal     SNR(const arma::Mat<T>& x0, const arma::Mat<T>& x)
     klab::DoubleReal x0Norm = klab::SqrtSquaredError(x0, arma::Mat<T>());
 
     if(klab::Equals(x0Norm, 0.0) && err>0.0)    ret = 0.0;
+    else if (err == klab::DOUBLEREAL_INFINITY)   ret = -ret;
     else if(err > 0.0)                          ret = 20.0 * klab::Log10(x0Norm / err);
 
     return ret;

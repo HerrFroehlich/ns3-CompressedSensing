@@ -54,19 +54,21 @@ void CsClusterSimpleHelper::SetNodeSeeder(CsCluster::SeedCreator seeder)
 	m_seeder = seeder;
 }
 
-CsCluster CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, DataStream<double> &stream)
+Ptr<CsCluster> CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, DataStream<double> &stream)
 {
 	NS_ASSERT_MSG(nSrc <= CsHeader::MAX_SRCNODES, "Too many source nodes!");
 	NS_ASSERT_MSG(nSrc < stream.GetN(), "Not enough stream buffers in this DataStream!");
 
 	/*--------  Create Nodes  --------*/
-	Ptr<CsNode> clusterNode = CreateObject<CsNode>(CsNode::NodeType::CLUSTER);
+	Ptr<CsNode> clusterHead = CreateObject<CsNode>(CsNode::NodeType::CLUSTER);
+	clusterHead->SetClusterId(id);
 	CsNodeContainer srcNodes;
 	srcNodes.Create(CsNode::NodeType::SOURCE, nSrc);
-	CsCluster cluster(clusterNode, srcNodes);
+	Ptr<CsCluster> cluster = CreateObject<CsCluster>(clusterHead, srcNodes);
+	cluster->SetClusterSeed(id+1);
 	// srcNodes.CreateCluster(id, nSrc, m_seeder);
 
-	Ptr<SerialDataBuffer<double>> bufCluster = stream.GetBuffer(CsHeader::CLUSTER_NODEID); //CLUSTER_NODEID=0
+	Ptr<SerialDataBuffer<double>> bufCluster = stream.GetBuffer(CsClusterHeader::CLUSTER_NODEID); //CLUSTER_NODEID=0
 
 	for (uint32_t i = 0; i < nSrc; i++)
 	{
@@ -99,11 +101,11 @@ CsCluster CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, D
 
 		Ptr<MySimpleNetDevice> clusterdevice = m_clusterDeviceFactory.Create<MySimpleNetDevice>();
 		clusterdevice->SetChannel(channel);
-		clusterdevice->SetNode(clusterNode);
+		clusterdevice->SetNode(clusterHead);
 		clusterdevice->SetQueue(queue);
 
 		src->AddTxDevice(srcdevice);
-		clusterNode->AddRxDevice(clusterdevice);
+		clusterHead->AddRxDevice(clusterdevice);
 
 		/*--------  Create Source Applications  --------*/
 		Ptr<CsSrcApp> srcApp = m_srcAppFactory.Create<CsSrcApp>();
@@ -115,15 +117,15 @@ CsCluster CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, D
 	/*--------  Create Cluster Application  --------*/
 	Ptr<CsClusterApp> app = m_clusterAppFactory.Create<CsClusterApp>();
 	app->SetAttribute("nNodes", UintegerValue(nSrc + 1));
-	app->Setup(clusterNode, bufCluster);
-	clusterNode->AddApplication(app);
+	app->Setup(cluster, bufCluster);
+	clusterHead->AddApplication(app);
 
 	/*--------  Create CsCluster  --------*/
 	UintegerValue n, m, l;
 	app->GetAttribute("n", n);
 	app->GetAttribute("m", m);
 	app->GetAttribute("l", l);
-	cluster.SetCompression(n.Get(), m.Get(), l.Get());
+	cluster->SetCompression(n.Get(), m.Get(), l.Get());
 	return cluster;
 }
 

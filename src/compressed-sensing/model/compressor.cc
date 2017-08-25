@@ -78,7 +78,6 @@ void Compressor::Compress(const double *bufferIn, uint32_t bufLenIn, double *buf
 	NS_ASSERT_MSG(bufLenIn == m_bufLenIn, "Incorrect input buffer size!");
 	NS_ASSERT(bufferIn); //null pointer check
 
-	klab::TSmartPointer<kl1p::TOperator<double>> op_ptr = m_ranMat * m_transMat;
 	const arma::Mat<double> x(const_cast<double *>(bufferIn), m_n, m_vecLen, false);
 	Compress(x, bufferOut, bufLenOut);
 }
@@ -99,14 +98,14 @@ void Compressor::Compress(const arma::Mat<double> &matIn, double *bufferOut, uin
 
 	klab::TSmartPointer<kl1p::TOperator<double>> op_ptr = m_ranMat * m_transMat;
 	arma::Mat<double> y(bufferOut, m_m, m_vecLen, false, true);
-
+	
 	for (uint32_t i = 0; i < m_vecLen; i++)
 	{
 		Col<double> yVec(m_m);
 		op_ptr->apply(matIn.col(i), yVec);
 		y.col(i) = yVec;
 	}
-	m_completeCb(matIn, y);
+m_completeCb(matIn, y);
 }
 
 

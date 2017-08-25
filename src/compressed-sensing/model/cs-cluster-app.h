@@ -12,6 +12,8 @@
 #include "cs-src-app.h"
 #include "ns3/mat-buffer.h"
 #include "ns3/node-data-buffer-meta.h"
+#include "cs-cluster-header.h"
+#include "cs-cluster.h"
 
 /**
 * \ingroup csApps
@@ -27,9 +29,10 @@ class CsClusterApp : public CsSrcApp
 public:
   enum E_DropCause
   {
-    SIZE_MISMATCH,     /**< size of received data is not matching with expected size  */
-    EXPIRED_SEQ,       /**< received old sequence number*/
-    SRC_NOT_IN_CLUSTER /**< received data from source node which is not in this cluster*/
+    SIZE_MISMATCH,      /**< size of received data is not matching with expected size  */
+    EXPIRED_SEQ,        /**< received old sequence number*/
+    SRC_NOT_IN_CLUSTER, /**< received data from source node which is not in this cluster*/
+    NC_MAXRECOMB        /**< packet reached max NOF recombinations/relays*/
   };
   typedef void (*RxDropCallback)(Ptr<const Packet>, E_DropCause); /**< callback signature:  dropping a received packet*/
   //typedef void (*CompressFailCallback)(CsHeader::T_IdField);      /**< callback signature:  compression failed*/
@@ -54,12 +57,13 @@ public:
 	* \brief setups the application
   *
 	* MUST be called before starting the application
-	*
-	* \param node Csnode to aggregate application to
+  * Uses the compressions dimensions spatially and temporally setup for the cluster head.
+  *
+	* \param cluster CsCluster to aggregate application to
 	* \param input SerialDataBuffer<double> with input data for the node
 	*
 	*/
-  virtual void Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input);
+  virtual void Setup(const Ptr<CsCluster> cluster, Ptr<SerialDataBuffer<double>> input);
 
   /**
 	* \brief sets the used spatial compressor
@@ -74,19 +78,6 @@ public:
 	* \return  pointer to compressor
 	*/
   Ptr<Compressor> GetSpatialCompressor() const;
-
-  /**
-	* \brief sets the used spatial compressor
-  *
-	*  The NOF measurements used for compression may differ from sequence to sequence, as the source nodes transmit randomly. 
-  *  This means the compressor's "n"  does not need to be given as parameter.
-  *  Therefore the compressor will be setup later during compression.
-	*
-	* \param comp  pointer to compressor
-	* \param m2 NOF compressed vectors
-	* \param norm normalize random matrix by 1/sqrt(m)?
-	*/
-  // void SetSpatialCompressor(Ptr<Compressor> comp, uint32_t l, bool norm = false);
 
   /**
 	* \brief sets the compression given by l
@@ -104,16 +95,41 @@ public:
 
 protected:
   //inherited from CsSrcApp
-  virtual bool CompressNext();
   virtual void CreateCsPackets();
+
+  virtual uint32_t GetMaxPayloadSizeByte();
   virtual uint32_t GetMaxPayloadSize();
 
 private:
   /**
+  * \brief compresses the next Z spatially 
+  *
+  * Adds the nodes own temporally compressed data if existent.
+  * Sets the internal source info field depending on which source ndoes where used during compression,
+  * which is needed for the CsClusterHeader header. 
+  *
+  * \return true when compression was successfull
+  */
+  bool CompressNextSpat();
+
+  /**
+  * \brief create new packets with a CsClusterHeader and payload to send to other cluster nodes/sink
+  *
+  * If NC is enabled the packcets are written to the NC packet buffered.
+  * Else the packets are scheduled for broadcast.
+  *
+	*/
+  void CreateCsClusterPackets();
+
+  /**
   * \brief merge this clusters data with the data from others using RLNC
   *
+  * Repeats the network coding task every dt, until cancelled (application stops).
+  *
+	* \param dt network coding interval 
+  *
   */
-  void DoNetworkCoding();
+  void RLNetworkCoding(Time dt);
 
   /**
   * \brief action on net device receive
@@ -152,25 +168,46 @@ private:
   */
   void StartNewSeq(CsHeader::T_SeqField seq);
 
-  uint32_t m_l,     /**< NOF of spatial and temporal compressed vectors*/
-      m_nNodes,     /**< NOF nodes in Cluster*/
-      m_outBufSize; /**< size of output buffer*/
+  /**
+  * \brief combines packets lineary with random coefficients (RLNC)
+  *
+  * Coefficients are drawn from a from a normal distribution and normated to sum up to 1
+  *
+  * \param pktList  vector containing packets for RLNC
+  * \param seq      sequence number of new packet
+  *
+  * \return pointer to new packet
+  */
+  Ptr<Packet> DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClusterHeader::T_SeqField seq);
 
-  CsHeader::T_SeqField m_nextPackSeq; /**< sequence number of next packet*/
-  Ptr<Compressor> m_comp;     /**< compressor*/
+  //Spatial compression
+  uint32_t m_l,                                                       /**< NOF of spatial and temporal compressed vectors*/
+      m_nNodes,                                                       /**< NOF nodes in Cluster*/
+      m_seed;                                                         /**< seed used for generating the temporal random sensing matrix*/
+  CsHeader::T_SeqField m_nextPackSeq;                                 /**< sequence number of next packet*/
+  Ptr<Compressor> m_comp;                                             /**<spatial compressor*/
+  MatBuffer<T_PktData> m_zData;                                       /**< buffer containg spatially compressed data*/
+  NodeDataBufferMeta<T_PktData, CsHeader::T_IdField> m_srcDataBuffer; /**< NodeDataBuffer with meta data for incoming source node data*/
+  CsClusterHeader::T_SrcInfoField m_srcInfo;
 
-  SerialDataBuffer<double> m_outBuf;                               /**< buffer containing output data*/
-  MatBuffer<double> m_zData;                                       /**< buffer containg spatially compressed data*/
-  NodeDataBufferMeta<double, CsHeader::T_IdField> m_srcDataBuffer; /**< NodeDataBuffer with meta data for incoming source node data*/
-  //m_clusterDataMap;                                                 /**< NodeDataBuffer for  incoming cluster  node data*/
-  std::bitset<CsHeader::SRCINFO_BITLEN> m_srcInfo;
+  //Network coding
+  Ptr<RandomVariableStream> m_ranNc;      /**< random variable stream, to determine when to send*/
+  std::vector<Ptr<Packet>> m_ncPktBuffer; /**< packet buffer for network coding*/
+  uint32_t m_ncMaxRecomb,                 /**< maximum network coding recombinations*/
+      m_ncPktPLink;                       /**< NOF packets per link at each interval*/
+  Time m_ncInterval,                      /**< network coding interval*/
+      m_ncIntervalDelay;                  /**< Initial delay of network coding interval*/
+  EventId m_ncEvent;                      /**< event for doing network coding*/
+  bool m_ncEnable;                        /**< Enable network coding?*/
 
+  //Internal
   bool m_running,
       m_isSetup;
-
-  Time m_timeout;         /**< Packet inter-send time*/
+  Time m_timeout;         /**< time to wait for new source data of same sequence*/
   EventId m_timeoutEvent; /**< timeout event when waiting for new source data*/
+  EventId m_txEvent;      /**< transmission schedule event*/
 
+  //Traces
   TracedCallback<Ptr<const Packet>> m_rxTrace;                  /**< received a packet*/
   TracedCallback<Ptr<const Packet>, E_DropCause> m_rxDropTrace; /**< callback:  dropping a received packet*/
   //TracedCallback<CsHeader::T_IdField> m_compressFailTrace;      /**< trace when compression failed*/

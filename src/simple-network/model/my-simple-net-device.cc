@@ -95,8 +95,8 @@ void MySimpleNetDevice::Receive(Ptr<Packet> packet)
   }
   else
   {
-    // if(!m_rxCallback.IsNull())
-    m_rxCallback(this, packet, 0, Address());
+    if (!m_rxCallback.IsNull())
+      m_rxCallback(this, packet, 0, Address());
   }
 
   return;

@@ -10,7 +10,7 @@ TypeId CsCluster::GetTypeId()
 	return tid;
 }
 
-CsCluster::CsCluster(Ptr<CsNode> cluster) : m_clusterNode(cluster), m_n(0), m_m(0), m_l(0)
+CsCluster::CsCluster(Ptr<CsNode> cluster) : m_clusterNode(cluster), m_seed(1), m_n(0), m_m(0), m_l(0), m_isFrozen(false)
 {
 	uint32_t seed = DefaultSeedCreator(0, GetClusterId());
 
@@ -21,7 +21,7 @@ CsCluster::CsCluster(Ptr<CsNode> cluster) : m_clusterNode(cluster), m_n(0), m_m(
 }
 
 CsCluster::CsCluster(Ptr<CsNode> cluster, const CsNodeContainer &srcNodes) : m_clusterNode(cluster), m_srcNodes(srcNodes),
-																			 m_n(0), m_m(0), m_l(0)
+																			 m_seed(1), m_n(0), m_m(0), m_l(0), m_isFrozen(false)
 {
 	uint32_t nNodes = 0, seed = DefaultSeedCreator(nNodes, GetClusterId());
 
@@ -41,9 +41,10 @@ CsCluster::CsCluster(Ptr<CsNode> cluster, const CsNodeContainer &srcNodes) : m_c
 	m_allNodes.Add(m_srcNodes);
 }
 
-void CsCluster::SetClusterNode(Ptr<CsNode> node)
+void CsCluster::SetClusterHead(Ptr<CsNode> node)
 {
 	NS_ASSERT_MSG(node, "Not a valid cluster node!"); //null pointer check
+	NS_ASSERT_MSG(!m_isFrozen, "Cluster is frozen!");
 	m_clusterNode = node;
 
 	SetGroupName("Cluster" + std::to_string(node->GetClusterId()));
@@ -52,7 +53,7 @@ void CsCluster::SetClusterNode(Ptr<CsNode> node)
 	m_allNodes.Add(m_srcNodes);
 }
 
-Ptr<CsNode> CsCluster::GetClusterNode() const
+Ptr<CsNode> CsCluster::GetClusterHead() const
 {
 	return m_clusterNode;
 }
@@ -60,6 +61,7 @@ Ptr<CsNode> CsCluster::GetClusterNode() const
 void CsCluster::AddSrc(Ptr<CsNode> node, SeedCreator seeder)
 {
 	NS_ASSERT_MSG(m_srcNodes.GetN() + 1 <= CsHeader::MAX_SRCNODES, "Too many aggregated source nodes!");
+	NS_ASSERT_MSG(!m_isFrozen, "Cluster is frozen!");
 
 	uint32_t seed;
 	if (seeder)
@@ -77,6 +79,7 @@ void CsCluster::AddSrc(Ptr<CsNode> node, SeedCreator seeder)
 
 void CsCluster::AddSrc(const CsNodeContainer &nodes, SeedCreator seeder)
 {
+	NS_ASSERT_MSG(!m_isFrozen, "Cluster is frozen!");
 	uint32_t nNodesBefore = m_srcNodes.GetN();
 	NS_ASSERT_MSG(nNodesBefore + nodes.GetN() <= CsHeader::MAX_SRCNODES, "Too many aggregated source nodes!");
 	m_srcNodes.Add(nodes);
@@ -152,15 +155,14 @@ ApplicationContainer CsCluster::GetApps() const
 
 uint32_t CsCluster::DefaultSeedCreator(uint32_t number, CsHeader::T_IdField id)
 {
-	//return number + 1 + id;
-	if (number == 0) 	//cluster
-		return 1 + id;
-	else 				//source
-		return CsHeader::MAX_CLUSTERNODES + id;
+	(void)number;
+	(void)id;
+	return CsClusterHeader::GetMaxClusters() + 1;
 }
 
 void CsCluster::SetCompression(uint32_t n, uint32_t m, uint32_t l)
 {
+	NS_ASSERT_MSG(!m_isFrozen, "Cluster is frozen!");
 	m_n = n;
 	m_m = m;
 	m_l = l;
@@ -194,9 +196,14 @@ uint32_t CsCluster::GetCompression(CsCluster::E_COMPR_DIMS dim) const
 	return ret;
 }
 
+void CsCluster::SetClusterSeed(uint32_t seed)
+{
+	m_seed = seed;
+}
+
 uint32_t CsCluster::GetClusterSeed() const
 {
-	return m_clusterNode->GetSeed();
+	return m_seed;
 }
 
 std::vector<uint32_t> CsCluster::GetSeeds() const
@@ -208,4 +215,14 @@ std::vector<uint32_t> CsCluster::GetSeeds() const
 		seeds.push_back((*it)->GetSeed());
 	}
 	return seeds;
+}
+
+void CsCluster::Freeze()
+{
+	m_isFrozen = true;
+}
+
+bool CsCluster::IsFrozen()
+{
+	return m_isFrozen;
 }
