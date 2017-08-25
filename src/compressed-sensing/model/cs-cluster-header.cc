@@ -188,7 +188,7 @@ uint32_t CsClusterHeader::GetSerializedSize() const
 {
 	uint32_t size = CsHeader::GetSerializedSize();
 
-	size += SRCINFO_LEN + sizeof(T_NcCountField) + m_ncInfoSize * sizeof(T_NcInfoFieldValue);
+	size += m_maxClusters * SRCINFO_LEN + sizeof(T_NcCountField) + m_ncInfoSize * sizeof(T_NcInfoFieldValue);
 
 	return size;
 }
