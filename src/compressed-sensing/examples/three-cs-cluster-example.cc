@@ -21,7 +21,7 @@
 #define CLUSTER_ID 0
 #define DEFAULT_TOL 1e-3
 
-#define TXPROB_MODIFIER 1.0
+#define TXPROB_MODIFIER 1.5
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -268,20 +268,6 @@ int main(int argc, char *argv[])
 		clusterHelper.SetSrcDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
 		clusterHelper.SetClusterDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
 	}
-
-
-	//create cluster 2
-	if (!noprecode)
-	{
-		double txProb = TXPROB_MODIFIER * l2 / (nSrcNodes * (1 - rateErr));
-		if (txProb <= 1 && txProb >= 0)
-			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
-	}
-	clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(l2+l1+l0));
-	clusterHelper.SetCompression(n, m, l2);
-	Ptr<CsCluster> cluster2 = clusterHelper.Create(CLUSTER_ID + 2, nSrcNodes, sourceData); // will remove streams from source data
-	ApplicationContainer clusterApps = cluster2->GetApps();
-
 	
 	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false)); // switch off nc for inner clusters
 	//create cluster 0
@@ -294,7 +280,7 @@ int main(int argc, char *argv[])
 	//NC
 	clusterHelper.SetCompression(n, m, l0);
 	Ptr<CsCluster> cluster0 = clusterHelper.Create(CLUSTER_ID, nSrcNodes, sourceData); // will remove streams from source data
-	clusterApps.Add(cluster0->GetApps());
+	ApplicationContainer clusterApps = cluster0->GetApps();
 	//create cluster 1
 	if (!noprecode)
 	{
@@ -305,6 +291,20 @@ int main(int argc, char *argv[])
 	clusterHelper.SetCompression(n, m, l1);
 	Ptr<CsCluster> cluster1 = clusterHelper.Create(CLUSTER_ID + 1, nSrcNodes, sourceData); // will remove streams from source data
 	clusterApps.Add(cluster1->GetApps());
+
+
+	//create cluster 2
+	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
+	if (!noprecode)
+	{
+		double txProb = TXPROB_MODIFIER * l2 / (nSrcNodes * (1 - rateErr));
+		if (txProb <= 1 && txProb >= 0)
+			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
+	}
+	clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(l2+l1+l0));
+	clusterHelper.SetCompression(n, m, l2);
+	Ptr<CsCluster> cluster2 = clusterHelper.Create(CLUSTER_ID + 2, nSrcNodes, sourceData); // will remove streams from source data
+	clusterApps.Add(cluster2->GetApps());
 
 	//add trace sources to apps
 	std::string confPath = "/NodeList/*/ApplicationList/0/$CsSrcApp/"; //for all nodes add a tx callback
