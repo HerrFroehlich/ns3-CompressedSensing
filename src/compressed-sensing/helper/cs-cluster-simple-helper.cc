@@ -54,7 +54,7 @@ void CsClusterSimpleHelper::SetNodeSeeder(CsCluster::SeedCreator seeder)
 	m_seeder = seeder;
 }
 
-CsCluster CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, DataStream<double> &stream)
+Ptr<CsCluster> CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, DataStream<double> &stream)
 {
 	NS_ASSERT_MSG(nSrc <= CsHeader::MAX_SRCNODES, "Too many source nodes!");
 	NS_ASSERT_MSG(nSrc < stream.GetN(), "Not enough stream buffers in this DataStream!");
@@ -64,7 +64,8 @@ CsCluster CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, D
 	clusterHead->SetClusterId(id);
 	CsNodeContainer srcNodes;
 	srcNodes.Create(CsNode::NodeType::SOURCE, nSrc);
-	CsCluster cluster(clusterHead, srcNodes);
+	Ptr<CsCluster> cluster = CreateObject<CsCluster>(clusterHead, srcNodes);
+	cluster->SetClusterSeed(id+1);
 	// srcNodes.CreateCluster(id, nSrc, m_seeder);
 
 	Ptr<SerialDataBuffer<double>> bufCluster = stream.GetBuffer(CsClusterHeader::CLUSTER_NODEID); //CLUSTER_NODEID=0
@@ -116,7 +117,7 @@ CsCluster CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, D
 	/*--------  Create Cluster Application  --------*/
 	Ptr<CsClusterApp> app = m_clusterAppFactory.Create<CsClusterApp>();
 	app->SetAttribute("nNodes", UintegerValue(nSrc + 1));
-	app->Setup(clusterHead, bufCluster);
+	app->Setup(cluster, bufCluster);
 	clusterHead->AddApplication(app);
 
 	/*--------  Create CsCluster  --------*/
@@ -124,7 +125,7 @@ CsCluster CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, D
 	app->GetAttribute("n", n);
 	app->GetAttribute("m", m);
 	app->GetAttribute("l", l);
-	cluster.SetCompression(n.Get(), m.Get(), l.Get());
+	cluster->SetCompression(n.Get(), m.Get(), l.Get());
 	return cluster;
 }
 

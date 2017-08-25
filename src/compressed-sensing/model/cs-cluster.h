@@ -65,7 +65,7 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	CsCluster(Ptr<CsNode> cluster, const CsNodeContainer &srcNodes);
 
 	/**
-	* \brief sets the cluster node
+	* \brief sets the cluster head node
 	*
 	* Also set the DataStreamContainer groupName to "Clusterx", where x is the cluster ID.
 	* Fails with an error if the cluster is frozen.
@@ -73,14 +73,14 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	* \param node pointer to cluster node
 	*
 	*/
-	void SetClusterNode(Ptr<CsNode> node);
+	void SetClusterHead(Ptr<CsNode> node);
 
 	/**
-	* \brief gets the cluster node
+	* \brief gets the cluster head node
 	*
 	* \return pointer to cluster node
 	*/
-	Ptr<CsNode> GetClusterNode() const;
+	Ptr<CsNode> GetClusterHead() const;
 
 	/**
 	* \brief Gets the cluster ID
@@ -202,14 +202,21 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	uint32_t GetCompression(E_COMPR_DIMS dim) const;
 
 	/**
-	* \brief gets the seed of the cluster node
+	* \brief sets the seed of the cluster head node used for spatial compression
 	*
-	* \return seed of the cluster node
+	* \param seed seed of the cluster head node used for spatial compression
+	*/
+	void SetClusterSeed(uint32_t seed);
+
+	/**
+	* \brief gets the seed of the cluster head node used for spatial compression
+	*
+	* \return seed of the cluster head node used for spatial compression
 	*/
 	uint32_t GetClusterSeed() const;
 
 	/**
-	* \brief gets seeds of all nodes
+	* \brief gets seeds of all nodes used for temporal compression
 	*
 	* \return vector with seeds of all nodes
 	*/
@@ -231,7 +238,8 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	/**
 	* \brief default seed creator function
   	*
-	* the seed simply equals the given number + id + 1	
+	* The default creator ignores number and id and simply returns the constant value of
+	* CsClusterHeader::GetMaxClusters() + 1
 	*
 	* \param number current node number	
 	* \param id cluster id
@@ -239,8 +247,10 @@ class CsCluster : public Object, public DataStreamContainer<double>
 	* \return seed to associate with node
 	*/
 	uint32_t DefaultSeedCreator(uint32_t number, CsHeader::T_IdField id);
+
 	Ptr<CsNode> m_clusterNode;
 	CsNodeContainer m_srcNodes, m_allNodes;
+	uint32_t m_seed; /**< seed of cluster head for spatial compression*/
 	uint32_t m_n, m_m, m_l;
 	bool m_isFrozen;
 };

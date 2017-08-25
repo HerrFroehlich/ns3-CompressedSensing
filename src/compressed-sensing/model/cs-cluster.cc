@@ -10,7 +10,7 @@ TypeId CsCluster::GetTypeId()
 	return tid;
 }
 
-CsCluster::CsCluster(Ptr<CsNode> cluster) : m_clusterNode(cluster), m_n(0), m_m(0), m_l(0), m_isFrozen(false)
+CsCluster::CsCluster(Ptr<CsNode> cluster) : m_clusterNode(cluster), m_seed(1), m_n(0), m_m(0), m_l(0), m_isFrozen(false)
 {
 	uint32_t seed = DefaultSeedCreator(0, GetClusterId());
 
@@ -21,7 +21,7 @@ CsCluster::CsCluster(Ptr<CsNode> cluster) : m_clusterNode(cluster), m_n(0), m_m(
 }
 
 CsCluster::CsCluster(Ptr<CsNode> cluster, const CsNodeContainer &srcNodes) : m_clusterNode(cluster), m_srcNodes(srcNodes),
-																			 m_n(0), m_m(0), m_l(0), m_isFrozen(false)
+																			 m_seed(1), m_n(0), m_m(0), m_l(0), m_isFrozen(false)
 {
 	uint32_t nNodes = 0, seed = DefaultSeedCreator(nNodes, GetClusterId());
 
@@ -41,7 +41,7 @@ CsCluster::CsCluster(Ptr<CsNode> cluster, const CsNodeContainer &srcNodes) : m_c
 	m_allNodes.Add(m_srcNodes);
 }
 
-void CsCluster::SetClusterNode(Ptr<CsNode> node)
+void CsCluster::SetClusterHead(Ptr<CsNode> node)
 {
 	NS_ASSERT_MSG(node, "Not a valid cluster node!"); //null pointer check
 	NS_ASSERT_MSG(!m_isFrozen, "Cluster is frozen!");
@@ -53,7 +53,7 @@ void CsCluster::SetClusterNode(Ptr<CsNode> node)
 	m_allNodes.Add(m_srcNodes);
 }
 
-Ptr<CsNode> CsCluster::GetClusterNode() const
+Ptr<CsNode> CsCluster::GetClusterHead() const
 {
 	return m_clusterNode;
 }
@@ -155,11 +155,9 @@ ApplicationContainer CsCluster::GetApps() const
 
 uint32_t CsCluster::DefaultSeedCreator(uint32_t number, CsHeader::T_IdField id)
 {
-	//return number + 1 + id;
-	if (number == 0) 	//cluster
-		return 1 + id;
-	else 				//source
-		return CsClusterHeader::GetMaxClusters() + id + 1;
+	(void)number;
+	(void)id;
+	return CsClusterHeader::GetMaxClusters() + 1;
 }
 
 void CsCluster::SetCompression(uint32_t n, uint32_t m, uint32_t l)
@@ -198,9 +196,14 @@ uint32_t CsCluster::GetCompression(CsCluster::E_COMPR_DIMS dim) const
 	return ret;
 }
 
+void CsCluster::SetClusterSeed(uint32_t seed)
+{
+	m_seed = seed;
+}
+
 uint32_t CsCluster::GetClusterSeed() const
 {
-	return m_clusterNode->GetSeed();
+	return m_seed;
 }
 
 std::vector<uint32_t> CsCluster::GetSeeds() const

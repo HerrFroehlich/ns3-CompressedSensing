@@ -60,6 +60,7 @@ class CsSrcApp : public Application
 	* \brief setups the application to send packets with data from a file.
 	*
 	* This function has to be called BEFORE starting the application. 
+	* Uses the compression dimensions and the seed from the node given.
 	*
 	* \param node CsNode to aggregate application to
 	* \param input SerialDataBuffer<double> with input data for the node
@@ -107,10 +108,9 @@ class CsSrcApp : public Application
 	* \brief sets the seed used for generating the random sensing matrix
 	*
 	* \param seed seed to use
-	* \param norm normalize random matrix by 1/sqrt(m)?
 	*
 	*/
-	// void SetSeed(uint32_t seed, bool norm = false);
+	void SetSeed(uint32_t seed);
 
 	/**
 	* \brief sets the transmission probability for sending
@@ -125,7 +125,6 @@ class CsSrcApp : public Application
 	virtual void StopApplication();
 
   protected:
-
 	/**
 	* \brief create new packets with a CsHeader and payload and broadcasts them
 	*
@@ -196,8 +195,7 @@ class CsSrcApp : public Application
 	CsHeader::T_IdField m_nodeId, m_clusterId;
 	CsHeader::T_SeqField m_nextSeq; /**< next sequence!*/
 
-	uint32_t m_seed,	/**< seed used for generating the random sensing matrix*/
-		m_n,			/**< length of an original measurement vector*/
+	uint32_t m_n,		/**< length of an original measurement vector*/
 		m_m,			/**< length of compressed measurment vector*/
 		m_sent;			/**< NOF packets already sent*/
 	Ptr<CsNode> m_node; /**< aggretated node*/
@@ -232,6 +230,7 @@ class CsSrcApp : public Application
 
 	double m_txProb; /**< propability to send a packet*/
 
+	uint32_t m_seed; /**< seed used for generating the temporal random sensing matrix*/
 	bool m_running,
 		m_isSetup;
 

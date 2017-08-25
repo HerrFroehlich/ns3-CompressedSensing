@@ -65,8 +65,8 @@ CsSrcApp::GetTypeId(void)
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
 CsSrcApp::CsSrcApp() : m_yTemp(0), m_nodeId(0), m_clusterId(0),
-					   m_nextSeq(0), m_seed(1), m_n(0), m_m(0),
-					   m_sent(0), m_running(false), m_isSetup(false),
+					   m_nextSeq(0), m_n(0), m_m(0), m_sent(0),
+					   m_seed(1), m_running(false), m_isSetup(false),
 					   m_sendEvent(EventId()), m_schedEvent(EventId()),
 					   m_measEvent(EventId())
 
@@ -77,8 +77,8 @@ CsSrcApp::CsSrcApp() : m_yTemp(0), m_nodeId(0), m_clusterId(0),
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
 CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yTemp(m), m_nodeId(0), m_clusterId(0),
-											 m_nextSeq(0), m_seed(1), m_n(n), m_m(m),
-											 m_sent(0), m_running(false), m_isSetup(false),
+											 m_nextSeq(0), m_n(n), m_m(m), m_sent(0),
+											 m_seed(1), m_running(false), m_isSetup(false),
 											 m_sendEvent(EventId()), m_schedEvent(EventId()),
 											 m_measEvent(EventId())
 {
@@ -148,7 +148,19 @@ void CsSrcApp::SetTempCompressDim(uint32_t n, uint32_t m)
 
 	// m_yTemp.Resize(m);
 
-	if (!m_compTemp)
+	if (m_compTemp)
+		m_compTemp->Setup(m_seed, m_n, m_m);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void CsSrcApp::SetSeed(uint32_t seed)
+{
+	NS_LOG_FUNCTION(this << seed);
+
+	m_seed = seed;
+	
+	if (m_compTemp)
 		m_compTemp->Setup(m_seed, m_n, m_m);
 }
 

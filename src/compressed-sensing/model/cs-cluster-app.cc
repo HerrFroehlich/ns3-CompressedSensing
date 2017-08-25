@@ -19,7 +19,7 @@ CsClusterApp::GetTypeId(void)
 							.AddConstructor<CsClusterApp>()
 							.AddAttribute("TimeOut",
 										  "The time to wait for new source data",
-										  TimeValue(Seconds(1)),
+										  TimeValue(MilliSeconds(100)),
 										  MakeTimeAccessor(&CsClusterApp::m_timeout),
 										  MakeTimeChecker(Seconds(0)))
 							.AddAttribute("ComprSpat", "Spatial Compressor",
@@ -35,9 +35,13 @@ CsClusterApp::GetTypeId(void)
 										  MakeUintegerAccessor(&CsClusterApp::m_nNodes),
 										  MakeUintegerChecker<uint32_t>())
 							.AddAttribute("NcInterval", "Network coding interval",
-										  TimeValue(MilliSeconds(100)),
+										  TimeValue(MilliSeconds(200)),
 										  MakeTimeAccessor(&CsClusterApp::m_ncInterval),
 										  MakeTimeChecker(Seconds(0)))
+							.AddAttribute("NcIntervalDelay", "Initial Network coding interval delay",
+										  TimeValue(MilliSeconds(10)),
+										  MakeTimeAccessor(&CsClusterApp::m_ncIntervalDelay),
+										  MakeTimeChecker())
 							.AddAttribute("NcEnable", "Enable Network coding?",
 										  BooleanValue(true),
 										  MakeBooleanAccessor(&CsClusterApp::m_ncEnable),
@@ -47,7 +51,7 @@ CsClusterApp::GetTypeId(void)
 										  MakeUintegerAccessor(&CsClusterApp::m_ncMaxRecomb),
 										  MakeUintegerChecker<uint32_t>())
 							.AddAttribute("NcPktPerLink", "Network coding: NOF coded packet per link at each interval",
-										  UintegerValue(64),
+										  UintegerValue(1),
 										  MakeUintegerAccessor(&CsClusterApp::m_ncPktPLink),
 										  MakeUintegerChecker<uint32_t>())
 							.AddAttribute("NcRan", "The random variable attached to get the NC coefficients",
@@ -93,24 +97,17 @@ CsClusterApp::CsClusterApp(uint32_t n, uint32_t m, uint32_t l) : CsSrcApp(n, m),
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-void CsClusterApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
+void CsClusterApp::Setup(const Ptr<CsCluster> cluster, Ptr<SerialDataBuffer<double>> input)
 {
-	NS_LOG_FUNCTION(this << node << input);
-	NS_ASSERT_MSG(node->IsCluster(), "Must be a cluster node!");
+	NS_LOG_FUNCTION(this << cluster << input);
 	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
 	/*--------  initialize temporal compressor  --------*/
-	CsSrcApp::Setup(node, input);
-
-	/*--------  Setup receiving netdevices  --------*/
-	NetDeviceContainer devices = node->GetRxDevices();
-	for (auto it = devices.Begin(); it != devices.End(); it++)
-	{
-		(*it)->SetReceiveCallback(MakeCallback(&CsClusterApp::Receive, this));
-	}
+	CsSrcApp::Setup(cluster->GetClusterHead(), input);
 
 	/*--------  Setup buffers and compressor  --------*/
 	m_srcDataBuffer.Resize(m_nNodes, m_m);
 
+	m_seed = cluster->GetClusterSeed();
 	if (!m_comp)
 		m_comp = CreateObject<Compressor>();
 	m_comp->Setup(m_seed, m_nNodes, m_l, m_m);
@@ -163,10 +160,18 @@ void CsClusterApp::StartApplication()
 	NS_LOG_FUNCTION(this);
 
 	NS_ASSERT_MSG(m_isSetup, "Run Setup first!");
+
+	/*--------  Setup receiving netdevices  --------*/
+	NetDeviceContainer devices = m_node->GetRxDevices();
+	for (auto it = devices.Begin(); it != devices.End(); it++)
+	{
+		(*it)->SetReceiveCallback(MakeCallback(&CsClusterApp::Receive, this));
+	}
+
 	CsSrcApp::StartApplication(); //start measurement cycle
 	m_running = true;
 	if (m_ncEnable)
-		m_ncEvent = Simulator::Schedule(m_ncInterval, &CsClusterApp::RLNetworkCoding, this, m_ncInterval);
+		m_ncEvent = Simulator::Schedule(m_ncInterval+m_ncIntervalDelay, &CsClusterApp::RLNetworkCoding, this, m_ncInterval);
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -336,10 +341,6 @@ bool CsClusterApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idU
 	//call receive trace
 	m_rxTrace(p);
 
-	//cancel old time out event and start a new
-	Simulator::Cancel(m_timeoutEvent);
-	m_timeoutEvent = Simulator::Schedule(m_timeout, &CsClusterApp::StartNewSeq, this, m_nextSeq + 1);
-
 	CsHeader header;
 	CsHeader::T_IdField nodeId,
 		clusterId;
@@ -363,6 +364,9 @@ bool CsClusterApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idU
 bool CsClusterApp::ReceiveSrc(const Ptr<const Packet> packet)
 {
 	NS_LOG_FUNCTION(this << packet);
+	//cancel old time out event and start a new
+	Simulator::Cancel(m_timeoutEvent);
+	m_timeoutEvent = Simulator::Schedule(m_timeout, &CsClusterApp::StartNewSeq, this, m_nextSeq + 1);
 
 	CsHeader header;
 	CsHeader::T_IdField nodeId;
@@ -475,7 +479,7 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 		if (h.GetNcCount() > ncCountMax) // set ncCount to maximum of all packets
 			ncCountMax = h.GetNcCount();
 
-		for (CsHeader::T_IdField id = 0; id < CsClusterHeader::GetMaxClusters(); id++)//preserving SrcInfo
+		for (CsHeader::T_IdField id = 0; id < CsClusterHeader::GetMaxClusters(); id++) //preserving SrcInfo
 		{
 			if (h.IsSrcInfoSet(id))
 			{

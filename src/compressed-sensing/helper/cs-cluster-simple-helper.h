@@ -144,7 +144,7 @@
 	/**
 	* \brief creates the cluster with the selected attributes
 	*
-	* The source nodes will have an ID from (1...n+1). 
+	* The cluster head seeded used for spatial compression is simply set to the value of id+1. 
 	* Seeds are selected from a the default seed function of CsNodeContainer or by an optional function set by SetNodeSeeder;
 	* The SerialDataBuffer in the DataStream at index 0 will be used for the cluster node, the one at 1 for the first source node
 	* and so on. The used SerialDataBuffer instances are removed from the DataStream!
@@ -156,7 +156,7 @@
 	*
 	* \return created CsCluster
 	*/
-	CsCluster Create(CsHeader::T_IdField id, uint32_t n, DataStream<double> &stream);
+	Ptr<CsCluster> Create(CsHeader::T_IdField id, uint32_t n, DataStream<double> &stream);
 
 	/**
 	* \brief sets the channel delay for the created MySimpleChannels to be random with a mean and variance

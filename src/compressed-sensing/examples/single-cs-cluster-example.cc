@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
 			 ks = DEFAULT_K;
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
 		   rateErr = 0.0,
-		   tol = 0.0;
+		   tol = DEFAULT_TOL;
 	bool seq = false,
 		 noprecode = false,
 		 bpSpat = false,
@@ -167,6 +167,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("tol", "Tolerance for solvers", tol);
 	cmd.AddValue("verbose", "Verbose Mode", verbose);
 	cmd.AddValue("MATsrc", "name of the matrix in the mat file containing the data for the source nodes", srcMatrixName);
+	cmd.AddValue("MATfile", "name of the Matlab file", matFilePath);
 
 	cmd.Parse(argc, argv);
 
@@ -246,13 +247,14 @@ int main(int argc, char *argv[])
 
 	if (!noprecode)
 	{
-		double txProb = TXPROB_MODIFIER * l / (nSrcNodes * (1 - rateErr));
+		double txProb = TXPROB_MODIFIER * (l-1) / (nSrcNodes * (1 - rateErr));
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
 
 	//disable network coding
 	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
+	//clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(l));
 
 	//spatial compressor
 	Ptr<Compressor> comp = CreateObject<Compressor>();
@@ -271,8 +273,8 @@ int main(int argc, char *argv[])
 	}
 
 	//create
-	CsCluster cluster = clusterHelper.Create(CLUSTER_ID, nSrcNodes, sourceData);
-	ApplicationContainer clusterApps = cluster.GetApps();
+	Ptr<CsCluster> cluster = clusterHelper.Create(CLUSTER_ID, nSrcNodes, sourceData);
+	ApplicationContainer clusterApps = cluster->GetApps();
 
 	//add trace sources to apps
 	std::string confPath = "/NodeList/*/ApplicationList/0/$CsSrcApp/"; //for all nodes add a tx callback
@@ -298,7 +300,7 @@ int main(int argc, char *argv[])
 	// channel->Add(devB);
 
 	Ptr<CsNode>
-		clusterNode = cluster.GetClusterNode();
+		clusterNode = cluster->GetClusterHead();
 	clusterNode->AddTxDevice(devA);
 	sink->AddDevice(devB);
 
@@ -364,7 +366,7 @@ int main(int argc, char *argv[])
 		sinkApp->SetAttribute("MinPackets", UintegerValue(0));
 
 	sinkApp->TraceConnectWithoutContext("Rx", MakeCallback(&receiveCb));
-	sinkApp->AddCluster(&cluster);
+	sinkApp->AddCluster(cluster);
 	sinkApp->Setup(sink);
 	//setting calbacks
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/RecComplete", MakeCallback(&spatRecCb));
@@ -384,14 +386,14 @@ int main(int argc, char *argv[])
 	/*********  Writing output **********/
 	if (calcSnr) // remove in/output streams of the cluster head/ source nodes to write less
 	{
-		for (auto it = cluster.Begin(); it != cluster.End(); it++)
+		for (auto it = cluster->Begin(); it != cluster->End(); it++)
 		{
 			(*it)->RmStreamByName(CsNode::STREAMNAME_UNCOMPR);
 			(*it)->RmStreamByName(CsNode::STREAMNAME_COMPR);
 		}
 	}
 
-	matHandler_glob.WriteCluster(cluster);
+	matHandler_glob.WriteCluster(*cluster);
 	matHandler_glob.WriteValue<double>("nNodesUsed", nSrcNodes + 1);
 	matHandler_glob.WriteValue<double>("n", n);
 	matHandler_glob.WriteValue<double>("m", m);

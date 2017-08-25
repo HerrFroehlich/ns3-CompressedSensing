@@ -88,7 +88,7 @@ void CsSinkApp::AddCluster(Ptr<CsCluster> cluster)
 
 	m_reconst->AddCluster(cluster);
 
-	Ptr<CsNode> clusterNode = cluster->GetClusterNode();
+	Ptr<CsNode> clusterNode = cluster->GetClusterHead();
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -189,7 +189,7 @@ bool CsSinkApp::BufferPacketData(Ptr<const Packet> packet)
 			{
 				precode.push_back(bitset[i]);
 			}
-			m_reconst->SetPrecodeEntries(header.GetClusterId(), precode);
+			m_reconst->SetPrecodeEntries(id, precode);
 		}
 	}
 	return true;

@@ -13,6 +13,7 @@
 #include "ns3/mat-buffer.h"
 #include "ns3/node-data-buffer-meta.h"
 #include "cs-cluster-header.h"
+#include "cs-cluster.h"
 
 /**
 * \ingroup csApps
@@ -56,12 +57,13 @@ public:
 	* \brief setups the application
   *
 	* MUST be called before starting the application
-	*
-	* \param node Csnode to aggregate application to
+  * Uses the compressions dimensions spatially and temporally setup for the cluster head.
+  *
+	* \param cluster CsCluster to aggregate application to
 	* \param input SerialDataBuffer<double> with input data for the node
 	*
 	*/
-  virtual void Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input);
+  virtual void Setup(const Ptr<CsCluster> cluster, Ptr<SerialDataBuffer<double>> input);
 
   /**
 	* \brief sets the used spatial compressor
@@ -87,7 +89,6 @@ public:
 	*/
   void SetSpatialCompressDim(uint32_t nNodes, uint32_t l);
 
-
   //inherited from Application
   virtual void StartApplication();
   virtual void StopApplication();
@@ -100,7 +101,6 @@ protected:
   virtual uint32_t GetMaxPayloadSize();
 
 private:
-
   /**
   * \brief compresses the next Z spatially 
   *
@@ -119,8 +119,8 @@ private:
   * Else the packets are scheduled for broadcast.
   *
 	*/
- void CreateCsClusterPackets();
- 
+  void CreateCsClusterPackets();
+
   /**
   * \brief merge this clusters data with the data from others using RLNC
   *
@@ -182,7 +182,8 @@ private:
 
   //Spatial compression
   uint32_t m_l,                                                       /**< NOF of spatial and temporal compressed vectors*/
-      m_nNodes;                                                       /**< NOF nodes in Cluster*/
+      m_nNodes,                                                       /**< NOF nodes in Cluster*/
+      m_seed;                                                         /**< seed used for generating the temporal random sensing matrix*/
   CsHeader::T_SeqField m_nextPackSeq;                                 /**< sequence number of next packet*/
   Ptr<Compressor> m_comp;                                             /**<spatial compressor*/
   MatBuffer<T_PktData> m_zData;                                       /**< buffer containg spatially compressed data*/
@@ -194,7 +195,8 @@ private:
   std::vector<Ptr<Packet>> m_ncPktBuffer; /**< packet buffer for network coding*/
   uint32_t m_ncMaxRecomb,                 /**< maximum network coding recombinations*/
       m_ncPktPLink;                       /**< NOF packets per link at each interval*/
-  Time m_ncInterval;                      /**< network coding interval*/
+  Time m_ncInterval,                      /**< network coding interval*/
+      m_ncIntervalDelay;                  /**< Initial delay of network coding interval*/
   EventId m_ncEvent;                      /**< event for doing network coding*/
   bool m_ncEnable;                        /**< Enable network coding?*/
 
