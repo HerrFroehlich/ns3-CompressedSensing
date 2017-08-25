@@ -60,12 +60,25 @@ class RecMatrix : public Object
 * This includes the spatial compressed data \f$Z_k\f$ and as well the spatially reconstructed data \f$Y_k\f$.
 * Every \f$Z_k\f$ is written row by row. The buffer and the reconstruction dimensions are gathered from the 
 * data stored in each CsCluster instance.
-* With help of a random sensing matrix \f$\Phi_k\f$ (RandomMatrix), which is drawn from a cluster node's seed, an optional spatial
-* transformation matrix \f$\Psi^{S}\f$ (TransMatrix), which can be either real or complex, and a spatial precoding matrix \f$B_k\f$
-* (SpatialPrecodingMatrix) \f$Y_k\f$ is reconstructed by solving with an CsAlgorithm :\n
-* \f$Z_k = A_k Y_k =\Phi_k B_k Y_k = \Phi_k B_k \Psi^{S} \Theta_k \f$ (FOR NOW SEPARETLY FOR EACH CLUSTER, LATER THEY WILL BE SOLVED JOINTLY (NC))\n
-* When using a transformation matrix \f$\Psi^{S}\f$ compressed sensing algorithms return the atom values \f$ \Theta_k \f$.
-* \f$Y_k\f$ is simply  calculated by \f$Y_k = \Psi^{S} \Theta_k\f$.
+* With help of a random sensing matrix \f$\Phi_k\f$ (RandomMatrix), which is drawn from a cluster head node's seed, an optional spatial
+* transformation matrix \f$\Psi^{S}\f$ (TransMatrix), and a spatial precoding matrix \f$B_k\f$
+* (SpatialPrecodingMatrix) each \f$Y_k\f$ is reconstructed jointly  by solving with an CsAlgorithm :\n
+* \f$U = \Omega\cdot Z  = \Omega\cdot A\cdot Y = \Omega\cdot A\cdot 
+* \begin{bmatrix}
+* 	Y_0\\
+* 	Y_1\\
+* 	\vdots\\
+* 	Y_k
+* \end{bmatrix}
+* =  \Omega\cdot
+* \begin{bmatrix}
+*    \Phi_{0}B_0 &0 &\cdots& 0\\  
+*    0 &\Phi_{1}B_1 &\cdots& 0\\
+*    \vdots& 0 & \ddots & 0\\
+*    0 & \cdots &0& \Phi_{k}B_k
+* \end{bmatrix} \cdot \Psi^S\Theta \f$ \n
+* When using a transformation matrix \f$\Psi^{S}\f$ compressed sensing algorithms return the atom values \f$ \Theta \f$.
+* \f$Y\f$ is simply  calculated by \f$Y_k = \Psi^{S} \Theta\f$.
 * From this the temporal compressed data \f$X_{jk}\f$ of each node \f$j\f$ in each cluster \f$k\f$ is restored by solving:\n
 * \f$X_{jk} = A_{jk} Y_{jk} =\Phi_{jk} Y_{jk} = \Phi_{jk} \Psi^{T} \Theta_{jk}\f$, where:\n
 * - \f$\Phi_{jk}\f$ is the random sensing matrix of the node, which is drawn from its seed\n
