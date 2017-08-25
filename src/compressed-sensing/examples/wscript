@@ -26,3 +26,6 @@ def build(bld):
 
     obj = bld.create_ns3_program('single-cs-cluster-example', ['compressed-sensing'])
     obj.source = 'single-cs-cluster-example.cc'
+
+    obj = bld.create_ns3_program('three-cs-cluster-example', ['compressed-sensing'])
+    obj.source = 'three-cs-cluster-example.cc'
