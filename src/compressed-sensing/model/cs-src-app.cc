@@ -24,7 +24,7 @@ CsSrcApp::GetTypeId(void)
 							.AddConstructor<CsSrcApp>()
 							.AddAttribute("PktInterval",
 										  "The time to wait between packets",
-										  TimeValue(MilliSeconds(1)),
+										  TimeValue(MilliSeconds(0)),
 										  MakeTimeAccessor(&CsSrcApp::m_pktInterval),
 										  MakeTimeChecker(Seconds(0)))
 							.AddAttribute("MeasInterval",
@@ -138,34 +138,6 @@ Ptr<CompressorTemp> CsSrcApp::GetTempCompressor() const
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-void CsSrcApp::SetTempCompressDim(uint32_t n, uint32_t m)
-{
-	NS_LOG_FUNCTION(this << n << m);
-	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
-
-	m_n = n;
-	m_m = m;
-
-	// m_yTemp.Resize(m);
-
-	if (m_compTemp)
-		m_compTemp->Setup(m_seed, m_n, m_m);
-}
-
-/*-----------------------------------------------------------------------------------------------------------------------*/
-
-void CsSrcApp::SetSeed(uint32_t seed)
-{
-	NS_LOG_FUNCTION(this << seed);
-
-	m_seed = seed;
-	
-	if (m_compTemp)
-		m_compTemp->Setup(m_seed, m_n, m_m);
-}
-
-/*-----------------------------------------------------------------------------------------------------------------------*/
-
 void CsSrcApp::SetTxProb(double p)
 {
 	NS_LOG_FUNCTION(this << p);
@@ -263,6 +235,13 @@ void CsSrcApp::CreateCsPackets()
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
+void CsSrcApp::Send(Ptr<Packet> pkt, Ptr<NetDevice> device) const
+{
+	device->Send(pkt, Address(), 0);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 void CsSrcApp::WriteBcPacketList(Ptr<Packet> pkt)
 {
 	NS_LOG_FUNCTION(this);
@@ -294,7 +273,7 @@ void CsSrcApp::WriteBcPacketList(const std::vector<Ptr<Packet>> &pktList)
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-uint32_t CsSrcApp::GetMaxPayloadSizeByte()
+uint32_t CsSrcApp::GetMaxPayloadSizeByte() const
 {
 	NS_LOG_FUNCTION(this);
 
@@ -303,7 +282,7 @@ uint32_t CsSrcApp::GetMaxPayloadSizeByte()
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-uint32_t CsSrcApp::GetMaxPayloadSize()
+uint32_t CsSrcApp::GetMaxPayloadSize() const
 {
 	NS_LOG_FUNCTION(this);
 
@@ -312,14 +291,14 @@ uint32_t CsSrcApp::GetMaxPayloadSize()
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-bool CsSrcApp::HasBcPackets()
+bool CsSrcApp::HasBcPackets() const
 {
 	return !m_bcPackets.empty();
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-bool CsSrcApp::IsBroadcasting()
+bool CsSrcApp::IsBroadcasting() const
 {
 	return m_sendEvent.IsRunning();
 }
@@ -336,7 +315,7 @@ void CsSrcApp::Broadcast(Ptr<Packet> p)
 	NetDeviceContainer devices = m_node->GetTxDevices();
 	for (auto it = devices.Begin(); it != devices.End(); it++)
 	{
-		(*it)->Send(p, Address(), 0);
+		Send(p, *it);
 	}
 
 	// new tx?
@@ -345,6 +324,13 @@ void CsSrcApp::Broadcast(Ptr<Packet> p)
 	{
 		ScheduleBc(m_pktInterval);
 	}
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+Time CsSrcApp::GetPktInterval() const
+{
+	return m_pktInterval;
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/

@@ -97,22 +97,6 @@ class CsSrcApp : public Application
 	// void SetTempCompressor(Ptr<CompressorTemp> comp, uint32_t n, uint32_t m, bool norm = false);
 
 	/**
-	* \brief sets the compression given by n and m
-	*
-	* \param n length of original measurement vector
-	* \param m length of compressed vector
-	*/
-	void SetTempCompressDim(uint32_t n, uint32_t m);
-
-	/**
-	* \brief sets the seed used for generating the random sensing matrix
-	*
-	* \param seed seed to use
-	*
-	*/
-	void SetSeed(uint32_t seed);
-
-	/**
 	* \brief sets the transmission probability for sending
 	*
 	* \param p probability to send
@@ -126,10 +110,21 @@ class CsSrcApp : public Application
 
   protected:
 	/**
-	* \brief create new packets with a CsHeader and payload and broadcasts them
+	* \brief create new packets from temporally compressed data with a CsHeader and payload and broadcasts them
 	*
 	*/
 	virtual void CreateCsPackets();
+
+	/**
+	* \brief sends a packet via a netdevice
+	*
+	* Sends without an valid address.
+	*
+	* \param pkt packet to send
+	* \param device NetDevice which shall send the packet
+	*
+	*/
+	void Send(Ptr<Packet> pkt, Ptr<NetDevice> device) const;
 
 	/**
 	* \brief writes a packet to the broadcast packet list (FIFO)
@@ -158,7 +153,7 @@ class CsSrcApp : public Application
 	*
 	* \return calculated packetSize
 	*/
-	virtual uint32_t GetMaxPayloadSizeByte();
+	virtual uint32_t GetMaxPayloadSizeByte() const;
 
 	/**
 	* \brief gets the maximum payload size as NOF values of type T_PktData
@@ -167,14 +162,21 @@ class CsSrcApp : public Application
 	*
 	* \return calculated packetSize
 	*/
-	virtual uint32_t GetMaxPayloadSize();
+	virtual uint32_t GetMaxPayloadSize() const;
+
+	/**
+	* \brief gets the packet interval time
+	*
+	* \return packet interval time
+	*/
+	Time GetPktInterval() const;
 
 	/**
 	* \brief checks if has queued packets
 	*	
 	* \return true if there are packets queued
 	*/
-	bool HasBcPackets();
+	bool HasBcPackets() const;
 
 	/**
 	* \brief schedules a transmit event for the simulator, broadcasting over all tx devices
@@ -189,7 +191,7 @@ class CsSrcApp : public Application
 	*
 	* \return true when packets are send
 	*/
-	bool IsBroadcasting();
+	bool IsBroadcasting() const;
 
 	SerialDataBuffer<double> m_yTemp; /**< buffers for temporal compressed real meas. vector */
 	CsHeader::T_IdField m_nodeId, m_clusterId;
