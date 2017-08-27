@@ -11,17 +11,9 @@ CsClusterSimpleHelper::CsClusterSimpleHelper() : m_ranDelay(false), m_ranRate(fa
 	m_clusterAppFactory.SetTypeId("CsClusterApp");
 }
 
-void CsClusterSimpleHelper::SetQueue(std::string type,
-									 std::string n1, const AttributeValue &v1,
-									 std::string n2, const AttributeValue &v2,
-									 std::string n3, const AttributeValue &v3,
-									 std::string n4, const AttributeValue &v4)
+void CsClusterSimpleHelper::SetQueueAttribute(std::string n1, const AttributeValue &v1)
 {
-	m_queueFactory.SetTypeId(type);
 	m_queueFactory.Set(n1, v1);
-	m_queueFactory.Set(n2, v2);
-	m_queueFactory.Set(n3, v3);
-	m_queueFactory.Set(n4, v4);
 }
 
 void CsClusterSimpleHelper::SetSrcDeviceAttribute(std::string n1, const AttributeValue &v1)
@@ -54,23 +46,23 @@ void CsClusterSimpleHelper::SetNodeSeeder(CsCluster::SeedCreator seeder)
 	m_seeder = seeder;
 }
 
-Ptr<CsCluster> CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nSrc, DataStream<double> &stream)
+Ptr<CsCluster> CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nNodes, DataStream<double> &stream)
 {
-	NS_ASSERT_MSG(nSrc <= CsHeader::MAX_SRCNODES, "Too many source nodes!");
-	NS_ASSERT_MSG(nSrc < stream.GetN(), "Not enough stream buffers in this DataStream!");
+	NS_ASSERT_MSG(nNodes <= CsHeader::MAX_SRCNODES+1, "Too many source nodes!");
+	NS_ABORT_MSG_IF(nNodes > stream.GetN(), "Not enough stream buffers in this DataStream!");
 
 	/*--------  Create Nodes  --------*/
 	Ptr<CsNode> clusterHead = CreateObject<CsNode>(CsNode::NodeType::CLUSTER);
 	clusterHead->SetClusterId(id);
 	CsNodeContainer srcNodes;
-	srcNodes.Create(CsNode::NodeType::SOURCE, nSrc);
+	srcNodes.Create(CsNode::NodeType::SOURCE, nNodes-1);
 	Ptr<CsCluster> cluster = CreateObject<CsCluster>(clusterHead, srcNodes);
-	cluster->SetClusterSeed(id+1);
-	// srcNodes.CreateCluster(id, nSrc, m_seeder);
+	cluster->SetClusterSeed(id + 1);
+	// srcNodes.CreateCluster(id, nNodes, m_seeder);
 
 	Ptr<SerialDataBuffer<double>> bufCluster = stream.GetBuffer(CsClusterHeader::CLUSTER_NODEID); //CLUSTER_NODEID=0
 
-	for (uint32_t i = 0; i < nSrc; i++)
+	for (uint32_t i = 0; i < nNodes-1; i++)
 	{
 		Ptr<CsNode> src = srcNodes.Get(i);
 
@@ -116,7 +108,7 @@ Ptr<CsCluster> CsClusterSimpleHelper::Create(CsHeader::T_IdField id, uint32_t nS
 
 	/*--------  Create Cluster Application  --------*/
 	Ptr<CsClusterApp> app = m_clusterAppFactory.Create<CsClusterApp>();
-	app->SetAttribute("nNodes", UintegerValue(nSrc + 1));
+	app->SetAttribute("nNodes", UintegerValue(nNodes));
 	app->Setup(cluster, bufCluster);
 	clusterHead->AddApplication(app);
 
@@ -150,6 +142,7 @@ void CsClusterSimpleHelper::SetCompression(uint32_t n, uint32_t m, uint32_t l)
 	m_clusterAppFactory.Set("n", UintegerValue(n));
 	m_clusterAppFactory.Set("l", UintegerValue(l));
 	m_clusterAppFactory.Set("m", UintegerValue(m));
+	m_queueFactory.Set("MaxPackets", UintegerValue(l));
 }
 
 void CsClusterSimpleHelper::NormalizeToM()
