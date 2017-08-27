@@ -12,9 +12,9 @@
 #define CLUSTER_ID 0
 #define DEFAULT_TOL 1e-3
 
-#define RXPROB_MIN 0.2
+#define RXPROB_MIN 0.05
 #define RXPROB_MAX 1
-#define RXPROB_STEPS 8
+#define RXPROB_STEPS 38
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -121,6 +121,7 @@ int main(int argc, char *argv[])
 
 	//uint32_t nMeasSeq;
 	Col<double> meanSnr(RXPROB_STEPS);
+	Col<double> varSnr(RXPROB_STEPS);
 	for (uint32_t step = 0; step < RXPROB_STEPS; step++)
 	{
 		NS_LOG_INFO("STEP " << step);
@@ -149,8 +150,7 @@ int main(int argc, char *argv[])
 		clusterHelper.SetChannelAttribute("Delay", TimeValue(channelDelay));
 		clusterHelper.SetSrcDeviceAttribute("DataRate", DataRateValue(dataRate));
 		clusterHelper.SetClusterDeviceAttribute("DataRate", DataRateValue(dataRate));
-		double mu = RXPROB_MIN + step * (RXPROB_MAX - RXPROB_MIN) / RXPROB_STEPS;
-		double txProb = mu * (l - 1) / (nSrcNodes);
+		double txProb = RXPROB_MIN + (step+1) * (RXPROB_MAX - RXPROB_MIN) / RXPROB_STEPS;
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 
@@ -243,14 +243,19 @@ int main(int argc, char *argv[])
 		{
 			Ptr<SerialDataBuffer<double>> buf = (*it)->PeekBuffer(0);
 			double snr = buf->ReadNext();
-			double snrNew = (i++) * meanSnr(step) + snr;
-			snrNew /= i;
-			meanSnr(step) = snrNew;
+			double delta = snr - meanSnr(step);
+			double snrMean =  meanSnr(step) +  delta/++i;
+			meanSnr(step) = snrMean;
+
+			double delta2 = snr - snrMean;
+			varSnr(step) = delta * delta2;
 		}
+		varSnr(step) /= i;
 	}
 
 	/*********  Writing output **********/
 	matHandler_glob.WriteMat<double>("meanSnr", meanSnr);
+	matHandler_glob.WriteMat<double>("varSnr", varSnr);
 	matHandler_glob.WriteValue<double>("nNodesUsed", nSrcNodes + 1);
 	matHandler_glob.WriteValue<double>("n", n);
 	matHandler_glob.WriteValue<double>("m", m);
