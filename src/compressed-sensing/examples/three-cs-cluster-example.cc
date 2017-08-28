@@ -454,7 +454,7 @@ int main(int argc, char *argv[])
 	matHandler_glob.WriteCluster(*cluster0);
 	matHandler_glob.WriteCluster(*cluster1);
 	matHandler_glob.WriteCluster(*cluster2);
-	matHandler_glob.WriteValue<double>("nNodesUsed", nNodes + 1);
+	matHandler_glob.WriteValue<double>("nNodesUsed", nNodes);
 	matHandler_glob.WriteValue<double>("n", n);
 	matHandler_glob.WriteValue<double>("m", m);
 	matHandler_glob.WriteValue<double>("l0", l0);
