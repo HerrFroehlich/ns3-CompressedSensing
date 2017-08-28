@@ -401,6 +401,9 @@ int main(int argc, char *argv[])
 	matHandler_glob.WriteValue<double>("n", n);
 	matHandler_glob.WriteValue<double>("m", m);
 	matHandler_glob.WriteValue<double>("l", l);
+	matHandler_glob.WriteValue<bool>("precode", !noprecode);
+	matHandler_glob.WriteValue<double>("rateErr", rateErr);
+	matHandler_glob.WriteValue<double>("noiseVar", noiseVar);
 	matHandler_glob.WriteValue<double>("totalTimeTemp", tTemp_glob);
 	matHandler_glob.WriteValue<double>("totalTimeSpat", tSpat_glob);
 	matHandler_glob.WriteValue<double>("nErrorRec", nErrorRec_glob);
