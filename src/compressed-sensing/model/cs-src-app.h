@@ -28,13 +28,15 @@ using namespace ns3;
 * \ingroup csApps
 * \class CsSrcApp
 *
-* \brief A source app to compress data from a file temporally and transmitting it
+* \brief A source app to compress data from a SerialDataBuffer temporally and transmitting it
 *
-* When running the setup this application reads data from a file specified by a file path and stores it locally.\n
-* Upon starting the application the n data samples are compressed to m with the help of the Compressor class and a given seed.
-* Then packets are formed containing the CsHeader and m samples as payload (so package loss won't corrupt a data vector).
-* Finally the application transmits them using no protocol at all (-> assuming use of classes from the simple-network module) 
-* with a certain time gap between each packet.
+* BEFORE running the the application it has to be setup with a valid CsNode and an data input SerialDataBuffer instance. 
+* It is possible to add white gaussian noise (AWGN) to the input data artificially.
+* Upon starting the application during periodic measurment intervals n data samples are compressed to m with the help of the Compressor class and a given seed.
+* Then packets are formed containing a CsHeader and m samples as payload (so package loss won't corrupt a data vector).
+* At each measurment interval the sequence counter in the header is incremented.
+* Finally the application broadcast them using no transmission protocol at all (-> assuming use of classes from the simple-network module) 
+* with a certain time gap between each packet with a settable probability.
 */
 class CsSrcApp : public Application
 {
@@ -47,14 +49,6 @@ class CsSrcApp : public Application
 	* \brief create an CsSrcApp with default values
 	*/
 	CsSrcApp();
-
-	/**
-	* \brief create an CsSrcApp
-	*
-	* \param n length of original measurement vector
-	* \param m length of compressed vector
-	*/
-	CsSrcApp(uint32_t n, uint32_t m);
 
 	/**
 	* \brief setups the application to send packets with data from a file.
@@ -82,19 +76,6 @@ class CsSrcApp : public Application
 	* \return  pointer to compressor
 	*/
 	Ptr<CompressorTemp> GetTempCompressor() const;
-
-	/**
-	* \brief sets the used temporal compressor
-	*
-	*  It is setuped via the given seed and sizes
-	*
-	* \param comp  pointer to compressor
-	* \param seed seed to use
-	* \param n length of original measurement vector
-	* \param m length of compressed vector
-	* \param norm normalize random matrix by 1/sqrt(m)?
-	*/
-	// void SetTempCompressor(Ptr<CompressorTemp> comp, uint32_t n, uint32_t m, bool norm = false);
 
 	/**
 	* \brief sets the transmission probability for sending
@@ -193,15 +174,21 @@ class CsSrcApp : public Application
 	*/
 	bool IsBroadcasting() const;
 
-	SerialDataBuffer<double> m_yTemp; /**< buffers for temporal compressed real meas. vector */
-	CsHeader::T_IdField m_nodeId, m_clusterId;
-	CsHeader::T_SeqField m_nextSeq; /**< next sequence!*/
-
-	uint32_t m_n,		/**< length of an original measurement vector*/
-		m_m,			/**< length of compressed measurment vector*/
-		m_sent;			/**< NOF packets already sent*/
+	//internal
 	Ptr<CsNode> m_node; /**< aggretated node*/
-	TracedCallback<Ptr<const Packet>> m_txTrace;
+
+	//CS
+	SerialDataBuffer<double> m_yTemp; /**< buffers for temporal compressed real meas. vector */
+	uint32_t m_n,					  /**< length of an original measurement vector*/
+		m_m,						  /**< length of compressed measurment vector*/
+		m_sent;						  /**< NOF packets already sent*/
+
+	//Transmission
+	CsHeader::T_IdField m_nodeId, m_clusterId;
+	CsHeader::T_SeqField m_nextSeq; /**< next sequence number*/
+
+	//Traces
+	TracedCallback<Ptr<const Packet>> m_txTrace; /**< Trace when sending*/
 
   private:
 	/**
@@ -230,22 +217,39 @@ class CsSrcApp : public Application
 	*/
 	void Measure();
 
-	double m_txProb; /**< propability to send a packet*/
+	/**
+	* \brief Adds gaussian noise to double data in a buffer
+	*
+	* \param buffer pointer to buffer
+	* \param bufSize size of that buffer
+	*
+	*/
+	void AddAWGN(double *buffer, uint32_t bufSize);
 
-	uint32_t m_seed; /**< seed used for generating the temporal random sensing matrix*/
+	//internal
 	bool m_running,
 		m_isSetup;
 
-	Ptr<SerialDataBuffer<double>> m_fdata; /**< data from file*/
-	Ptr<CompressorTemp> m_compTemp;		   /**< compressor*/
-	Ptr<RandomVariableStream> m_ranTx;	 /**< random variable stream, to determine when to send*/
-	std::vector<Ptr<Packet>> m_bcPackets;  /**< packets to broadcast next*/
-	Ptr<DataStream<double>> m_streamY,	 /**< DataStream storing compression results*/
-		m_streamX;						   /**< DataStream storing original measurements*/
+	//CS
+	uint32_t m_seed;						 /**< seed used for generating the temporal random sensing matrix*/
+	Ptr<SerialDataBuffer<double>> m_fdata;   /**< data from file*/
+	Ptr<CompressorTemp> m_compTemp;			 /**< compressor*/
+	Ptr<DataStream<double>> m_streamY,		 /**< stream for compressed data*/
+		m_streamX;							 /**< stream for uncompressed data*/
+	double m_noiseVar;						 /**< variance of added noise*/
+	Ptr<NormalRandomVariable> m_noiseRanVar; /**< normal random variable used to generate artificial noise*/
 
+	//Transmission
+	double m_txProb;					  /**< propability to send a packet*/
+	Ptr<RandomVariableStream> m_ranTx;	/**< random variable stream, to determine when to send*/
+	std::vector<Ptr<Packet>> m_bcPackets; /**< packets to broadcast next*/
+
+	//Timing
 	Time m_pktInterval, /**< Packet inter-send time*/
 		m_measInterval; /**< Measurment sequence interval*/
 	EventId m_sendEvent, m_schedEvent, m_measEvent;
+
+	//Traces
 	TracedCallback<Ptr<const Packet>> m_dropTrace; /**< callback to call when sending/ packet is dropped*/
 };
 

@@ -40,14 +40,18 @@ CsSrcApp::GetTypeId(void)
 										  UintegerValue(128),
 										  MakeUintegerAccessor(&CsSrcApp::m_m),
 										  MakeUintegerChecker<uint32_t>())
-							.AddAttribute("TxProb", "Probability to send",
-										  DoubleValue(1.0),
-										  MakeDoubleAccessor(&CsSrcApp::m_txProb),
-										  MakeDoubleChecker<double>(0.0, 1.0))
 							.AddAttribute("ComprTemp", "Temporal Compressor",
 										  PointerValue(),
 										  MakePointerAccessor(&CsSrcApp::SetTempCompressor, &CsSrcApp::GetTempCompressor),
 										  MakePointerChecker<CompressorTemp>())
+							.AddAttribute("NoiseVar", "Variance of artificial noise",
+										  DoubleValue(0),
+										  MakeDoubleAccessor(&CsSrcApp::m_noiseVar),
+										  MakeDoubleChecker<double>(0.0))
+							.AddAttribute("TxProb", "Probability to send",
+										  DoubleValue(1.0),
+										  MakeDoubleAccessor(&CsSrcApp::m_txProb),
+										  MakeDoubleChecker<double>(0.0, 1.0))
 							.AddAttribute("RanTx", "The random variable attached to determine when to send.",
 										  TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
 										  StringValue("ns3::UniformRandomVariable[Min=0.0|Max=1.0]"),
@@ -64,25 +68,15 @@ CsSrcApp::GetTypeId(void)
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-CsSrcApp::CsSrcApp() : m_yTemp(0), m_nodeId(0), m_clusterId(0),
-					   m_nextSeq(0), m_n(0), m_m(0), m_sent(0),
-					   m_seed(1), m_running(false), m_isSetup(false),
+CsSrcApp::CsSrcApp() : m_yTemp(0), m_n(0), m_m(0), m_sent(0),
+					   m_nodeId(0), m_clusterId(0), m_nextSeq(0),
+					   m_running(false), m_isSetup(false), m_seed(1),
+					   m_noiseVar(0.0), m_noiseRanVar(CreateObject<NormalRandomVariable>()),
 					   m_sendEvent(EventId()), m_schedEvent(EventId()),
 					   m_measEvent(EventId())
 
 {
 	NS_LOG_FUNCTION(this);
-}
-
-/*-----------------------------------------------------------------------------------------------------------------------*/
-
-CsSrcApp::CsSrcApp(uint32_t n, uint32_t m) : m_yTemp(m), m_nodeId(0), m_clusterId(0),
-											 m_nextSeq(0), m_n(n), m_m(m), m_sent(0),
-											 m_seed(1), m_running(false), m_isSetup(false),
-											 m_sendEvent(EventId()), m_schedEvent(EventId()),
-											 m_measEvent(EventId())
-{
-	NS_LOG_FUNCTION(this << n << m);
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -153,6 +147,7 @@ void CsSrcApp::StartApplication()
 	NS_LOG_FUNCTION(this);
 
 	NS_ASSERT_MSG(m_isSetup, "Run Setup first!");
+	NS_ASSERT_MSG(!m_running, "Application already running!");
 	m_running = true;
 
 	Measure();
@@ -187,13 +182,14 @@ bool CsSrcApp::CompressNextTemp()
 	{
 		// NS_LOG_WARN("Not enough samples left in file, sending zeros!");
 		// std::fill(yData, yData + m_m, 0);
-		NS_LOG_INFO("Src Node" << int(m_nodeId) << " has no more samples to compress!");
+		NS_LOG_INFO("Src Node" << int(m_nodeId) << " in cluster " << int(m_clusterId) << " has no more samples to compress!");
 		return false;
 	}
 
-	double xData[m_n] = {0.0};
 	double *yData = new double[m_m];
+	double xData[m_n];
 	m_fdata->ReadNext(xData, m_n);
+	AddAWGN(xData, m_n);
 	m_compTemp->Compress(xData, m_n, yData, m_m);
 
 	// write to stream
@@ -364,3 +360,12 @@ void CsSrcApp::Measure()
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
+
+void CsSrcApp::AddAWGN(double *buffer, uint32_t bufSize)
+{
+	if(m_noiseVar > 0.0)
+	{
+		for (uint32_t i = 0; i < bufSize; i++)
+			buffer[i] += m_noiseRanVar->GetValue(0.0, m_noiseVar);
+	}
+}
