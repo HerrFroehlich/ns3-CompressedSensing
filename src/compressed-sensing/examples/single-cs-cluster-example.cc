@@ -136,7 +136,8 @@ int main(int argc, char *argv[])
 			 ks = DEFAULT_K;
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
 		   rateErr = 0.0,
-		   tol = DEFAULT_TOL;
+		   tol = DEFAULT_TOL,
+		   noiseVar = 0.0;
 	bool seq = false,
 		 noprecode = false,
 		 bpSpat = false,
@@ -160,6 +161,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
 	cmd.AddValue("nNodes", "NOF source nodes in topology", nNodes);
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
+	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
 	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
 	cmd.AddValue("seq", "Reconstruct sequentially for each received packet", seq);
 	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
@@ -167,7 +169,6 @@ int main(int argc, char *argv[])
 	cmd.AddValue("verbose", "Verbose Mode", verbose);
 	cmd.AddValue("MATfile", "path to the matlab file with extension", matFilePath);
 	cmd.AddValue("MATsrc", "name of the matrix in the mat file containing the data for the source nodes", srcMatrixName);
-	cmd.AddValue("MATfile", "name of the Matlab file", matFilePath);
 
 	cmd.Parse(argc, argv);
 
@@ -251,6 +252,9 @@ int main(int argc, char *argv[])
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
+
+	//noise
+	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
 
 	//disable network coding
 	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
