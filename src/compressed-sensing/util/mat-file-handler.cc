@@ -14,9 +14,13 @@ TypeId MatFileHandler::GetTypeId()
 	return tid;
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 MatFileHandler::MatFileHandler() : m_isOpen(false)
 {
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 MatFileHandler::~MatFileHandler()
 {
@@ -26,6 +30,8 @@ MatFileHandler::~MatFileHandler()
 	// if (m_matFile)
 	// 	delete m_matFile;
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 bool MatFileHandler::Open(std::string path)
 {
@@ -59,6 +65,8 @@ bool MatFileHandler::Open(std::string path)
 	return true;
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 void MatFileHandler::OpenNew(std::string path)
 {
 	//check if an other file was opened before
@@ -70,12 +78,16 @@ void MatFileHandler::OpenNew(std::string path)
 	m_isOpen = true;
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 void MatFileHandler::Close()
 {
 	if (m_isOpen)
 		Mat_Close(m_matFile);
 	m_isOpen = false;
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 template <>
 double MatFileHandler::ReadValue(std::string name) const
@@ -93,6 +105,8 @@ double MatFileHandler::ReadValue(std::string name) const
 	return *((double *)matvar->data);
 }
 template double MatFileHandler::ReadValue<double>(std::string) const;
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 template <>
 DataStream<double> MatFileHandler::ReadMat(std::string name) const
@@ -147,6 +161,32 @@ void MatFileHandler::WriteValue(std::string name, double value)
 }
 template void MatFileHandler::WriteValue<double>(std::string name, double);
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+template <>
+void MatFileHandler::WriteValue(std::string name, bool value)
+{
+	NS_ABORT_MSG_IF(!m_isOpen, "Open file first!");
+	//NS_ABORT_MSG_IF(!m_varInfoMap.count(name), "Variable with this name already exists!");
+	if (m_varInfoMap.count(name)) // overwrite existing
+	{
+		NS_LOG_WARN("Overwriting variable " + name);
+		Mat_VarDelete(m_matFile, name.c_str());
+	}
+
+	size_t dims[2] = {1, 1};
+	matvar_t *matvar = Mat_VarCreate(name.c_str(), MAT_C_UINT8, MAT_T_UINT8, 2, dims, &value, MAT_F_LOGICAL);
+
+	NS_ABORT_MSG_IF(!matvar, "Could not create variable!");
+	CreateInfo(name, matvar);
+
+	Mat_VarWrite(m_matFile, matvar, MAT_COMPRESSION);
+	Mat_VarFree(matvar);
+}
+template void MatFileHandler::WriteValue<bool>(std::string name, bool);
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 template <>
 void MatFileHandler::WriteMat(std::string name, const arma::Mat<double> &mat)
 {
@@ -169,6 +209,8 @@ void MatFileHandler::WriteMat(std::string name, const arma::Mat<double> &mat)
 	Mat_VarFree(matvar);
 }
 template void MatFileHandler::WriteMat<double>(std::string, const arma::Mat<double> &);
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 template <>
 void MatFileHandler::WriteMat(const DataStream<double> &stream)
@@ -206,6 +248,8 @@ void MatFileHandler::WriteMat(const DataStream<double> &stream)
 }
 template void MatFileHandler::WriteMat<double>(const DataStream<double> &);
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 template <>
 matvar_t *MatFileHandler::CreateStructMatField(Ptr<DataStream<double>> stream)
 {
@@ -235,6 +279,8 @@ matvar_t *MatFileHandler::CreateStructMatField(Ptr<DataStream<double>> stream)
 	return matvar;
 }
 template matvar_t *MatFileHandler::CreateStructMatField(Ptr<DataStream<double>>);
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 template <>
 void MatFileHandler::WriteStruct(const DataStreamContainer<double> &container)
@@ -281,6 +327,8 @@ void MatFileHandler::WriteStruct(const DataStreamContainer<double> &container)
 	Mat_VarFree(matvar);
 }
 template void MatFileHandler::WriteStruct<double>(const DataStreamContainer<double> &);
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 void MatFileHandler::WriteCluster(const CsCluster &cluster)
 {
@@ -372,6 +420,8 @@ void MatFileHandler::WriteCluster(const CsCluster &cluster)
 	Mat_VarFree(matvar);
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 std::vector<std::string> MatFileHandler::GetVarNames()
 {
 	std::vector<std::string> retval;
@@ -382,11 +432,15 @@ std::vector<std::string> MatFileHandler::GetVarNames()
 	return retval;
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 MatFileHandler::S_VAR_INFO MatFileHandler::GetVarInfo(std::string name)
 {
 	NS_ABORT_MSG_IF(!m_varInfoMap.count(name), "Variable with this name doesn't exists!");
 	return m_varInfoMap.at(name);
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 void MatFileHandler::CreateInfo(std::string name, const matvar_t *matvar)
 {
