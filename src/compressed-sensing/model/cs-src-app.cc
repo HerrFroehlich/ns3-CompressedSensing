@@ -189,12 +189,12 @@ bool CsSrcApp::CompressNextTemp()
 	double *yData = new double[m_m];
 	double xData[m_n];
 	m_fdata->ReadNext(xData, m_n);
+	m_streamX->CreateBuffer(xData, m_n);
 	AddAWGN(xData, m_n);
 	m_compTemp->Compress(xData, m_n, yData, m_m);
 
 	// write to stream
 	m_streamY->CreateBuffer(yData, m_m);
-	m_streamX->CreateBuffer(xData, m_n);
 
 	m_yTemp.MoveMem(yData, m_m);
 
