@@ -72,14 +72,15 @@ int main(int argc, char *argv[])
 {
 	/*********  Command line arguments  **********/
 
-	uint32_t nSrcNodes = DEFAULT_NOF_SRCNODES,
+	uint32_t nNodes = DEFAULT_NOF_SRCNODES,
 			 dataRate = DEFAULT_DRATE_BPS,
 			 n = DEFAULT_N,
 			 m = DEFAULT_M,
 			 l = DEFAULT_L,
 			 k = DEFAULT_K,
 			 ks = DEFAULT_K;
-	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS;
+	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
+		   noiseVar = 0.0;
 	std::string matFilePath = DEFAULT_FILE,
 				// matFilePathOut = DEFAULT_FILEOUT,
 		srcMatrixName = DEFAULT_SRCMAT_NAME;
@@ -94,7 +95,8 @@ int main(int argc, char *argv[])
 	cmd.AddValue("l", "NOF meas. vectors after spatial compression, rows of Z", l);
 	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
-	cmd.AddValue("nSrcNodes", "NOF source nodes in topology", nSrcNodes);
+	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
+	cmd.AddValue("nNodes", "NOF source nodes in topology", nNodes);
 	cmd.AddValue("MATsrc", "name of the matrix in the mat file containing the data for the source nodes", srcMatrixName);
 	cmd.AddValue("MATfile", "name of the Matlab file", matFilePath);
 
@@ -102,9 +104,9 @@ int main(int argc, char *argv[])
 
 	Time channelDelay = MilliSeconds(channelDelayTmp);
 
-	if (l > nSrcNodes + 1)
+	if (l > nNodes)
 	{
-		cout << "l must be <= nSrcNodes!" << endl;
+		cout << "l must be <= nNodes!" << endl;
 		return 1;
 	}
 
@@ -150,7 +152,7 @@ int main(int argc, char *argv[])
 		clusterHelper.SetChannelAttribute("Delay", TimeValue(channelDelay));
 		clusterHelper.SetSrcDeviceAttribute("DataRate", DataRateValue(dataRate));
 		clusterHelper.SetClusterDeviceAttribute("DataRate", DataRateValue(dataRate));
-		double txProb = RXPROB_MIN + (step+1) * (RXPROB_MAX - RXPROB_MIN) / RXPROB_STEPS;
+		double txProb = RXPROB_MIN + (step + 1) * (RXPROB_MAX - RXPROB_MIN) / RXPROB_STEPS;
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 
@@ -165,11 +167,14 @@ int main(int argc, char *argv[])
 		Ptr<Compressor> comp = CreateObject<Compressor>();
 		clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
 
+		//noise
+		clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
+
 		//disable network coding
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
 
 		//create
-		Ptr<CsCluster> cluster = clusterHelper.Create(CLUSTER_ID, nSrcNodes, sourceData);
+		Ptr<CsCluster> cluster = clusterHelper.Create(CLUSTER_ID, nNodes, sourceData);
 		ApplicationContainer clusterApps = cluster->GetApps();
 
 		//add trace sources to apps
@@ -244,7 +249,7 @@ int main(int argc, char *argv[])
 			Ptr<SerialDataBuffer<double>> buf = (*it)->PeekBuffer(0);
 			double snr = buf->ReadNext();
 			double delta = snr - meanSnr(step);
-			double snrMean =  meanSnr(step) +  delta/++i;
+			double snrMean = meanSnr(step) + delta / ++i;
 			meanSnr(step) = snrMean;
 
 			double delta2 = snr - snrMean;
@@ -256,7 +261,7 @@ int main(int argc, char *argv[])
 	/*********  Writing output **********/
 	matHandler_glob.WriteMat<double>("meanSnr", meanSnr);
 	matHandler_glob.WriteMat<double>("varSnr", varSnr);
-	matHandler_glob.WriteValue<double>("nNodesUsed", nSrcNodes + 1);
+	matHandler_glob.WriteValue<double>("nNodesUsed", nNodes);
 	matHandler_glob.WriteValue<double>("n", n);
 	matHandler_glob.WriteValue<double>("m", m);
 	matHandler_glob.WriteValue<double>("l", l);
