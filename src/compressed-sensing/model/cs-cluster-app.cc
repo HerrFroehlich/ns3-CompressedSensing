@@ -38,6 +38,11 @@ CsClusterApp::GetTypeId(void)
 										  TimeValue(MilliSeconds(200)),
 										  MakeTimeAccessor(&CsClusterApp::m_ncInterval),
 										  MakeTimeChecker(Seconds(0)))
+							.AddAttribute("NcIntervalTimeOut",
+										  "NOF network coding intervals with no packages to stop the network coding intervals (0 for no time out)",
+										  UintegerValue(10),
+										  MakeUintegerAccessor(&CsClusterApp::m_ncTimeOut),
+										  MakeUintegerChecker<uint32_t>())
 							.AddAttribute("NcIntervalDelay", "Initial Network coding interval delay",
 										  TimeValue(MilliSeconds(10)),
 										  MakeTimeAccessor(&CsClusterApp::m_ncIntervalDelay),
@@ -77,22 +82,12 @@ CsClusterApp::GetTypeId(void)
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-CsClusterApp::CsClusterApp() : m_l(0), m_zData(),
-							   m_ncMaxRecomb(0), m_ncPktPLink(0), m_ncEvent(EventId()),
+CsClusterApp::CsClusterApp() : m_l(0), m_zData(), m_ncMaxRecomb(0), m_ncPktPLink(0),
+							   m_ncTimeOut(0), m_ncTimeOutCnt(0), m_ncEvent(EventId()),
 							   m_ncEnable(true), m_running(false), m_isSetup(false),
 							   m_timeoutEvent(EventId())
 {
 	NS_LOG_FUNCTION(this);
-}
-
-/*-----------------------------------------------------------------------------------------------------------------------*/
-
-CsClusterApp::CsClusterApp(uint32_t n, uint32_t m, uint32_t l) : CsSrcApp(n, m), m_l(l), m_zData(m, l),
-																 m_ncMaxRecomb(0), m_ncPktPLink(0), m_ncEvent(EventId()),
-																 m_ncEnable(true), m_running(false), m_isSetup(false),
-																 m_timeoutEvent(EventId())
-{
-	NS_LOG_FUNCTION(this << n << m << l);
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -131,22 +126,6 @@ void CsClusterApp::SetSpatialCompressor(Ptr<Compressor> comp)
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-void CsClusterApp::SetSpatialCompressDim(uint32_t nNodes, uint32_t l)
-{
-	NS_LOG_FUNCTION(this << l);
-	NS_ASSERT_MSG(!m_isSetup, "Setup was already called!");
-	NS_ASSERT_MSG(nNodes <= MAX_N_SRCNODES, "Too many nodes!");
-
-	m_l = l;
-	m_nNodes = nNodes;
-
-	m_zData.Resize(m_l, m_m);
-	// m_yTemp.Resize(m);
-	m_comp->Setup(m_seed, m_nNodes, m_l, m_m);
-}
-
-/*-----------------------------------------------------------------------------------------------------------------------*/
-
 Ptr<Compressor> CsClusterApp::GetSpatialCompressor() const
 {
 	NS_LOG_FUNCTION(this);
@@ -171,7 +150,7 @@ void CsClusterApp::StartApplication()
 	CsSrcApp::StartApplication(); //start measurement cycle
 	m_running = true;
 	if (m_ncEnable)
-		m_ncEvent = Simulator::Schedule(m_ncInterval+m_ncIntervalDelay, &CsClusterApp::RLNetworkCoding, this, m_ncInterval);
+		m_ncEvent = Simulator::Schedule(m_ncInterval + m_ncIntervalDelay, &CsClusterApp::RLNetworkCoding, this, m_ncInterval);
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -264,7 +243,7 @@ void CsClusterApp::CreateCsClusterPackets()
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
 uint32_t
-CsClusterApp::GetMaxPayloadSizeByte()
+CsClusterApp::GetMaxPayloadSizeByte() const
 {
 	return GetMaxPayloadSize() * sizeof(T_PktData);
 }
@@ -272,7 +251,7 @@ CsClusterApp::GetMaxPayloadSizeByte()
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
 uint32_t
-CsClusterApp::GetMaxPayloadSize()
+CsClusterApp::GetMaxPayloadSize() const
 {
 	return m_zData.nCols();
 }
@@ -282,6 +261,11 @@ CsClusterApp::GetMaxPayloadSize()
 void CsClusterApp::RLNetworkCoding(Time dt)
 {
 	NS_LOG_FUNCTION(this);
+
+	if (m_ncPktBuffer.size())
+		m_ncTimeOutCnt = 0; //reset time out counter
+	else
+		m_ncTimeOutCnt++;
 
 	//if we have still packets to combine
 	while (m_ncPktBuffer.size())
@@ -314,18 +298,21 @@ void CsClusterApp::RLNetworkCoding(Time dt)
 		NetDeviceContainer devices = m_node->GetTxDevices();
 		for (auto it = devices.Begin(); it != devices.End(); it++)
 		{
+			Time dtPkt = MilliSeconds(0);
 			for (uint32_t i = 0; i < m_ncPktPLink; i++)
 			{
 				//send assuming MySimpleNetDevice, where Address is not needed
 				Ptr<Packet> p = DoRLNC(pSameSeq, seqNow);
 				m_txTrace(p);
-				(*it)->Send(p, Address(), 0);
+				Simulator::Schedule(dtPkt, &CsClusterApp::Send, this, p, *it);
+				dtPkt += GetPktInterval();
 			}
 		}
 	}
 
-	//schedule next nc intervall
-	m_ncEvent = Simulator::Schedule(dt, &CsClusterApp::RLNetworkCoding, this, dt);
+	//schedule next nc intervall if time out wasn't reached or time out was disabled (m_ncTimeOut == 0)
+	if(m_ncTimeOut == 0 || m_ncTimeOutCnt < m_ncTimeOut)
+		m_ncEvent = Simulator::Schedule(dt, &CsClusterApp::RLNetworkCoding, this, dt);
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/

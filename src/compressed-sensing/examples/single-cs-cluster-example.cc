@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
 {
 	/*********  Command line arguments  **********/
 
-	uint32_t nSrcNodes = DEFAULT_NOF_SRCNODES,
+	uint32_t nNodes = DEFAULT_NOF_SRCNODES,
 			 dataRate = DEFAULT_DRATE_BPS,
 			 n = DEFAULT_N,
 			 m = DEFAULT_M,
@@ -152,14 +152,13 @@ int main(int argc, char *argv[])
 	cmd.AddValue("bp", "Basis Pursuit when solving spatially?", bpSpat);
 	cmd.AddValue("channelDelay", "delay of all channels in ms", channelDelayTmp);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
-	cmd.AddValue("file", "path to mat file to read from", matFilePath);
 	cmd.AddValue("info", "Enable info messages", info);
 	cmd.AddValue("k", "sparsity of original source measurements (needed when using OMP temporally)", k);
 	cmd.AddValue("ks", "sparsity of the colums of Y (needed when using OMP spatially)", ks);
 	cmd.AddValue("l", "NOF meas. vectors after spatial compression, rows of Z", l);
 	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
-	cmd.AddValue("nSrcNodes", "NOF source nodes in topology", nSrcNodes);
+	cmd.AddValue("nNodes", "NOF source nodes in topology", nNodes);
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
 	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
 	cmd.AddValue("seq", "Reconstruct sequentially for each received packet", seq);
@@ -174,9 +173,9 @@ int main(int argc, char *argv[])
 
 	Time channelDelay = MilliSeconds(channelDelayTmp);
 
-	if (l > nSrcNodes + 1)
+	if (l > nNodes)
 	{
-		cout << "l must be <= nSrcNodes!" << endl;
+		cout << "l must be <= nNodes!" << endl;
 		return 1;
 	}
 
@@ -248,7 +247,7 @@ int main(int argc, char *argv[])
 
 	if (!noprecode)
 	{
-		double txProb = TXPROB_MODIFIER * (l-1) / (nSrcNodes * (1 - rateErr));
+		double txProb = TXPROB_MODIFIER * (l - 1) / ((nNodes - 1) * (1 - rateErr));
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
@@ -274,7 +273,7 @@ int main(int argc, char *argv[])
 	}
 
 	//create
-	Ptr<CsCluster> cluster = clusterHelper.Create(CLUSTER_ID, nSrcNodes, sourceData);
+	Ptr<CsCluster> cluster = clusterHelper.Create(CLUSTER_ID, nNodes, sourceData);
 	ApplicationContainer clusterApps = cluster->GetApps();
 
 	//add trace sources to apps
@@ -380,7 +379,6 @@ int main(int argc, char *argv[])
 
 	NS_LOG_INFO("Starting Simulation...");
 	clusterApps.Start(Seconds(0.));
-	Simulator::Stop(Seconds(60));
 	Simulator::Run();
 	Simulator::Destroy();
 
@@ -395,7 +393,7 @@ int main(int argc, char *argv[])
 	}
 
 	matHandler_glob.WriteCluster(*cluster);
-	matHandler_glob.WriteValue<double>("nNodesUsed", nSrcNodes;
+	matHandler_glob.WriteValue<double>("nNodesUsed", nNodes);
 	matHandler_glob.WriteValue<double>("n", n);
 	matHandler_glob.WriteValue<double>("m", m);
 	matHandler_glob.WriteValue<double>("l", l);

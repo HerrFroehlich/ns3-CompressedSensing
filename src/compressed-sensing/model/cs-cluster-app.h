@@ -45,15 +45,6 @@ public:
   CsClusterApp();
 
   /**
-	* \brief create an CsClusterApp
-	*
-	* \param n length of original temporal measurement vector (source)
-	* \param m length of compressed temporal vector (source)
-  * \param m2 NOF of spatial and temporal compressed vectors
-	*/
-  CsClusterApp(uint32_t n, uint32_t m, uint32_t m2);
-
-  /**
 	* \brief setups the application
   *
 	* MUST be called before starting the application
@@ -79,16 +70,6 @@ public:
 	*/
   Ptr<Compressor> GetSpatialCompressor() const;
 
-  /**
-	* \brief sets the compression given by l
-  *
-	*  The NOF measurements used for compression may differ from sequence to sequence, as the source nodes transmit randomly. 
-  *
-  * \param nNodes NOF nodes in cluster
-	* \param l NOF compressed vectors
-	*/
-  void SetSpatialCompressDim(uint32_t nNodes, uint32_t l);
-
   //inherited from Application
   virtual void StartApplication();
   virtual void StopApplication();
@@ -97,8 +78,8 @@ protected:
   //inherited from CsSrcApp
   virtual void CreateCsPackets();
 
-  virtual uint32_t GetMaxPayloadSizeByte();
-  virtual uint32_t GetMaxPayloadSize();
+  virtual uint32_t GetMaxPayloadSizeByte() const;
+  virtual uint32_t GetMaxPayloadSize() const;
 
 private:
   /**
@@ -194,7 +175,9 @@ private:
   Ptr<RandomVariableStream> m_ranNc;      /**< random variable stream, to determine when to send*/
   std::vector<Ptr<Packet>> m_ncPktBuffer; /**< packet buffer for network coding*/
   uint32_t m_ncMaxRecomb,                 /**< maximum network coding recombinations*/
-      m_ncPktPLink;                       /**< NOF packets per link at each interval*/
+      m_ncPktPLink,                       /**< NOF packets per link at each interval*/
+      m_ncTimeOut,                        /**< NOF of intervals with no packages to timeout*/
+      m_ncTimeOutCnt;                     /**< counter of nc intervals with no packages*/
   Time m_ncInterval,                      /**< network coding interval*/
       m_ncIntervalDelay;                  /**< Initial delay of network coding interval*/
   EventId m_ncEvent;                      /**< event for doing network coding*/

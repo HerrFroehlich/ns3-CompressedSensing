@@ -9,7 +9,7 @@
 #ifndef CS_CLUSTER__SIMPLE_HELPER_H
 #define CS_CLUSTER__SIMPLE_HELPER_H
 
-#include<string>
+#include <string>
 #include "ns3/random-variable-stream.h"
 #include "ns3/my-simple-net-device-helper.h"
 #include "ns3/cs-cluster-app.h"
@@ -19,7 +19,7 @@
 #include "ns3/cs-cluster.h"
 #include "cs-node-container.h"
 
-	/**
+/**
 * \ingroup util
 * \class CsClusterSimpleHelper
 *
@@ -27,42 +27,28 @@
 *
 * This helper makes the creation of a cluster much easier. By calling Create a cluster with one cluster and n
 * source nodes is initiated. Each source node is connected to the cluster node via a point to point link using 
-* MySimpleChannel and MySimpleNetDevices. Hereby n receiving net devices are attached to the the cluster node,
+* MySimpleChannel and MySimpleNetDevices. Hereby N receiving net devices with a DropTailQueue are attached to the the cluster node and to
 * every source node one transmitting net device. Finally for the cluster node a CsClusterApp and for the source nodes
 * CsSrcApp are setup and associated.
 * Beforehand creation attributes of the net devices, channels and application and also the compression dimensions can be set.
-* Additionaly it is possible to hsbr the data rates of the source MySimpleNetDevice and the delay of MySimpleChannel drawn
+* Additionaly it is possible to have the data rates of the source MySimpleNetDevice and the delay of MySimpleChannel drawn
 * randomly from a gaussian distribution.
 *
 */
-	class CsClusterSimpleHelper
+class CsClusterSimpleHelper
 {
   public:
 	CsClusterSimpleHelper();
 
 	/**
-	* Each net device must have a queue to pass packets through.
-	* This method allows one to set the type of the queue that is automatically
-	* created when the device is created and attached to a node.
+	* Set attributes of the DropTailQueue  associated with each
+	* SimpleNetDevice created through CsClusterSimpleHelper::Create.
 	*
-	* \param type the type of queue
 	* \param n1 the name of the attribute to set on the queue
 	* \param v1 the value of the attribute to set on the queue
-	* \param n2 the name of the attribute to set on the queue
-	* \param v2 the value of the attribute to set on the queue
-	* \param n3 the name of the attribute to set on the queue
-	* \param v3 the value of the attribute to set on the queue
-	* \param n4 the name of the attribute to set on the queue
-	* \param v4 the value of the attribute to set on the queue
 	*
-	* Set the type of queue to create and associated to each
-	* SimpleNetDevice created through CsClusterSimpleHelper::Create.
 	*/
-	void SetQueue(std::string type,
-				  std::string n1 = "", const AttributeValue &v1 = EmptyAttributeValue(),
-				  std::string n2 = "", const AttributeValue &v2 = EmptyAttributeValue(),
-				  std::string n3 = "", const AttributeValue &v3 = EmptyAttributeValue(),
-				  std::string n4 = "", const AttributeValue &v4 = EmptyAttributeValue());
+	void SetQueueAttribute(std::string n1, const AttributeValue &v1);
 
 	/**
 	* Each net device must have a channel to pass packets through.
@@ -146,17 +132,17 @@
 	*
 	* The cluster head seeded used for spatial compression is simply set to the value of id+1. 
 	* Seeds are selected from a the default seed function of CsNodeContainer or by an optional function set by SetNodeSeeder;
-	* The SerialDataBuffer in the DataStream at index 0 will be used for the cluster node, the one at 1 for the first source node
+	* The SerialDataBuffer in the DataStream at index 0 will be used for the cluster head node, the one at 1 for the first source node
 	* and so on. The used SerialDataBuffer instances are removed from the DataStream!
 	*
 	*
 	* \param id cluster id to set
-	* \param n NOF source nodes to create
+	* \param nNodes NOF  nodes in cluster to create
 	* \param stream DataStream with at least one SerialDataBuffer for each node (n+1)
 	*
 	* \return created CsCluster
 	*/
-	Ptr<CsCluster> Create(CsHeader::T_IdField id, uint32_t n, DataStream<double> &stream);
+	Ptr<CsCluster> Create(CsHeader::T_IdField id, uint32_t nNodes, DataStream<double> &stream);
 
 	/**
 	* \brief sets the channel delay for the created MySimpleChannels to be random with a mean and variance
@@ -184,6 +170,8 @@
 
 	/**
 	* \brief sets the compression dimensions for source and cluster nodes
+	*
+	* Also sets the queue length of the DropTailQueue to l, so that no packages are dropped at the cluster head.
 	*
 	* \param n length of original measurement vector
 	* \param m length of temporally compressed vector
@@ -218,7 +206,7 @@
 
 	MySimpleNetDeviceHelper m_deviceHelper;
 	bool m_ranDelay, m_ranRate;
-	double m_delayMean, m_delayVar, m_rateMean, m_rateVar; 
+	double m_delayMean, m_delayVar, m_rateMean, m_rateVar;
 
 	NormalRandomVariable m_gaussRan;
 	CsCluster::SeedCreator m_seeder;
