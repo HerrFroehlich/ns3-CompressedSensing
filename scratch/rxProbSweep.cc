@@ -262,6 +262,7 @@ int main(int argc, char *argv[])
 	matHandler_glob.WriteMat<double>("meanSnr", meanSnr);
 	matHandler_glob.WriteMat<double>("varSnr", varSnr);
 	matHandler_glob.WriteValue<double>("nNodesUsed", nNodes);
+	matHandler_glob.WriteValue<double>("noiseVar", noiseVar);
 	matHandler_glob.WriteValue<double>("n", n);
 	matHandler_glob.WriteValue<double>("m", m);
 	matHandler_glob.WriteValue<double>("l", l);
