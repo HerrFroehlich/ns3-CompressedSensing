@@ -12,7 +12,7 @@
 #define CLUSTER_ID 0
 #define DEFAULT_TOL 1e-3
 
-#define TXPROB_MODIFIER 1.0
+#define TXPROB_MODIFIER_DEFAULT 1.0
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -137,7 +137,8 @@ int main(int argc, char *argv[])
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
 		   rateErr = 0.0,
 		   tol = DEFAULT_TOL,
-		   noiseVar = 0.0;
+		   noiseVar = 0.0,
+		   mu = TXPROB_MODIFIER_DEFAULT;
 	bool seq = false,
 		 noprecode = false,
 		 bpSpat = false,
@@ -162,6 +163,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("nNodes", "NOF source nodes in topology", nNodes);
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
 	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
+	cmd.AddValue("mu", "Tx probability modifier", mu);
 	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
 	cmd.AddValue("seq", "Reconstruct sequentially for each received packet", seq);
 	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
@@ -248,7 +250,7 @@ int main(int argc, char *argv[])
 
 	if (!noprecode)
 	{
-		double txProb = TXPROB_MODIFIER * (l - 1) / ((nNodes - 1) * (1 - rateErr));
+		double txProb = mu * (l - 1) / ((nNodes - 1) * (1 - rateErr));
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}

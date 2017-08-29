@@ -21,7 +21,7 @@
 #define CLUSTER_ID 0
 #define DEFAULT_TOL 1e-3
 
-#define TXPROB_MODIFIER 1.5
+#define TXPROB_MODIFIER_DEFAULT 1.0
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -148,7 +148,9 @@ int main(int argc, char *argv[])
 			 ks = DEFAULT_K;
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
 		   rateErr = 0.0,
-		   tol = 0.0;
+		   tol = DEFAULT_TOL,
+		   noiseVar = 0.0,
+		   mu = TXPROB_MODIFIER_DEFAULT;
 	bool noprecode = false,
 		 bpSpat = false,
 		 ampSpat = false,
@@ -172,6 +174,8 @@ int main(int argc, char *argv[])
 	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
 	cmd.AddValue("nNodes", "NOF nodes per cluster", nNodes);
+	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
+	cmd.AddValue("mu", "Tx probability modifier", mu);
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
 	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
 	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
@@ -267,11 +271,14 @@ int main(int argc, char *argv[])
 		clusterHelper.SetClusterDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
 	}
 	
+	//noise
+	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
+
 	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false)); // switch off nc for inner clusters
 	//create cluster 0
 	if (!noprecode)
 	{
-		double txProb = TXPROB_MODIFIER * (l0-1) / ((nNodes-1) * (1 - rateErr));
+		double txProb = mu * (l0-1) / ((nNodes-1) * (1 - rateErr));
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
@@ -282,7 +289,7 @@ int main(int argc, char *argv[])
 	//create cluster 1
 	if (!noprecode)
 	{
-		double txProb = TXPROB_MODIFIER * (l1-1) / ((nNodes-1) * (1 - rateErr));
+		double txProb = mu * (l1-1) / ((nNodes-1) * (1 - rateErr));
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
@@ -295,7 +302,7 @@ int main(int argc, char *argv[])
 	clusterHelper.SetQueueAttribute("MaxPackets", UintegerValue(l0 + l1 + l2));
 	if (!noprecode)
 	{
-		double txProb = TXPROB_MODIFIER * (l2-1) / ((nNodes-1) * (1 - rateErr));
+		double txProb = mu * (l2-1) / ((nNodes-1) * (1 - rateErr));
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
