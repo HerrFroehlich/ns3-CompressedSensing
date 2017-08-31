@@ -46,13 +46,17 @@ TypeId Reconstructor::GetTypeId(void)
 							.AddAttribute("CalcSnr", "Calculate the SNR instead of saving reconstructed measurement vectors?",
 										  BooleanValue(false),
 										  MakeBooleanAccessor(&Reconstructor::m_calcSnr),
+										  MakeBooleanChecker())
+							.AddAttribute("JointTransform", "Use a joint transformation?",
+										  BooleanValue(true),
+										  MakeBooleanAccessor(&Reconstructor::m_jointTrans),
 										  MakeBooleanChecker());
 	return tid;
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-Reconstructor::Reconstructor() : m_seq(0), m_calcSnr(false), m_nClusters(0)
+Reconstructor::Reconstructor() : m_seq(0), m_calcSnr(false), m_nClusters(0), m_jointTrans(true)
 {
 
 	NS_LOG_FUNCTION(this);
@@ -200,13 +204,13 @@ klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor::GetASpat(const Recon
 	//get B
 	klab::TSmartPointer<kl1p::TOperator<double>> B = info.precode;
 
-	//Get psi if valied
-	// if (m_transMatSpat.isValid())
-	// {
-	// 	m_transMatSpat->SetSize(info.nNodes);
-	// 	klab::TSmartPointer<kl1p::TOperator<double>> Psi = m_transMatSpat;
-	// 	return Phi * B * Psi;
-	// }
+	//Get psi if valied and unique transformation
+	if (m_transMatSpat.isValid() && !m_jointTrans)
+	{
+		m_transMatSpat->SetSize(info.nNodes);
+		klab::TSmartPointer<kl1p::TOperator<double>> Psi = m_transMatSpat->Clone();
+		return Phi * B * Psi;
+	}
 	return Phi * B;
 }
 
@@ -241,33 +245,33 @@ void Reconstructor::WriteStream(Ptr<DataStream<double>> stream, const Mat<double
 
 void Reconstructor::WriteRecSpat(const ClusterInfo &info, const Mat<double> &mat)
 {
-	// if (m_transMatSpat.isValid()) // since the reconstruction only gives the indices of the transform we have to apply it again!
-	// {
-	// 	m_transMatSpat->SetSize(info.nNodes);
-	// 	Mat<double> res;
-	// 	res.set_size(mat.n_rows, mat.n_cols);
+	if (!m_jointTrans && m_transMatSpat.isValid()) // since the reconstruction only gives the indices of the transform we have to apply it again!
+	{
+		m_transMatSpat->SetSize(info.nNodes);
+		Mat<double> res;
+		res.set_size(mat.n_rows, mat.n_cols);
 
-	// 	for (size_t i = 0; i < mat.n_cols; i++)
-	// 	{
-	// 		Col<double> xVec;
-	// 		m_transMatSpat->apply(mat.col(i), xVec);
-	// 		res.col(i) = xVec;
-	// 	}
-	// 	info.spatRecBuf->Write(res);
+		for (size_t i = 0; i < mat.n_cols; i++)
+		{
+			Col<double> xVec;
+			m_transMatSpat->apply(mat.col(i), xVec);
+			res.col(i) = xVec;
+		}
+		info.spatRecBuf->Write(res);
 
-	// 	if (m_calcSnr)
-	// 		CalcSnr(info.clStream, GetY0(info), res);
-	// 	else
-	// 		WriteStream(info.clStream, res);
-	// }
-	// else
-	// {
+		if (m_calcSnr)
+			CalcSnr(info.clStream, GetY0(info), res);
+		else
+			WriteStream(info.clStream, res);
+	}
+	else
+	{
 	info.spatRecBuf->Write(mat);
 	if (m_calcSnr)
 		CalcSnr(info.clStream, GetY0(info), mat);
 	else
 		WriteStream(info.clStream, mat);
-	// }
+	}
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -315,24 +319,25 @@ void Reconstructor::ReconstructSpat()
 	}
 	//sensing block matrix A
 	klab::TSmartPointer<TOperator<double>> A = new TBlockDiagonalOperator<double>(blockA);
+	NS_ASSERT_MSG(N->n() == A->m(), "NC matrix and sensing block matrix are not matching sizes! Have you added all clusters?");
 	//stored input data
-	// Mat<double> U = m_inBuf.ReadAll() / klab::Sqrt(N->m()); //since we scaled N before
-	Mat<double> U = m_inBuf.ReadAll();
-	U = U / klab::Sqrt(N->m()); //since we scaled N before
+	Mat<double> U = m_inBuf.ReadAll() / klab::Sqrt(N->m()); //since we scaled N before
 
-	klab::TSmartPointer<kl1p::TOperator<double>> Psi;
-	if (m_transMatSpat.isValid())
+	Mat<double> Y;
+	if (m_jointTrans && m_transMatSpat.isValid()) // reconstruct jointly with joint transformation
 	{
+		klab::TSmartPointer<kl1p::TOperator<double>> Psi;
 		m_transMatSpat->SetSize(A->n());
 		Psi = m_transMatSpat;
+
+		Y = m_algoSpat->Run(U, N * A * Psi);
 	}
-	// reconstruct jointly
-	NS_ASSERT_MSG(N->n() == A->m(), "NC matrix and sensing block matrix are not matching sizes! Have you added all clusters?");
-	Mat<double> Y = m_algoSpat->Run(U, N * A * Psi);
+	else // reconstruct jointly with single transformation, A will already contain them
+		Y = m_algoSpat->Run(U, N * A);
 
 	uint32_t idxL = 0;
 
-	if (m_transMatSpat.isValid()) // since the reconstruction only gives the indices of the transform we have to apply it again!
+	if (m_jointTrans && m_transMatSpat.isValid()) // since the reconstruction only gives the indices of the transform we have to apply it again!
 	{
 		for (uint32_t i = 0; i < Y.n_cols; i++)
 		{

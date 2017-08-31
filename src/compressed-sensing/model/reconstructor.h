@@ -56,36 +56,45 @@ class RecMatrix : public Object
 * \brief A class to reconstruct spatially and temporally compressed data via compressed sensing techniques
 *
 *
-* The class takes care of storing data for multiple clusters \f$k\f$ (CsCluster).
-* This includes the spatial compressed data \f$Z_k\f$ and as well the spatially reconstructed data \f$Y_k\f$.
-* Every \f$Z_k\f$ is written row by row. The buffer and the reconstruction dimensions are gathered from the 
+* The class takes care of storing data for multiple clusters \f$c \in [1 \cdots C]\f$ (CsCluster).
+* This includes the spatial compressed data \f$Z_c\f$ and as well the spatially reconstructed data \f$Y_c\f$.
+* Every \f$Z_c\f$ is written row by row. The buffer and the reconstruction dimensions are gathered from the 
 * data stored in each CsCluster instance.
-* With help of a random sensing matrix \f$\Phi_k\f$ (RandomMatrix), which is drawn from a cluster head node's seed, an optional spatial
-* transformation matrix \f$\Psi^{S}\f$ (TransMatrix), and a spatial precoding matrix \f$B_k\f$
-* (SpatialPrecodingMatrix) each \f$Y_k\f$ is reconstructed jointly  by solving with an CsAlgorithm :\n
+* With help of a random sensing matrix \f$\Phi_c\f$ (RandomMatrix), which is drawn from a cluster head node's seed, an optional spatial
+* transformation matrix \f$\Psi^{S}\f$ (TransMatrix), and a spatial precoding matrix \f$B_c\f$
+* (SpatialPrecodingMatrix) each \f$Y_c\f$ is reconstructed jointly  by solving with an CsAlgorithm (as default) :\n
 * \f$U = \Omega\cdot Z  = \Omega\cdot A\cdot Y = \Omega\cdot A\cdot 
-* \begin{bmatrix}
-* 	Y_0\\
-* 	Y_1\\
-* 	\vdots\\
-* 	Y_k
+* \begin{bmatrix} 
+* Y_1\\
+* Y_2\\
+* \vdots\\
+* Y_C
 * \end{bmatrix}
 * =  \Omega\cdot
 * \begin{bmatrix}
-*    \Phi_{0}B_0 &0 &\cdots& 0\\  
-*    0 &\Phi_{1}B_1 &\cdots& 0\\
+*    \Phi_{1}B_1 &0 &\cdots& 0\\  
+*    0 &\Phi_{2}B_2 &\cdots& 0\\
 *    \vdots& 0 & \ddots & 0\\
-*    0 & \cdots &0& \Phi_{k}B_k
+*    0 & \cdots &0& \Phi_{c}B_c
 * \end{bmatrix} \cdot \Psi^S\Theta \f$ \n
+* The above equation assumes a spatial correlation between the clusters when using a transformation. Alternatevly it is possible to solve \n:
+* \f$U =  \Omega\cdot
+* \begin{bmatrix}
+*    \Phi_{1}B_1\cdot \Psi^S &0 &\cdots& 0\\  
+*    0 &\Phi_{2}B_2\cdot \Psi^S &\cdots& 0\\
+*    \vdots& 0 & \ddots & 0\\
+*    0 & \cdots &0& \Phi_{c}B_c\cdot \Psi^S
+* \end{bmatrix} \Theta \f$ \n
+, assuming that each cluster has its own sparse transformation.
 * When using a transformation matrix \f$\Psi^{S}\f$ compressed sensing algorithms return the atom values \f$ \Theta \f$.
-* \f$Y\f$ is simply  calculated by \f$Y_k = \Psi^{S} \Theta\f$.
-* From this the temporal compressed data \f$X_{jk}\f$ of each node \f$j\f$ in each cluster \f$k\f$ is restored by solving:\n
-* \f$X_{jk} = A_{jk} Y_{jk} =\Phi_{jk} Y_{jk} = \Phi_{jk} \Psi^{T} \Theta_{jk}\f$, where:\n
-* - \f$\Phi_{jk}\f$ is the random sensing matrix of the node, which is drawn from its seed\n
+* \f$Y\f$ is simply  calculated by \f$Y_c = \Psi^{S} \Theta\f$.
+* From this the temporal compressed data \f$X_{jc}\f$ of each node \f$j\f$ in each cluster \f$c\f$ is restored by solving:\n
+* \f$X_{jc} = A_{jc} Y_{jc} =\Phi_{jc} Y_{jc} = \Phi_{jc} \Psi^{T} \Theta_{jc}\f$, where:\n
+* - \f$\Phi_{jc}\f$ is the random sensing matrix of the node, which is drawn from its seed\n
 * - \f$\Psi^{T}\f$ is the temporal transformation matrix, which can be either real or complex
-* - \f$ \Theta_{jk} \f$ atom values, when using \f$\Psi^{T}\f$\n
+* - \f$ \Theta_{jc} \f$ atom values, when using \f$\Psi^{T}\f$\n
 *
-* Again if a transformation matrix \f$\Psi^{T}\f$  is used, we get \f$X_{jk}\f$ by doing \f$Y_{jk} = \Psi^{T} \Theta_k\f$.
+* Again if a transformation matrix \f$\Psi^{T}\f$  is used, we get \f$X_{jc}\f$ by doing \f$Y_{jc} = \Psi^{T} \Theta_c\f$.
 * The spatial and temporal reconstruction results are written to a DataStream to the clusters/nodes to enable an evaluation outside
 * of this class. When the Reconstructor is resetted, the input buffers are cleared and a new run starts by appending
 * a new DataStream to the clusters/nodes. The name of the DataStream instances is generated from a given run number.
@@ -217,7 +226,6 @@ class Reconstructor : public ns3::Object
 	void SetRecMatTemp(Ptr<RecMatrix> recMat);
 
   private:
-
 	/**
 	* \brief Class containing info on each cluster
 	*
@@ -408,10 +416,10 @@ class Reconstructor : public ns3::Object
 	Col<double> GetX0(Ptr<DataStream<double>> stream, uint32_t n);
 
 	//internal
-	uint32_t m_seq; /**< current measurment sequence*/
-	bool m_calcSnr;	/**< Calculate SNR directly?*/
+	uint32_t m_seq;						  /**< current measurment sequence*/
+	bool m_calcSnr;						  /**< Calculate SNR directly?*/
 	NodeDataBuffer<double> m_ncMatrixBuf; /**< buffer with NC matrix */
-	NodeDataBuffer<double> m_inBuf; 	 /**< input data buffer*/
+	NodeDataBuffer<double> m_inBuf;		  /**< input data buffer*/
 
 	//clusters
 	uint32_t m_nClusters;										 /**< NOF clusters from which we are gathering data*/
@@ -424,6 +432,7 @@ class Reconstructor : public ns3::Object
 	//operators
 	klab::TSmartPointer<RandomMatrix> m_ranMatSpat, m_ranMatTemp;	/**< Random matrix form from which sensing matrix is constructed*/
 	klab::TSmartPointer<TransMatrix> m_transMatSpat, m_transMatTemp; /**< Transformation matrix form from which sensing matrix is constructed*/
+	bool m_jointTrans;												 /**< joint transformation for the spatial decoding?*/
 };
 
 #endif //RECONSTRUCTOR_H
