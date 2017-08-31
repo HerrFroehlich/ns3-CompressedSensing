@@ -29,6 +29,7 @@
 #include "ns3/cs-sink-app.h"
 #include "ns3/reconstructor.h"
 #include "ns3/mat-file-handler.h"
+#include "ns3/topology-simple-helper.h"
 
 using namespace ns3;
 using namespace std;
@@ -229,8 +230,6 @@ int main(int argc, char *argv[])
 	DataStream<double> sourceData = matHandler_glob.ReadMat<double>(srcMatrixName);
 	uint32_t nMeasSeq = sourceData.GetMaxSize() / n;
 
-	//uint32_t k = matHandler_glob.ReadValue<double>(kName); // casting double  to uint32_t
-	//matHandler_glob.Open(matFilePathOut);				   // open output file
 	/*********  setup CsHeader  **********/
 
 	NS_LOG_INFO("Setting up...");
@@ -242,7 +241,10 @@ int main(int argc, char *argv[])
 	lk.push_back(l2);
 	CsClusterHeader::SetupCl(lk);
 
-	/*********  set up common cluster properties  **********/
+	/*********  set up clusters  **********/
+	vector<Ptr<CsCluster>> clusters(3);
+
+
 	NS_LOG_INFO("Creating cluster...");
 	CsClusterSimpleHelper clusterHelper;
 
@@ -286,6 +288,7 @@ int main(int argc, char *argv[])
 	clusterHelper.SetCompression(n, m, l0);
 	Ptr<CsCluster> cluster0 = clusterHelper.Create(CLUSTER_ID, nNodes, sourceData); // will remove streams from source data
 	ApplicationContainer clusterApps = cluster0->GetApps();
+	clusters.at(0) = cluster0;
 	//create cluster 1
 	if (!noprecode)
 	{
@@ -294,8 +297,10 @@ int main(int argc, char *argv[])
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
 	clusterHelper.SetCompression(n, m, l1);
+
 	Ptr<CsCluster> cluster1 = clusterHelper.Create(CLUSTER_ID + 1, nNodes, sourceData); // will remove streams from source data
 	clusterApps.Add(cluster1->GetApps());
+	clusters.at(1) = cluster1;
 
 	//create cluster 2
 	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
@@ -310,6 +315,7 @@ int main(int argc, char *argv[])
 	clusterHelper.SetCompression(n, m, l2);
 	Ptr<CsCluster> cluster2 = clusterHelper.Create(CLUSTER_ID + 2, nNodes, sourceData); // will remove streams from source data
 	clusterApps.Add(cluster2->GetApps());
+	clusters.at(2) = cluster2;
 
 	//add trace sources to apps
 	std::string confPath = "/NodeList/*/ApplicationList/0/$CsSrcApp/"; //for all nodes add a tx callback
@@ -320,68 +326,25 @@ int main(int argc, char *argv[])
 	NS_LOG_INFO("Connecting...");
 
 	/*********  CONNECT  **********/
-	Ptr<MySimpleChannel> channel;
-	Ptr<MySimpleNetDevice> devTx, devRx;
+	Ptr<CsNode> sink = CreateObject<CsNode>(CsNode::NodeType::SINK);
+	TopologySimpleHelper topHelper;
 
-	/*********  connect clusters  **********/
-	//c0->c2
-	channel = CreateObject<MySimpleChannel>();
-	channel->SetAttribute("Delay", TimeValue(channelDelay));
-
-	devTx = CreateObject<MySimpleNetDevice>();
-	devRx = CreateObject<MySimpleNetDevice>();
-	devTx->SetAttribute("DataRate", DataRateValue(dataRate));
-	devRx->SetAttribute("DataRate", DataRateValue(dataRate));
-	devTx->SetNode(cluster0->GetClusterHead());
-	devTx->SetChannel(channel);
-	devRx->SetNode(cluster2->GetClusterHead());
-	devRx->SetChannel(channel);
 	if (rateErr > 0.0)
-		devRx->SetAttribute("ReceiveErrorModel", PointerValue(errModel));
-
-	cluster0->GetClusterHead()->AddTxDevice(devTx);
-	cluster2->GetClusterHead()->AddRxDevice(devRx);
-
-	//c1->c2
-	channel = CreateObject<MySimpleChannel>();
-	channel->SetAttribute("Delay", TimeValue(channelDelay));
-
-	devTx = CreateObject<MySimpleNetDevice>();
-	devRx = CreateObject<MySimpleNetDevice>();
-	devTx->SetAttribute("DataRate", DataRateValue(dataRate));
-	devRx->SetAttribute("DataRate", DataRateValue(dataRate));
-	devTx->SetNode(cluster1->GetClusterHead());
-	devTx->SetChannel(channel);
-	devRx->SetNode(cluster2->GetClusterHead());
-	devRx->SetChannel(channel);
-	if (rateErr > 0.0)
-		devRx->SetAttribute("ReceiveErrorModel", PointerValue(errModel));
-
-	cluster1->GetClusterHead()->AddTxDevice(devTx);
-	cluster2->GetClusterHead()->AddRxDevice(devRx);
-
-	/*********  connect sink  **********/
-	//c2->s
-	Ptr<CsNode> sink = CreateObject<CsNode>();
-
-	channel = CreateObject<MySimpleChannel>();
-	channel->SetAttribute("Delay", TimeValue(channelDelay));
-
-	devTx = CreateObject<MySimpleNetDevice>();
-	devRx = CreateObject<MySimpleNetDevice>();
-	devTx->SetAttribute("DataRate", DataRateValue(dataRate));
-	devRx->SetAttribute("DataRate", DataRateValue(dataRate));
-	if (rateErr > 0.0)
-		devRx->SetAttribute("ReceiveErrorModel", PointerValue(errModel));
-
-	Ptr<CsNode> clusterNode = cluster2->GetClusterHead();
-	clusterNode->AddTxDevice(devTx);
-	sink->AddDevice(devRx);
-
-	devTx->SetNode(clusterNode);
-	devTx->SetChannel(channel);
-	devRx->SetNode(sink);
-	devRx->SetChannel(channel);
+	{
+		TopologySimpleHelper::LinksDouble links(3);
+		links.SetClLink(0, 2, 1-rateErr);
+		links.SetClLink(0, 1, 1-rateErr);
+		links.SetSinkLink(2, 1-rateErr);
+		topHelper.Create(clusters, sink, links);
+	}
+	else
+	{
+		TopologySimpleHelper::LinksBool links(3);
+		links.SetClLink(0, 2);
+		links.SetClLink(1, 2);
+		links.SetSinkLink(2);
+		topHelper.Create(clusters, sink, links);
+	}
 
 	//adding sink app
 	NS_LOG_INFO("Adding Applications...");
@@ -417,6 +380,8 @@ int main(int argc, char *argv[])
 	
 	sinkApp->SetAttribute("MinPackets", UintegerValue(0));
 
+	sinkApp->SetAttribute("MinPackets", UintegerValue(l0+l1+l2));
+
 	sinkApp->TraceConnectWithoutContext("Rx", MakeCallback(&receiveCb));
 	sinkApp->AddCluster(cluster2);
 	sinkApp->AddCluster(cluster0);
@@ -430,7 +395,7 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprFail", MakeCallback(&comprFailSpat));
 	Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$MySimpleNetDevice/PhyRxDrop", MakeCallback(&packetDrop));
 
-	sinkApp->SetAttribute("MinPackets", UintegerValue(l0+l1+l2));
+	//sinkApp->SetAttribute("MinPackets", UintegerValue((1-rateErr)*(l0+l1+l2)));
 	/*********  Running the Simulation  **********/
 
 	NS_LOG_INFO("Starting Simulation...");

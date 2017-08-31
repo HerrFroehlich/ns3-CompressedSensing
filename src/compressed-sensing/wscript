@@ -38,6 +38,7 @@ def build(bld):
         'model/cs-cluster.cc',
         'helper/cs-node-container.cc',
         'helper/cs-cluster-simple-helper.cc',
+        'helper/topology-simple-helper.cc',
         'util/mat-file-handler.cc'
         ]
 
@@ -75,6 +76,7 @@ def build(bld):
         'model/cs-cluster.h',
         'helper/cs-node-container.h',
         'helper/cs-cluster-simple-helper.h',
+        'helper/topology-simple-helper.h',
         'util/serial-buffer.h',
         'util/mat-buffer.h',
         'util/node-data-buffer.h',
