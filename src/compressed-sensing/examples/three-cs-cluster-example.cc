@@ -48,7 +48,6 @@ compressCb(arma::Mat<double> matIn, arma::Mat<double> matOut)
 	if (info || verbose)
 		cout << "\n"
 			 << Simulator::Now() << " Node " << Simulator::GetContext() << " compressed.";
-	matOut.save("IOdata/comp", csv_ascii);
 }
 
 static void
@@ -145,6 +144,9 @@ int main(int argc, char *argv[])
 			 l0 = DEFAULT_L,
 			 l1 = DEFAULT_L,
 			 l2 = DEFAULT_L,
+			 nc0 = DEFAULT_L,
+			 nc1 = DEFAULT_L,
+			 nc2 = 3 * DEFAULT_L,
 			 k = DEFAULT_K,
 			 ks = DEFAULT_K;
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
@@ -155,7 +157,8 @@ int main(int argc, char *argv[])
 	bool noprecode = false,
 		 bpSpat = false,
 		 ampSpat = false,
-		 calcSnr = false;
+		 calcSnr = false,
+		 nonc = false;
 	std::string matFilePath = DEFAULT_FILE,
 				// matFilePathOut = DEFAULT_FILEOUT,
 		srcMatrixName = DEFAULT_SRCMAT_NAME;
@@ -172,10 +175,14 @@ int main(int argc, char *argv[])
 	cmd.AddValue("l0", "NOF meas. vectors after spatial compression, rows of Z of cluster 0", l0);
 	cmd.AddValue("l1", "NOF meas. vectors after spatial compression, rows of Z of cluster 1", l1);
 	cmd.AddValue("l2", "NOF meas. vectors after spatial compression, rows of Z of cluster 1", l2);
+	cmd.AddValue("nc0", "NOF network coded packets per link in each inverval at cluster head 0", nc0);
+	cmd.AddValue("nc1", "NOF network coded packets per link in each inverval at cluster head 1", nc1);
+	cmd.AddValue("nc2", "NOF network coded packets per link in each inverval at cluster head 2", nc2);
 	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
 	cmd.AddValue("nNodes", "NOF nodes per cluster", nNodes);
 	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
+	cmd.AddValue("nonc", "Disable network coding?", nonc);
 	cmd.AddValue("mu", "Tx probability modifier", mu);
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
 	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
@@ -184,7 +191,6 @@ int main(int argc, char *argv[])
 	cmd.AddValue("verbose", "Verbose Mode", verbose);
 	cmd.AddValue("MATsrc", "name of the matrix in the mat file containing the data for the source nodes", srcMatrixName);
 	cmd.AddValue("MATfile", "name of the Matlab file", matFilePath);
-
 
 	cmd.Parse(argc, argv);
 
@@ -272,27 +278,44 @@ int main(int argc, char *argv[])
 		clusterHelper.SetSrcDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
 		clusterHelper.SetClusterDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
 	}
-	
+
 	//noise
 	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
 
-	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false)); // switch off nc for inner clusters
 	//create cluster 0
+
+	if (nonc || nc0 == l0) // switch off nc if selected or unncessary (nc0 == l0)
+		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
+	else
+	{
+		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
+		clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(nc0));
+	}
+
 	if (!noprecode)
 	{
-		double txProb = mu * (l0-1) / ((nNodes-1) * (1 - rateErr));
+		double txProb = mu * (l0 - 1) / ((nNodes - 1) * (1 - rateErr));
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
-	//NC
+
 	clusterHelper.SetCompression(n, m, l0);
 	Ptr<CsCluster> cluster0 = clusterHelper.Create(CLUSTER_ID, nNodes, sourceData); // will remove streams from source data
 	ApplicationContainer clusterApps = cluster0->GetApps();
 	clusters.at(0) = cluster0;
 	//create cluster 1
+
+	if (nonc || nc0 == l0) // switch off nc if selected or unncessary (nc1 == l1)
+		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
+	else
+	{
+		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
+		clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(nc1));
+	}
+
 	if (!noprecode)
 	{
-		double txProb = mu * (l1-1) / ((nNodes-1) * (1 - rateErr));
+		double txProb = mu * (l1 - 1) / ((nNodes - 1) * (1 - rateErr));
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
@@ -303,15 +326,19 @@ int main(int argc, char *argv[])
 	clusters.at(1) = cluster1;
 
 	//create cluster 2
-	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
-	clusterHelper.SetQueueAttribute("MaxPackets", UintegerValue(l0 + l1 + l2));
+	if (nonc)
+		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
+	else
+		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
+
+	clusterHelper.SetClusterAppAttribute("NcIntervalDelay", TimeValue(MilliSeconds(11)));
+	clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(nc2));
 	if (!noprecode)
 	{
-		double txProb = mu * (l2-1) / ((nNodes-1) * (1 - rateErr));
+		double txProb = mu * (l2 - 1) / ((nNodes - 1) * (1 - rateErr));
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
-	clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(l2+l1+l0));
 	clusterHelper.SetCompression(n, m, l2);
 	Ptr<CsCluster> cluster2 = clusterHelper.Create(CLUSTER_ID + 2, nNodes, sourceData); // will remove streams from source data
 	clusterApps.Add(cluster2->GetApps());
@@ -377,7 +404,7 @@ int main(int argc, char *argv[])
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/Tolerance", DoubleValue(tol));
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/Tolerance", DoubleValue(tol));
 	// recTemp->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
-	
+
 	sinkApp->SetAttribute("MinPackets", UintegerValue(0));
 
 	sinkApp->SetAttribute("MinPackets", UintegerValue(l0+l1+l2));
@@ -395,7 +422,7 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprFail", MakeCallback(&comprFailSpat));
 	Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$MySimpleNetDevice/PhyRxDrop", MakeCallback(&packetDrop));
 
-	//sinkApp->SetAttribute("MinPackets", UintegerValue((1-rateErr)*(l0+l1+l2)));
+	//sinkApp->SetAttribute("MinPackets", UintegerValue(40));
 	/*********  Running the Simulation  **********/
 
 	NS_LOG_INFO("Starting Simulation...");
@@ -432,11 +459,14 @@ int main(int argc, char *argv[])
 	matHandler_glob.WriteValue<double>("l0", l0);
 	matHandler_glob.WriteValue<double>("l1", l1);
 	matHandler_glob.WriteValue<double>("l2", l2);
+	matHandler_glob.WriteValue<double>("nc0", nc0);
+	matHandler_glob.WriteValue<double>("nc1", nc1);
+	matHandler_glob.WriteValue<double>("nc2", nc2);
 	matHandler_glob.WriteValue<double>("totalTimeTemp", tTemp_glob);
 	matHandler_glob.WriteValue<double>("totalTimeSpat", tSpat_glob);
 	matHandler_glob.WriteValue<double>("nErrorRec", nErrorRec_glob);
 	matHandler_glob.WriteValue<double>("nErrorComp", nErrorComp_glob);
-	
+
 	matHandler_glob.WriteValue<double>("nMeasSeq", nMeasSeq);
 
 	return 0;

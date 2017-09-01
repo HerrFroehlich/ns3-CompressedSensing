@@ -273,7 +273,7 @@ int main(int argc, char *argv[])
 	{
 		errModel->SetRate(rateErr);
 		errModel->SetUnit(RateErrorModel::ErrorUnit::ERROR_UNIT_PACKET);
-		errModel->AssignStreams(0);
+		// errModel->AssignStreams(0);
 		clusterHelper.SetSrcDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
 		clusterHelper.SetClusterDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
 	}
