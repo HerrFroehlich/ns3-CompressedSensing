@@ -20,7 +20,7 @@
 #include "transform-matrix.h"
 #include "cs-header.h"
 #include "cs-cluster.h"
-#include "ns3/template-registration.h"
+#include "nc-matrix.h"
 #include "spatial-precoding-matrix.h"
 #include "cs-algorithm.h"
 
@@ -418,7 +418,6 @@ class Reconstructor : public ns3::Object
 	//internal
 	uint32_t m_seq;						  /**< current measurment sequence*/
 	bool m_calcSnr;						  /**< Calculate SNR directly?*/
-	NodeDataBuffer<double> m_ncMatrixBuf; /**< buffer with NC matrix */
 	NodeDataBuffer<double> m_inBuf;		  /**< input data buffer*/
 
 	//clusters
@@ -432,6 +431,8 @@ class Reconstructor : public ns3::Object
 	//operators
 	klab::TSmartPointer<RandomMatrix> m_ranMatSpat, m_ranMatTemp;	/**< Random matrix form from which sensing matrix is constructed*/
 	klab::TSmartPointer<TransMatrix> m_transMatSpat, m_transMatTemp; /**< Transformation matrix form from which sensing matrix is constructed*/
+	klab::TSmartPointer<NcMatrix<int8_t>> m_ncMatrixBern; 	  /**< NC matrix with bernoulli coefficients*/
+	klab::TSmartPointer<NcMatrix<double>> m_ncMatrixGauss;	  /**< NC matrix with gaussian coefficients*/
 	bool m_jointTrans;												 /**< joint transformation for the spatial decoding?*/
 };
 
