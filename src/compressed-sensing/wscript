@@ -74,6 +74,7 @@ def build(bld):
         'model/cs-sink-app.h',
         'model/spatial-precoding-matrix.h',
         'model/cs-cluster.h',
+        'model/nc-matrix.h',
         'helper/cs-node-container.h',
         'helper/cs-cluster-simple-helper.h',
         'helper/topology-simple-helper.h',
