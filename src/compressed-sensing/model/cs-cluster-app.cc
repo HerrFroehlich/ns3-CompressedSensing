@@ -294,24 +294,32 @@ void CsClusterApp::RLNetworkCoding(Time dt)
 				it++;
 		}
 
-		/*--------  create packets for each link/tx device  --------*/
-		NetDeviceContainer devices = m_node->GetTxDevices();
-		for (auto it = devices.Begin(); it != devices.End(); it++)
+		// /*--------  create packets for each link/tx device  --------*/
+		// NetDeviceContainer devices = m_node->GetTxDevices();
+		// for (auto it = devices.Begin(); it != devices.End(); it++)
+		// {
+		// 	Time dtPkt = MilliSeconds(0);
+		// 	for (uint32_t i = 0; i < m_ncPktPLink; i++)
+		// 	{
+		// 		//send assuming MySimpleNetDevice, where Address is not needed
+		// 		Ptr<Packet> p = DoRLNC(pSameSeq, seqNow);
+		// 		m_txTrace(p);
+		// 		Simulator::Schedule(dtPkt, &CsClusterApp::Send, this, p, *it);
+		// 		dtPkt += GetPktInterval();
+		// 	}
+		/*--------  create packets for each link to broadcast  --------*/
+		std::vector<Ptr<Packet>> packets;
+		packets.reserve(m_ncPktPLink);
+		for (uint32_t i = 0; i < m_ncPktPLink; i++)
 		{
-			Time dtPkt = MilliSeconds(0);
-			for (uint32_t i = 0; i < m_ncPktPLink; i++)
-			{
-				//send assuming MySimpleNetDevice, where Address is not needed
-				Ptr<Packet> p = DoRLNC(pSameSeq, seqNow);
-				m_txTrace(p);
-				Simulator::Schedule(dtPkt, &CsClusterApp::Send, this, p, *it);
-				dtPkt += GetPktInterval();
-			}
+			Ptr<Packet> p = DoRLNC(pSameSeq, seqNow);
+			packets.push_back(p);
 		}
+		WriteBcPacketList(packets);
 	}
 
 	//schedule next nc intervall if time out wasn't reached or time out was disabled (m_ncTimeOut == 0)
-	if(m_ncTimeOut == 0 || m_ncTimeOutCnt < m_ncTimeOut)
+	if (m_ncTimeOut == 0 || m_ncTimeOutCnt < m_ncTimeOut)
 		m_ncEvent = Simulator::Schedule(dt, &CsClusterApp::RLNetworkCoding, this, dt);
 }
 
@@ -486,7 +494,7 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 			dataBuf[i] += pktData[i] * c;
 		}
 
-		for (uint32_t i = 0; i < CsClusterHeader::GetNcInfoSize(); i++)
+   		for (uint32_t i = 0; i < CsClusterHeader::GetNcInfoSize(); i++)
 		{
 			ncInfo.at(i) += pktNcInfo.at(i) * c;
 		}
