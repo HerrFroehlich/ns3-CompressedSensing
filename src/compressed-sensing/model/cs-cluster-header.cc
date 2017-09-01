@@ -9,6 +9,9 @@
 #include "cs-cluster-header.h"
 #include <iomanip> //setprecision
 #include "assert.h"
+#include "ns3/abort.h"
+#include "ns3/random-variable-stream.h"
+using namespace ns3;
 
 NS_OBJECT_ENSURE_REGISTERED(CsClusterHeader);
 
@@ -16,6 +19,8 @@ bool CsClusterHeader::m_isSetup = false;
 uint32_t CsClusterHeader::m_ncInfoSize = 0;
 uint32_t CsClusterHeader::m_maxClusters = 0;
 std::vector<uint32_t> CsClusterHeader::m_lk;
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 CsClusterHeader::CsClusterHeader() : m_ncCount(0), m_srcInfo(m_maxClusters), m_ncInfo(m_ncInfoSize)
 {
@@ -48,7 +53,7 @@ bool CsClusterHeader::IsSrcInfoSet(uint32_t clusterId) const
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-void CsClusterHeader::SetupCl(const std::vector<uint32_t> &lk)
+void CsClusterHeader::Setup(const std::vector<uint32_t> &lk, E_NcCoeffType cType)
 {
 	m_lk = lk;
 	m_ncInfoSize = 0;

@@ -9,7 +9,7 @@
 * c1-----|		
 */
 
-#define DEFAULT_NOF_SRCNODES 100
+#define DEFAULT_NOF_SRCNODES 85
 #define DEFAULT_CHANNELDELAY_MS 0
 #define DEFAULT_DRATE_BPS 0 // 1Mbitps
 #define DEFAULT_N 256
@@ -407,7 +407,7 @@ int main(int argc, char *argv[])
 
 	sinkApp->SetAttribute("MinPackets", UintegerValue(0));
 
-	sinkApp->SetAttribute("MinPackets", UintegerValue(l0+l1+l2));
+	sinkApp->SetAttribute("MinPackets", UintegerValue(nc2));
 
 	sinkApp->TraceConnectWithoutContext("Rx", MakeCallback(&receiveCb));
 	sinkApp->AddCluster(cluster2);
