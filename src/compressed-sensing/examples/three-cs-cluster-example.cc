@@ -405,10 +405,6 @@ int main(int argc, char *argv[])
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/Tolerance", DoubleValue(tol));
 	// recTemp->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
 
-	sinkApp->SetAttribute("MinPackets", UintegerValue(0));
-
-	sinkApp->SetAttribute("MinPackets", UintegerValue(nc2));
-
 	sinkApp->TraceConnectWithoutContext("Rx", MakeCallback(&receiveCb));
 	sinkApp->AddCluster(cluster2);
 	sinkApp->AddCluster(cluster0);
