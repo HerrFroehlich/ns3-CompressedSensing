@@ -20,7 +20,7 @@
 *
 * \brief an extension of the CsHeader for cluster head nodes 
 *
-* Before using the CsHeader for cluster heads the static SetupCl function must be called, which is asserted in some methods. 
+* Before using the CsHeader for cluster heads the static Setup function must be called, which is asserted in some methods. 
 *
 * For a cluster node the header is extended by the following fields:
 * - L*256 bit SrcInfo : indicates which source nodes were compressed, 1bit describing one node, the LSB bit representing the nodeID 0\n
@@ -29,8 +29,11 @@
 * 					  The size of the network coding information field varies depending on the NOF clusters and their spatial compression, it has to be set explicitly.
 *					  Each value in this field corresponds to a row in the spatially compressed \f$Z_k\f$ of each cluster head, so the field size (NOF values) can be computed as
 *					  \f$ \sum_{k=0}^L l_k\f$, where \f$L\f$ is the number of clusters and \f$l_k\f$ the spatial compression dimension (NOF rows of \f$Z_k\f$)
-*					  of each cluster head.
-*
+*					  of each cluster head. 
+* The type of the coefficients is settable, so far supported are: 
+* - Normal distributed : double data type, 64 bit per coefficient
+* - 1/-1 bernoulli distributed : 2 bit per coefficient, 00 as 0, 01 as 1, 10 as -1
+* To have an simple API the coefficients are always returned/set as double values, but they their bit representation is true in a packet.
 */
 class CsClusterHeader : public CsHeader
 {
@@ -59,11 +62,14 @@ class CsClusterHeader : public CsHeader
 
 	/**
 	* \ingroup csNet
-	* \class name
+	* \class NcCoeffGenerator
 	*
-	* \brief briefDesc
+	* \brief Generates network coding coefficients as doubles from a RandomVariableStream
 	*
-	* description
+	* The coefficients are drawn sequentially from a RandomVariableStream. The stream number is assigned automatically.
+	* So far it is possible to generate the coefficients \f$ \beta(t) \f$ with the following distributions: \n
+	* - Normal distribution : \f$ \beta(t)  \sim \mathcal{N}(0,1) \f$
+	* - Bernoulli distribution : \f$ p(\beta(t) = 1) = p(\beta(t) = -1) = 0.5 \f$
 	*
 	*/ class NcCoeffGenerator
 	{

@@ -32,7 +32,8 @@ using namespace ns3;
 *
 * BEFORE running the the application it has to be setup with a valid CsNode and an data input SerialDataBuffer instance. 
 * It is possible to add white gaussian noise (AWGN) to the input data artificially.
-* Upon starting the application during periodic measurment intervals n data samples are compressed to m with the help of the Compressor class and a given seed.
+* Upon starting the application during periodic measurment intervals n data samples are compressed to m with the help of the Compressor class and a given seed : \n
+* \f$Y_{jc} = \Phi\ X_{jc} \f$ (node j in cluster c)\n
 * Then packets are formed containing a CsHeader and m samples as payload (so package loss won't corrupt a data vector).
 * At each measurment interval the sequence counter in the header is incremented.
 * Finally the application broadcast them using no transmission protocol at all (-> assuming use of classes from the simple-network module) 
