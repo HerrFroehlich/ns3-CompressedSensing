@@ -136,8 +136,7 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 		return false;
 	}
 
-	if (!BufferPacketData(p))
-		m_rxDropTrace(p, E_DropCause::REC_BUF_FULL);
+	BufferPacketData(p);
 	if (++m_rxPacketsSeq >= m_minPackets)
 		ReconstructNext();
 	return true;
@@ -145,14 +144,11 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-bool CsSinkApp::BufferPacketData(Ptr<const Packet> packet)
+void CsSinkApp::BufferPacketData(Ptr<const Packet> packet)
 {
 	NS_LOG_FUNCTION(this << packet);
 
 	CsClusterHeader header;
-
-	if (m_reconst->InBufIsFull())
-		return false;
 
 	Ptr<Packet> p = packet->Copy(); //COW
 
@@ -192,7 +188,6 @@ bool CsSinkApp::BufferPacketData(Ptr<const Packet> packet)
 			m_reconst->SetPrecodeEntries(id, precode);
 		}
 	}
-	return true;
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/

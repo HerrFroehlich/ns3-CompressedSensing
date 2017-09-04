@@ -36,6 +36,7 @@ def build(bld):
         'model/cs-sink-app.cc',
         'model/spatial-precoding-matrix.cc',
         'model/cs-cluster.cc',
+        'model/nc-matrix.cc',
         'helper/cs-node-container.cc',
         'helper/cs-cluster-simple-helper.cc',
         'helper/topology-simple-helper.cc',
@@ -84,7 +85,8 @@ def build(bld):
         'util/node-data-buffer-meta.h',
         'util/template-registration.h',
         'util/data-stream.h',
-        'util/mat-file-handler.h'
+        'util/mat-file-handler.h',
+        'util/row-data-buffer.h'
 ]
 
     if bld.env.ENABLE_EXAMPLES:

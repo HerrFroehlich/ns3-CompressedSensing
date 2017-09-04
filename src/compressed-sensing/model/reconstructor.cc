@@ -57,8 +57,7 @@ TypeId Reconstructor::GetTypeId(void)
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
 Reconstructor::Reconstructor() : m_seq(0), m_calcSnr(false), m_nClusters(0),
-								 m_ncMatrixBern(new NcMatrix<int8_t>(CsClusterHeader::GetNcInfoSize())),
-								 m_ncMatrixGauss(new NcMatrix<double>(CsClusterHeader::GetNcInfoSize())),
+								 m_ncMatrix(new NcMatrix(CsClusterHeader::GetNcInfoSize())),
 								 m_jointTrans(true)
 {
 
@@ -76,11 +75,10 @@ void Reconstructor::AddCluster(Ptr<CsCluster> cluster)
 	m_clusterInfoMap.emplace(id, cluster);
 
 	//adjusting Input buffer
-	uint32_t cols = m_inBuf.nCols();
-	if (cols < cluster->GetCompression(CsCluster::E_COMPR_DIMS::m))
-		cols = cluster->GetCompression(CsCluster::E_COMPR_DIMS::m);
-	uint32_t rows = m_inBuf.nRows() + cluster->GetCompression(CsCluster::E_COMPR_DIMS::l);
-	m_inBuf.Resize(rows, cols);
+	uint32_t cols = m_inBuf.GetRowLen(),
+			 colsNow = cluster->GetCompression(CsCluster::E_COMPR_DIMS::m);
+	if (cols < colsNow)
+		m_inBuf.SetRowLen(colsNow);
 
 	m_nClusters++;
 }
@@ -91,22 +89,21 @@ void Reconstructor::WriteData(const double *buffer, const uint32_t bufSize,
 							  const CsClusterHeader::T_NcInfoField &ncCoeff)
 {
 	NS_LOG_FUNCTION(this << buffer << bufSize << &ncCoeff);
-
-	uint32_t space = m_inBuf.WriteData(buffer, bufSize);
-	if (space)
+	uint32_t rowLen = m_inBuf.GetRowLen();
+	NS_ASSERT_MSG(!(bufSize > rowLen), "Buffer is larger than a row of U!");
+	if (bufSize < rowLen)
 	{
 		NS_LOG_WARN("Incomplete row, filling with zeros!");
-		double pad[space] = {0.0};
-		m_inBuf.WriteData(pad, space);
+		double buf[rowLen];
+		std::copy(buffer, buffer + bufSize, buf);
+		for (uint32_t i = 0; i < rowLen - bufSize; i++)
+			*(buf + bufSize + i) = 0.0;
+		m_inBuf.WriteRow(buf, rowLen);
 	}
-	m_ncMatrixGauss->WriteRow(ncCoeff);
-}
+	else
+		m_inBuf.WriteRow(buffer, bufSize);
 
-/*-----------------------------------------------------------------------------------------------------------------------*/
-
-bool Reconstructor::InBufIsFull() const
-{
-	return m_inBuf.IsFull();
+	m_ncMatrix->WriteRow(ncCoeff);
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -131,7 +128,7 @@ void Reconstructor::Reset(uint32_t seq)
 		ClusterInfo &info = entry.second;
 		info.AddNewStreams(m_seq);
 		m_inBuf.Reset();
-		m_ncMatrixGauss->Reset();
+		m_ncMatrix->Reset();
 	}
 }
 
@@ -304,7 +301,7 @@ void Reconstructor::ReconstructSpat()
 	NS_LOG_FUNCTION(this);
 
 	//get N
-	klab::TSmartPointer<kl1p::TOperator<double>> N = m_ncMatrixGauss;
+	klab::TSmartPointer<kl1p::TOperator<double>> N = m_ncMatrix;
 	N = new kl1p::TScalingOperator<double>(N, 1.0 / klab::Sqrt(N->m()));
 	//get operator array
 	kl1p::TBlockDiagonalOperator<double>::TOperatorArray blockA;
@@ -318,7 +315,9 @@ void Reconstructor::ReconstructSpat()
 	klab::TSmartPointer<TOperator<double>> A = new TBlockDiagonalOperator<double>(blockA);
 	NS_ASSERT_MSG(N->n() == A->m(), "NC matrix and sensing block matrix are not matching sizes! Have you added all clusters?");
 	//stored input data
-	Mat<double> U = m_inBuf.ReadAll() / klab::Sqrt(N->m()); //since we scaled N before
+	Mat<double> U;
+	m_inBuf.GetMatrix(U);
+	U /= klab::Sqrt(N->m()); //since we scaled N before
 
 	Mat<double> Y;
 	if (m_jointTrans && m_transMatSpat.isValid()) // reconstruct jointly with joint transformation

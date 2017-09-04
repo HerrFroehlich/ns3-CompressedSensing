@@ -14,7 +14,7 @@
 #include <armadillo>
 #include <stdint.h>
 #include <map>
-#include "ns3/node-data-buffer.h"
+#include "ns3/row-data-buffer.h"
 #include "ns3/mat-buffer.h"
 #include "random-matrix.h"
 #include "transform-matrix.h"
@@ -138,13 +138,6 @@ class Reconstructor : public ns3::Object
 	*/
 	void WriteData(const double *buffer, const uint32_t bufSize,
 				   const CsClusterHeader::T_NcInfoField &ncCoeff);
-
-	/**
-	* \brief checks if the input buffer is full
-	*
-	* \return true when the input buffer is full
-	*/
-	bool InBufIsFull() const;
 
 	/**
 	* \brief sets the precoding entries
@@ -418,7 +411,7 @@ class Reconstructor : public ns3::Object
 	//internal
 	uint32_t m_seq;						  /**< current measurment sequence*/
 	bool m_calcSnr;						  /**< Calculate SNR directly?*/
-	NodeDataBuffer<double> m_inBuf;		  /**< input data buffer*/
+	RowDataBuffer<double> m_inBuf;		  /**< input data buffer*/
 
 	//clusters
 	uint32_t m_nClusters;										 /**< NOF clusters from which we are gathering data*/
@@ -431,8 +424,7 @@ class Reconstructor : public ns3::Object
 	//operators
 	klab::TSmartPointer<RandomMatrix> m_ranMatSpat, m_ranMatTemp;	/**< Random matrix form from which sensing matrix is constructed*/
 	klab::TSmartPointer<TransMatrix> m_transMatSpat, m_transMatTemp; /**< Transformation matrix form from which sensing matrix is constructed*/
-	klab::TSmartPointer<NcMatrix<int8_t>> m_ncMatrixBern; 	  /**< NC matrix with bernoulli coefficients*/
-	klab::TSmartPointer<NcMatrix<double>> m_ncMatrixGauss;	  /**< NC matrix with gaussian coefficients*/
+	klab::TSmartPointer<NcMatrix> m_ncMatrix;	  /**< NC matrix with gaussian coefficients*/
 	bool m_jointTrans;												 /**< joint transformation for the spatial decoding?*/
 };
 
