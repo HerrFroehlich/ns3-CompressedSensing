@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
 		// std::vector<uint32_t> lk(1, l);
 		std::vector<uint32_t> lk;
 		lk.push_back(l);
-		CsClusterHeader::SetupCl(lk);
+		CsClusterHeader::Setup(lk);
 
 		/*********  create cluster  **********/
 		NS_LOG_INFO("Creating cluster...");

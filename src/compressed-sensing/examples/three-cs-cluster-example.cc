@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
 	lk.push_back(l0);
 	lk.push_back(l1);
 	lk.push_back(l2);
-	CsClusterHeader::SetupCl(lk);
+	CsClusterHeader::Setup(lk, CsClusterHeader::E_NcCoeffType::BERN);
 
 	/*********  set up clusters  **********/
 	vector<Ptr<CsCluster>> clusters(3);
@@ -422,7 +422,7 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprFail", MakeCallback(&comprFailSpat));
 	Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$MySimpleNetDevice/PhyRxDrop", MakeCallback(&packetDrop));
 
-	//sinkApp->SetAttribute("MinPackets", UintegerValue(40));
+	//sinkApp->SetAttribute("MinPackets", UintegerValue(nc2));
 	/*********  Running the Simulation  **********/
 
 	NS_LOG_INFO("Starting Simulation...");

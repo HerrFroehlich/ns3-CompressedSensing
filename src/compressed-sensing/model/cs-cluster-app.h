@@ -172,16 +172,17 @@ private:
   CsClusterHeader::T_SrcInfoField m_srcInfo;
 
   //Network coding
-  Ptr<RandomVariableStream> m_ranNc;      /**< random variable stream, to determine when to send*/
-  std::vector<Ptr<Packet>> m_ncPktBuffer; /**< packet buffer for network coding*/
-  uint32_t m_ncMaxRecomb,                 /**< maximum network coding recombinations*/
-      m_ncPktPLink,                       /**< NOF packets per link at each interval*/
-      m_ncTimeOut,                        /**< NOF of intervals with no packages to timeout*/
-      m_ncTimeOutCnt;                     /**< counter of nc intervals with no packages*/
-  Time m_ncInterval,                      /**< network coding interval*/
-      m_ncIntervalDelay;                  /**< Initial delay of network coding interval*/
-  EventId m_ncEvent;                      /**< event for doing network coding*/
-  bool m_ncEnable;                        /**< Enable network coding?*/
+  //Ptr<RandomVariableStream> m_ranNc;      /**< random variable stream, to determine when to send*/
+  CsClusterHeader::NcCoeffGenerator m_ncGen; /**< generator for network coding coefficients*/
+  std::vector<Ptr<Packet>> m_ncPktBuffer;    /**< packet buffer for network coding*/
+  uint32_t m_ncMaxRecomb,                    /**< maximum network coding recombinations*/
+      m_ncPktPLink,                          /**< NOF packets per link at each interval*/
+      m_ncTimeOut,                           /**< NOF of intervals with no packages to timeout*/
+      m_ncTimeOutCnt;                        /**< counter of nc intervals with no packages*/
+  Time m_ncInterval,                         /**< network coding interval*/
+      m_ncIntervalDelay;                     /**< Initial delay of network coding interval*/
+  EventId m_ncEvent;                         /**< event for doing network coding*/
+  bool m_ncEnable;                           /**< Enable network coding?*/
 
   //Internal
   bool m_running,

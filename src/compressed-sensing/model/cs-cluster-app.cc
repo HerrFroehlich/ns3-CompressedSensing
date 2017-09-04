@@ -59,11 +59,6 @@ CsClusterApp::GetTypeId(void)
 										  UintegerValue(1),
 										  MakeUintegerAccessor(&CsClusterApp::m_ncPktPLink),
 										  MakeUintegerChecker<uint32_t>())
-							.AddAttribute("NcRan", "The random variable attached to get the NC coefficients",
-										  TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
-										  StringValue("ns3::NormalRandomVariable"),
-										  MakePointerAccessor(&CsClusterApp::m_ranNc),
-										  MakePointerChecker<RandomVariableStream>())
 							.AddTraceSource("Rx", "A new packet is received",
 											MakeTraceSourceAccessor(&CsClusterApp::m_rxTrace),
 											"ns3::Packet::TracedCallback")
@@ -442,15 +437,8 @@ void CsClusterApp::StartNewSeq(CsHeader::T_SeqField seq)
 Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClusterHeader::T_SeqField seq)
 {
 	NS_LOG_FUNCTION(this << &pktList);
-	using T_Coeff = CsClusterHeader::T_NcInfoFieldValue;
 	//get coefficients
-	std::vector<T_Coeff> coeffs;
-	coeffs.reserve(pktList.size());
-	for (size_t i = 0; i < pktList.size(); i++)
-	{
-		T_Coeff c = m_ranNc->GetValue();
-		coeffs.push_back(c);
-	}
+	std::vector<double> coeffs = m_ncGen.Generate(pktList.size());
 
 	//calculate NC packet
 
@@ -460,7 +448,7 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 
 	//new header
 	CsClusterHeader headerNew;
-	CsClusterHeader::T_NcInfoField ncInfo(CsClusterHeader::GetNcInfoSize(), 0.0); // empty nc info field
+	CsClusterHeader::T_NcInfoField ncInfo(CsClusterHeader::GetNcInfoSize(),  0.0); // empty nc info field
 	CsClusterHeader::T_NcCountField ncCountMax = 0;
 
 	for (const auto &pkt : pktList)
@@ -486,7 +474,7 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 		p->CopyData(reinterpret_cast<uint8_t *>(pktData), nBytes);
 
 		//multiply each data value with the coefficient;
-		T_Coeff c = coeffs.back();
+		double c = coeffs.back();
 		coeffs.pop_back();
 
 		for (uint32_t i = 0; i < GetMaxPayloadSize(); i++)
@@ -494,7 +482,7 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 			dataBuf[i] += pktData[i] * c;
 		}
 
-   		for (uint32_t i = 0; i < CsClusterHeader::GetNcInfoSize(); i++)
+		for (uint32_t i = 0; i < CsClusterHeader::GetNcInfoSize(); i++)
 		{
 			ncInfo.at(i) += pktNcInfo.at(i) * c;
 		}
