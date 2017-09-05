@@ -10,13 +10,13 @@
 */
 
 #define DEFAULT_NOF_SRCNODES 85
-#define DEFAULT_CHANNELDELAY_MS 0
+#define DEFAULT_CHANNELDELAY_MS 1
 #define DEFAULT_DRATE_BPS 0 // 1Mbitps
-#define DEFAULT_N 256
+#define DEFAULT_N 512
 #define DEFAULT_M 64
-#define DEFAULT_L 64
+#define DEFAULT_L 32
 #define DEFAULT_FILE "./IOdata/data.mat"
-#define DEFAULT_K 20
+#define DEFAULT_K 5
 #define DEFAULT_SRCMAT_NAME "X"
 #define CLUSTER_ID 0
 #define DEFAULT_TOL 1e-3
@@ -37,8 +37,8 @@ using namespace std;
 NS_LOG_COMPONENT_DEFINE("ThreeCsCluster");
 
 MatFileHandler matHandler_glob;
-uint32_t tTemp_glob = 0, tSpat_glob = 0, nErrorRec_glob = 0, nErrorComp_glob = 0;
-bool verbose = false,
+static uint32_t tTemp_glob = 0, tSpat_glob = 0, nErrorRec_glob = 0, nTx_glob = 0;
+static bool verbose = false,
 	 info = false;
 
 static void
@@ -76,6 +76,7 @@ transmittingCb(Ptr<const Packet> p)
 		p->Print(cout);
 		cout << endl;
 	}
+	nTx_glob++;
 }
 
 static void
@@ -108,7 +109,6 @@ comprFailSpat(CsHeader::T_IdField id)
 {
 	if (info || verbose)
 		cout << "Spatial compression failed within cluster " << static_cast<int>(id) << endl;
-	nErrorComp_glob++;
 }
 
 static void
@@ -158,10 +158,10 @@ int main(int argc, char *argv[])
 		 bpSpat = false,
 		 ampSpat = false,
 		 calcSnr = false,
-		 nonc = false;
+		 nonc = false,
+		 ncBern = false;
 	std::string matFilePath = DEFAULT_FILE,
-				// matFilePathOut = DEFAULT_FILEOUT,
-		srcMatrixName = DEFAULT_SRCMAT_NAME;
+				srcMatrixName = DEFAULT_SRCMAT_NAME;
 
 	CommandLine cmd;
 
@@ -178,6 +178,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("nc0", "NOF network coded packets per link in each inverval at cluster head 0", nc0);
 	cmd.AddValue("nc1", "NOF network coded packets per link in each inverval at cluster head 1", nc1);
 	cmd.AddValue("nc2", "NOF network coded packets per link in each inverval at cluster head 2", nc2);
+	cmd.AddValue("ncBern", "Use bernoulli nc coefficients?", ncBern);
 	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
 	cmd.AddValue("nNodes", "NOF nodes per cluster", nNodes);
@@ -245,11 +246,13 @@ int main(int argc, char *argv[])
 	lk.push_back(l0);
 	lk.push_back(l1);
 	lk.push_back(l2);
-	CsClusterHeader::Setup(lk, CsClusterHeader::E_NcCoeffType::BERN);
+	if (ncBern)
+		CsClusterHeader::Setup(lk, CsClusterHeader::E_NcCoeffType::BERN);
+	else
+		CsClusterHeader::Setup(lk);
 
 	/*********  set up clusters  **********/
 	vector<Ptr<CsCluster>> clusters(3);
-
 
 	NS_LOG_INFO("Creating cluster...");
 	CsClusterSimpleHelper clusterHelper;
@@ -359,9 +362,9 @@ int main(int argc, char *argv[])
 	if (rateErr > 0.0)
 	{
 		TopologySimpleHelper::LinksDouble links(3);
-		links.SetClLink(0, 2, 1-rateErr);
-		links.SetClLink(0, 1, 1-rateErr);
-		links.SetSinkLink(2, 1-rateErr);
+		links.SetClLink(0, 2, 1 - rateErr);
+		links.SetClLink(1, 1, 1 - rateErr);
+		links.SetSinkLink(2, 1 - rateErr);
 		topHelper.Create(clusters, sink, links);
 	}
 	else
@@ -461,7 +464,7 @@ int main(int argc, char *argv[])
 	matHandler_glob.WriteValue<double>("totalTimeTemp", tTemp_glob);
 	matHandler_glob.WriteValue<double>("totalTimeSpat", tSpat_glob);
 	matHandler_glob.WriteValue<double>("nErrorRec", nErrorRec_glob);
-	matHandler_glob.WriteValue<double>("nErrorComp", nErrorComp_glob);
+	matHandler_glob.WriteValue<double>("nTx", nTx_glob);
 
 	matHandler_glob.WriteValue<double>("nMeasSeq", nMeasSeq);
 
