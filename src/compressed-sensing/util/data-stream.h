@@ -28,7 +28,7 @@ using namespace ns3;
 * \tparam type of data stored
 */
 template <typename T>
-class DataStream : public ns3::Object
+class DataStream : public ns3::SimpleRefCount<DataStream<T>>
 {
   public:
 	using T_Buffer = SerialDataBuffer<T>;								  /**< Type of the underlying buffers*/
