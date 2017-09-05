@@ -3,10 +3,10 @@
 *
 * \author Tobias Waurick
 * \date 23.08.17
-*
-* c0-----|
-* 		c2----s
-* c1-----|		
+*		
+*		c1-----|	
+* c0-----|	   S
+* 		c2-----|
 */
 
 #define DEFAULT_NOF_SRCNODES 85
@@ -37,8 +37,8 @@ using namespace std;
 NS_LOG_COMPONENT_DEFINE("ThreeCsCluster");
 
 MatFileHandler matHandler_glob;
-static uint32_t tTemp_glob = 0, tSpat_glob = 0, nErrorRec_glob = 0, nTx_glob = 0;
-static bool verbose = false,
+static uint32_t tTemp_glob = 0, tSpat_glob = 0, nErrorRec_glob = 0, nTx_glob = 0, nTxCl_glob = 0;
+bool verbose = false,
 	 info = false;
 
 static void
@@ -77,6 +77,13 @@ transmittingCb(Ptr<const Packet> p)
 		cout << endl;
 	}
 	nTx_glob++;
+}
+
+static void
+transmittingCbCl(Ptr<const Packet> p)
+{
+	NS_LOG_FUNCTION(p);
+	nTxCl_glob++;
 }
 
 static void
@@ -308,7 +315,9 @@ int main(int argc, char *argv[])
 	clusters.at(0) = cluster0;
 	//create cluster 1
 
-	if (nonc || nc0 == l0) // switch off nc if selected or unncessary (nc1 == l1)
+	clusterHelper.SetClusterAppAttribute("NcIntervalDelay", TimeValue(MilliSeconds(20)+channelDelay));
+
+	if (nonc) // switch off nc if selected or unncessary (nc1 == l1)
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
 	else
 	{
@@ -334,7 +343,6 @@ int main(int argc, char *argv[])
 	else
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
 
-	clusterHelper.SetClusterAppAttribute("NcIntervalDelay", TimeValue(MilliSeconds(11)));
 	clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(nc2));
 	if (!noprecode)
 	{
@@ -347,11 +355,6 @@ int main(int argc, char *argv[])
 	clusterApps.Add(cluster2->GetApps());
 	clusters.at(2) = cluster2;
 
-	//add trace sources to apps
-	std::string confPath = "/NodeList/*/ApplicationList/0/$CsSrcApp/"; //for all nodes add a tx callback
-	Config::ConnectWithoutContext(confPath + "Tx", MakeCallback(&transmittingCb));
-	confPath = "/NodeList/*/ApplicationList/0/$CsClusterApp/"; //for cluster node add a rx callback
-	Config::ConnectWithoutContext(confPath + "Rx", MakeCallback(&receiveCb));
 
 	NS_LOG_INFO("Connecting...");
 
@@ -363,16 +366,18 @@ int main(int argc, char *argv[])
 	{
 		TopologySimpleHelper::LinksDouble links(3);
 		links.SetClLink(0, 2, 1 - rateErr);
-		links.SetClLink(1, 1, 1 - rateErr);
+		links.SetClLink(0, 1, 1 - rateErr);
 		links.SetSinkLink(2, 1 - rateErr);
+		links.SetSinkLink(1, 1 - rateErr);
 		topHelper.Create(clusters, sink, links);
 	}
 	else
 	{
 		TopologySimpleHelper::LinksBool links(3);
+		links.SetClLink(0, 1);
 		links.SetClLink(0, 2);
-		links.SetClLink(1, 2);
 		links.SetSinkLink(2);
+		links.SetSinkLink(1);
 		topHelper.Create(clusters, sink, links);
 	}
 
@@ -420,6 +425,12 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/RecError", MakeCallback(&recErrorCb));
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprFail", MakeCallback(&comprFailSpat));
 	Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$MySimpleNetDevice/PhyRxDrop", MakeCallback(&packetDrop));
+	//add trace sources to apps
+	std::string confPath = "/NodeList/*/ApplicationList/0/$CsSrcApp/"; //for all nodes add a tx callback
+	Config::ConnectWithoutContext(confPath + "Tx", MakeCallback(&transmittingCb));
+	confPath = "/NodeList/*/ApplicationList/0/$CsClusterApp/"; //for cluster node add a rx callback
+	Config::ConnectWithoutContext(confPath + "Rx", MakeCallback(&receiveCb));
+	Config::ConnectWithoutContext(confPath + "Tx", MakeCallback(&transmittingCbCl));
 
 	//sinkApp->SetAttribute("MinPackets", UintegerValue(nc2));
 	/*********  Running the Simulation  **********/
@@ -465,6 +476,7 @@ int main(int argc, char *argv[])
 	matHandler_glob.WriteValue<double>("totalTimeSpat", tSpat_glob);
 	matHandler_glob.WriteValue<double>("nErrorRec", nErrorRec_glob);
 	matHandler_glob.WriteValue<double>("nTx", nTx_glob);
+	matHandler_glob.WriteValue<double>("nTxCl", nTxCl_glob);
 
 	matHandler_glob.WriteValue<double>("nMeasSeq", nMeasSeq);
 

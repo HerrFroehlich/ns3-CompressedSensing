@@ -21,8 +21,45 @@
 *
 * \brief Application for a cluster node
 *
-* description:TODO
-*
+* Since the cluster head itself can be a source node this class inherits from CsSrcApp.
+* BEFORE running the the application it has to be as well setup with a valid CsNode and an data input SerialDataBuffer instance.  
+* The cluster head compresses the data form the SerialDataBuffer temporally during fixed measurment intervals.
+* Instead of broadcasting the result the cluster head waits for incoming packets with temporally
+* compressed data from other source nodes (\f$ Y_{jc} \in {\rm I\!R}^{m \times 1} \f$)in the cluster. 
+* Packets with an outdated sequence number, incorrect size, or from source nodes of a different cluster are dropped.
+* Upon receiving a new measurement sequence number or after
+* a certain timeout intervall when no new packets are received from the source nodes, the cluster head compresses spatially:
+* \f$Z_{c} = \Phi_c \hat{Y} = \Phi_c B_c Y = \Phi_c B_c
+* \begin{bmatrix} Y_{1c}^T\\
+*                 Y_{2c}^T\\
+*                 \cdots\\
+*                 Y_{jc}^T\\
+* \end{bmatrix}, Z_c \in {\rm I\!R}^{l \times m}, \Phi_c \in {\rm I\!R}^{l \times N_c}, Y \in {\rm I\!R}^{N_c \times m} \f$ \n
+* where:\n
+* - \f$l\f$ is the NOF measurement vectors after compression
+* - \f$m\f$ the NOF samples in a temporally compressed measurement vector
+* - \f$N_c\f$ NOF source nodes in the cluster (including the cluster head)
+* - \f$\Phi_c\f$ the spatial compression matrix of the cluster head
+* - \f$ B_c\f$ is a diagonal matrix stating from which source nodes the cluster head has received valid data.
+* - \f$ Y \f$ the  temporally compressed data from all source nodes in the cluster
+* - \f$ \hat{Y} = B_c Y \f$ the actually received temporally compressed data from source nodes in the cluster
+* To know which row of which \f$ Z_c\f$ is sended a corresponding row from a identity matrix is set as the 
+* initial NC coefficients (see CsClusterHeader::SetNcInfoNew).
+* If network coding (NC) is disabled the simply broadcasts packets containing the rows from \f$Z_c\f$, thus sending \f$l\f$ packets
+* per measurement sequence. In contrary when NC is enabled, as it is per default, the cluster head recombines its own data
+* with incoming data from other cluster heads periodically in NC intervalls (Be sure to set the NC interval time lower than
+* the time of a measurement sequence, so that at least once NC is performed for a measurement sequence).
+* In each NC interval \f$t\f$ during a measurment sequence the cluster head creates \f$P\f$ packets to be broadcasted:  
+ \f$ h_{p,tx}^t = \sum_{\hat{p}=1}^{\hat{P}}\beta_(\hat{p})^t h_{\hat{p},rx}^{t-1} + \sum_{i=1}^l \alpha(i)^t Z_{c, i}^R  \f$\n
+* where:\n
+* - \f$ p \in (1\cdots P)\f$ denotes the coded packets to be send
+* - \f$ \hat{p} \in (1\cdots \hat{P})\f$ denotes received coded packet (with the same measurement sequence)
+* - \f$h_{p,tx}^t\f$ is the data vector of new packet \f$p\f$ to be send 
+* - \f$h_{\hat{p},rx}^{t-1}\f$ is the data vector from a received packet \f$ \hat{p}\f$ from the previous interval
+* - \f$\beta_(\hat{p})^t, \alpha(i)^t\f$ are NC coefficients, drawn with help of the CsClusterHeader::NcCoeffGenerator
+* Finally the NC coded packets are broadcasted.
+* Since the NC intervals would run endlessly, one can set the NOF intervals with no packets from other cluster heads,
+* to stop the NC intervals after that.
 */
 class CsClusterApp : public CsSrcApp
 {
@@ -172,16 +209,17 @@ private:
   CsClusterHeader::T_SrcInfoField m_srcInfo;
 
   //Network coding
-  Ptr<RandomVariableStream> m_ranNc;      /**< random variable stream, to determine when to send*/
-  std::vector<Ptr<Packet>> m_ncPktBuffer; /**< packet buffer for network coding*/
-  uint32_t m_ncMaxRecomb,                 /**< maximum network coding recombinations*/
-      m_ncPktPLink,                       /**< NOF packets per link at each interval*/
-      m_ncTimeOut,                        /**< NOF of intervals with no packages to timeout*/
-      m_ncTimeOutCnt;                     /**< counter of nc intervals with no packages*/
-  Time m_ncInterval,                      /**< network coding interval*/
-      m_ncIntervalDelay;                  /**< Initial delay of network coding interval*/
-  EventId m_ncEvent;                      /**< event for doing network coding*/
-  bool m_ncEnable;                        /**< Enable network coding?*/
+  //Ptr<RandomVariableStream> m_ranNc;      /**< random variable stream, to determine when to send*/
+  CsClusterHeader::NcCoeffGenerator m_ncGen; /**< generator for network coding coefficients*/
+  std::vector<Ptr<Packet>> m_ncPktBuffer;    /**< packet buffer for network coding*/
+  uint32_t m_ncMaxRecomb,                    /**< maximum network coding recombinations*/
+      m_ncPktPLink,                          /**< NOF packets per link at each interval*/
+      m_ncTimeOut,                           /**< NOF of intervals with no packages to timeout*/
+      m_ncTimeOutCnt;                        /**< counter of nc intervals with no packages*/
+  Time m_ncInterval,                         /**< network coding interval*/
+      m_ncIntervalDelay;                     /**< Initial delay of network coding interval*/
+  EventId m_ncEvent;                         /**< event for doing network coding*/
+  bool m_ncEnable;                           /**< Enable network coding?*/
 
   //Internal
   bool m_running,

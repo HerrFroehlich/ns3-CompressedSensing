@@ -229,7 +229,7 @@ int main(int argc, char *argv[])
 	// std::vector<uint32_t> lk(1, l);
 	std::vector<uint32_t> lk;
 	lk.push_back(l);
-	CsClusterHeader::SetupCl(lk);
+	CsClusterHeader::Setup(lk);
 
 	/*********  create cluster  **********/
 	NS_LOG_INFO("Creating cluster...");
@@ -273,7 +273,7 @@ int main(int argc, char *argv[])
 	{
 		errModel->SetRate(rateErr);
 		errModel->SetUnit(RateErrorModel::ErrorUnit::ERROR_UNIT_PACKET);
-		errModel->AssignStreams(0);
+		// errModel->AssignStreams(0);
 		clusterHelper.SetSrcDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
 		clusterHelper.SetClusterDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
 	}

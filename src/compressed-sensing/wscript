@@ -36,8 +36,10 @@ def build(bld):
         'model/cs-sink-app.cc',
         'model/spatial-precoding-matrix.cc',
         'model/cs-cluster.cc',
+        'model/nc-matrix.cc',
         'helper/cs-node-container.cc',
         'helper/cs-cluster-simple-helper.cc',
+        'helper/topology-simple-helper.cc',
         'util/mat-file-handler.cc'
         ]
 
@@ -73,15 +75,18 @@ def build(bld):
         'model/cs-sink-app.h',
         'model/spatial-precoding-matrix.h',
         'model/cs-cluster.h',
+        'model/nc-matrix.h',
         'helper/cs-node-container.h',
         'helper/cs-cluster-simple-helper.h',
+        'helper/topology-simple-helper.h',
         'util/serial-buffer.h',
         'util/mat-buffer.h',
         'util/node-data-buffer.h',
         'util/node-data-buffer-meta.h',
         'util/template-registration.h',
         'util/data-stream.h',
-        'util/mat-file-handler.h'
+        'util/mat-file-handler.h',
+        'util/row-data-buffer.h'
 ]
 
     if bld.env.ENABLE_EXAMPLES:

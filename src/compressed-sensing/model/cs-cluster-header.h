@@ -10,6 +10,7 @@
 #define CS_CLUSTER_HEADER_H
 
 #include "cs-header.h"
+#include "ns3/random-variable-stream.h"
 
 #define BYTE_NVAL 256			  /**< NOF values represented by one byte*/
 #define BYTE_NVAL_DIV_BYTE_LEN 32 /**< BYTE_NVAL divided by BYTE_LEN*/
@@ -19,31 +20,91 @@
 *
 * \brief an extension of the CsHeader for cluster head nodes 
 *
-* Before using the CsHeader for cluster heads the static SetupCl function must be called, which is asserted in some methods. 
+* Before using the CsHeader for cluster heads the static Setup function must be called, which is asserted in some methods. 
 *
 * For a cluster node the header is extended by the following fields:
 * - L*256 bit SrcInfo : indicates which source nodes were compressed, 1bit describing one node, the LSB bit representing the nodeID 0\n
 * -   8 bit	NcCnt	: counter, storing the number of recombinations of the packet
 * -   x bit NcInfo  : information on the process of the network coding coefficients during recombinations in the network.\n
 * 					  The size of the network coding information field varies depending on the NOF clusters and their spatial compression, it has to be set explicitly.
-*					  Each value in this field corresponds to a row in the spatially compressed \f$Z_k\f$ of each cluster head, so the field size can be computed as
+*					  Each value in this field corresponds to a row in the spatially compressed \f$Z_k\f$ of each cluster head, so the field size (NOF values) can be computed as
 *					  \f$ \sum_{k=0}^L l_k\f$, where \f$L\f$ is the number of clusters and \f$l_k\f$ the spatial compression dimension (NOF rows of \f$Z_k\f$)
-*					  of each cluster head.
-*
+*					  of each cluster head. 
+* The type of the coefficients is settable, so far supported are: 
+* - Normal distributed : double data type, 64 bit per coefficient
+* - 1/-1 bernoulli distributed : 2 bit per coefficient, 00 as 0, 01 as 1, 10 as -1
+* To have an simple API the coefficients are always returned/set as double values, but they their bit representation is true in a packet.
 */
 class CsClusterHeader : public CsHeader
 {
   public:
 	//sizes
 	const static T_IdField CLUSTER_NODEID = 0;										/**< the node id of a cluster node*/
-	const static uint32_t SRCINFO_BITLEN = sizeof(T_IdField) * BYTE_NVAL;			/**< length of source info field in bit*/
-	const static uint32_t SRCINFO_LEN = sizeof(T_IdField) * BYTE_NVAL_DIV_BYTE_LEN; /**< length of source info field in byte*/
+	const static uint32_t SRCINFO_BITLEN = sizeof(T_IdField) * BYTE_NVAL;			/**< length of source info field of one cluster in bit*/
+	const static uint32_t SRCINFO_LEN = sizeof(T_IdField) * BYTE_NVAL_DIV_BYTE_LEN; /**< length of source info field of one cluster in byte*/
+	const static uint32_t COEFF_NORM_LEN = sizeof(double);							/**< length of a coefficent when using a normal distribution in byte*/
+	const static uint32_t COEFF_NORM_BITLEN = sizeof(double) * BYTE_LEN;			/**< length of a coefficent when using a normal distribution in bit*/
+	const static uint32_t COEFF_BERN_BITLEN = 2;									/**< length of a coefficent when using a bernoulli distribution in bit*/
+	const static uint32_t COEFF_BERN_PER_BYTE = 4;									/**< how many coefficents when using a bernoulli distribution fit in one byte*/
+																					//fields
 
 	//fields
-	typedef double T_NcInfoFieldValue;					/**< type of the values in the network coding information field*/
-	typedef std::vector<double> T_NcInfoField;			/**< type of the network coding information field*/
+	enum E_NcCoeffType /**< enum stating which type of values is used for network coding*/
+	{
+		NORMAL, /**< using normal distributed coefficients*/
+		BERN	/**< using bernoulli distributed(-1/+1) coefficients*/
+	};
+	//typedef NcCoeffGenerator::NcCoeff::E_Type E_NcCoeffType;
+	//typedef NcCoeffGenerator::NcCoeff T_NcInfoFieldValue;		  /**< type of the values in the network coding information field*/
+	typedef std::vector<double> T_NcInfoField;			/**< type representation of the network coding information field for getting and setting*/
 	typedef uint8_t T_NcCountField;						/**< type of the recombination counter*/
 	typedef std::bitset<SRCINFO_BITLEN> T_SrcInfoField; /**< type of the source information field for each cluster*/
+
+	/**
+	* \ingroup csNet
+	* \class NcCoeffGenerator
+	*
+	* \brief Generates network coding coefficients as doubles from a RandomVariableStream
+	*
+	* The coefficients are drawn sequentially from a RandomVariableStream. The stream number is assigned automatically.
+	* So far it is possible to generate the coefficients \f$ \beta(t) \f$ with the following distributions: \n
+	* - Normal distribution : \f$ \beta(t)  \sim \mathcal{N}(0,1) \f$
+	* - Bernoulli distribution : \f$ p(\beta(t) = 1) = p(\beta(t) = -1) = 0.5 \f$
+	*
+	*/ class NcCoeffGenerator
+	{
+	  public:
+		NcCoeffGenerator();
+
+		/**
+		* \brief generates one network coding coefficients represented as a double
+		*
+		* \return network coding coefficients
+		*/
+		double Generate() const;
+
+		/**
+		* \brief generates multiple  network coding coefficients represented as doubles
+		*
+		* \param n NOF coefficients tp generate
+		*
+		* \return network coding coefficients
+		*/
+		std::vector<double> Generate(uint32_t n) const;
+
+	  private:
+		/**
+		* \brief sets the type of nc coefficients for all generators
+		*
+		* \param type type of the network coefficients
+		*
+		*/
+		static void SetType(CsClusterHeader::E_NcCoeffType);
+
+		static CsClusterHeader::E_NcCoeffType m_coeffType;
+		Ptr<RandomVariableStream> m_ranvar;
+		friend CsClusterHeader;
+	};
 
 	CsClusterHeader();
 
@@ -87,9 +148,18 @@ class CsClusterHeader : public CsHeader
 	* \warning This method should be called globally before using the CsHeader.
 	*
 	* \param lk vector with the spatial compression dimension of each cluster head, NOF of clusters is deduced from vector length
+	* \param cType type of NC coefficients to use
 	*
 	*/
-	static void SetupCl(const std::vector<uint32_t> &lk);
+	static void Setup(const std::vector<uint32_t> &lk, E_NcCoeffType cType = E_NcCoeffType::NORMAL);
+
+	/**
+	* \brief gets the type of nc coefficients for all generators
+	*
+	* \param type type of the network coefficients
+	*
+	*/
+	static E_NcCoeffType GetNcCoeffType();
 
 	/**
 	* \brief gets the maximum NOF clusters
@@ -128,7 +198,7 @@ class CsClusterHeader : public CsHeader
 	* \param vec vector containing values of the network coding information field
 	*
 	*/
-	void SetNcInfo(T_NcInfoField vec);
+	void SetNcInfo(const T_NcInfoField &vec);
 
 	/**
 	* \brief gets the the network coding information field
@@ -175,11 +245,42 @@ class CsClusterHeader : public CsHeader
 	virtual void Serialize(Buffer::Iterator start) const;
 
   private:
+	//const variables
+	enum E_COEFF_BERN_VAL /**< interpretation of the 2bits when using a bernoulli distribution*/
+	{
+		ZERO = 0,	  /**< 00: 0*/
+		PLUS_ONE = 1,  /**< 01: 1*/
+		MINUS_ONE = 2, /**< 10: -1*/
+		INVALID = 3,   /**< 11: Invalid*/
+	};
+
+	/**
+	* \brief writes a bernoulli coefficient to a byte
+	*
+	* \param byte byte to write to
+	* \param val value to write
+	* \param pos position in byte(0..3)
+	*
+	* \return byte with added coefficient
+	*/
+	uint8_t WriteBernCoeffToByte(uint8_t byte, double val, uint8_t pos) const;
+
+	/**
+	* \brief reads a bernoulli from to a byte
+	*
+	* \param byte byte to write to
+	* \param pos position in byte(0..3)
+	*
+	* \return corresponding double coefficient
+	*/
+	double ReadBernCoeffFromByte(uint8_t byte, uint8_t pos) const;
+
 	//static variables
 	static bool m_isSetup;
-	static uint32_t m_ncInfoSize;				   /**< size of the network coding information field (NOF values)*/
-	static uint32_t m_maxClusters;				   /**< maximum NOF clusters*/
-	static std::vector<uint32_t> m_lk;			   /**< vector with the spatial compression dimension of each cluster head*/
+	static uint32_t m_ncInfoSize;	  /**< size of the network coding information field (NOF values)*/
+	static uint32_t m_maxClusters;	 /**< maximum NOF clusters*/
+	static std::vector<uint32_t> m_lk; /**< vector with the spatial compression dimension of each cluster head*/
+	static E_NcCoeffType m_coeffType;
 
 	//variables
 	T_NcCountField m_ncCount; /**< network combination counter*/

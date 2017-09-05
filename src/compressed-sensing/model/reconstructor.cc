@@ -46,13 +46,19 @@ TypeId Reconstructor::GetTypeId(void)
 							.AddAttribute("CalcSnr", "Calculate the SNR instead of saving reconstructed measurement vectors?",
 										  BooleanValue(false),
 										  MakeBooleanAccessor(&Reconstructor::m_calcSnr),
+										  MakeBooleanChecker())
+							.AddAttribute("JointTransform", "Use a joint transformation?",
+										  BooleanValue(true),
+										  MakeBooleanAccessor(&Reconstructor::m_jointTrans),
 										  MakeBooleanChecker());
 	return tid;
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-Reconstructor::Reconstructor() : m_seq(0), m_calcSnr(false), m_nClusters(0)
+Reconstructor::Reconstructor() : m_seq(0), m_calcSnr(false), m_nClusters(0),
+								 m_ncMatrix(new NcMatrix(CsClusterHeader::GetNcInfoSize())),
+								 m_jointTrans(true)
 {
 
 	NS_LOG_FUNCTION(this);
@@ -68,17 +74,11 @@ void Reconstructor::AddCluster(Ptr<CsCluster> cluster)
 
 	m_clusterInfoMap.emplace(id, cluster);
 
-	//adjusting NC matrix
-	uint32_t rows = m_ncMatrixBuf.nRows();
-	rows += cluster->GetCompression(CsCluster::E_COMPR_DIMS::l);
-	m_ncMatrixBuf.Resize(rows, CsClusterHeader::GetNcInfoSize());
-
 	//adjusting Input buffer
-	uint32_t cols = m_inBuf.nCols();
-	if (cols < cluster->GetCompression(CsCluster::E_COMPR_DIMS::m))
-		cols = cluster->GetCompression(CsCluster::E_COMPR_DIMS::m);
-	rows = m_inBuf.nRows() + cluster->GetCompression(CsCluster::E_COMPR_DIMS::l);
-	m_inBuf.Resize(rows, cols);
+	uint32_t cols = m_inBuf.GetRowLen(),
+			 colsNow = cluster->GetCompression(CsCluster::E_COMPR_DIMS::m);
+	if (cols < colsNow)
+		m_inBuf.SetRowLen(colsNow);
 
 	m_nClusters++;
 }
@@ -89,23 +89,21 @@ void Reconstructor::WriteData(const double *buffer, const uint32_t bufSize,
 							  const CsClusterHeader::T_NcInfoField &ncCoeff)
 {
 	NS_LOG_FUNCTION(this << buffer << bufSize << &ncCoeff);
-
-	uint32_t space = m_inBuf.WriteData(buffer, bufSize);
-	if (space)
+	uint32_t rowLen = m_inBuf.GetRowLen();
+	NS_ASSERT_MSG(!(bufSize > rowLen), "Buffer is larger than a row of U!");
+	if (bufSize < rowLen)
 	{
 		NS_LOG_WARN("Incomplete row, filling with zeros!");
-		double pad[space] = {0.0};
-		m_inBuf.WriteData(pad, space);
+		double buf[rowLen];
+		std::copy(buffer, buffer + bufSize, buf);
+		for (uint32_t i = 0; i < rowLen - bufSize; i++)
+			*(buf + bufSize + i) = 0.0;
+		m_inBuf.WriteRow(buf, rowLen);
 	}
-	space = m_ncMatrixBuf.WriteData(ncCoeff);
-	NS_ASSERT_MSG(!space, "Incomplete network coding information");
-}
+	else
+		m_inBuf.WriteRow(buffer, bufSize);
 
-/*-----------------------------------------------------------------------------------------------------------------------*/
-
-bool Reconstructor::InBufIsFull() const
-{
-	return m_inBuf.IsFull();
+	m_ncMatrix->WriteRow(ncCoeff);
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -130,7 +128,7 @@ void Reconstructor::Reset(uint32_t seq)
 		ClusterInfo &info = entry.second;
 		info.AddNewStreams(m_seq);
 		m_inBuf.Reset();
-		m_ncMatrixBuf.Reset();
+		m_ncMatrix->Reset();
 	}
 }
 
@@ -200,13 +198,13 @@ klab::TSmartPointer<kl1p::TOperator<double>> Reconstructor::GetASpat(const Recon
 	//get B
 	klab::TSmartPointer<kl1p::TOperator<double>> B = info.precode;
 
-	//Get psi if valied
-	// if (m_transMatSpat.isValid())
-	// {
-	// 	m_transMatSpat->SetSize(info.nNodes);
-	// 	klab::TSmartPointer<kl1p::TOperator<double>> Psi = m_transMatSpat;
-	// 	return Phi * B * Psi;
-	// }
+	//Get psi if valied and unique transformation
+	if (m_transMatSpat.isValid() && !m_jointTrans)
+	{
+		m_transMatSpat->SetSize(info.nNodes);
+		klab::TSmartPointer<kl1p::TOperator<double>> Psi = m_transMatSpat->Clone();
+		return Phi * B * Psi;
+	}
 	return Phi * B;
 }
 
@@ -241,33 +239,33 @@ void Reconstructor::WriteStream(Ptr<DataStream<double>> stream, const Mat<double
 
 void Reconstructor::WriteRecSpat(const ClusterInfo &info, const Mat<double> &mat)
 {
-	// if (m_transMatSpat.isValid()) // since the reconstruction only gives the indices of the transform we have to apply it again!
-	// {
-	// 	m_transMatSpat->SetSize(info.nNodes);
-	// 	Mat<double> res;
-	// 	res.set_size(mat.n_rows, mat.n_cols);
+	if (!m_jointTrans && m_transMatSpat.isValid()) // since the reconstruction only gives the indices of the transform we have to apply it again!
+	{
+		m_transMatSpat->SetSize(info.nNodes);
+		Mat<double> res;
+		res.set_size(mat.n_rows, mat.n_cols);
 
-	// 	for (size_t i = 0; i < mat.n_cols; i++)
-	// 	{
-	// 		Col<double> xVec;
-	// 		m_transMatSpat->apply(mat.col(i), xVec);
-	// 		res.col(i) = xVec;
-	// 	}
-	// 	info.spatRecBuf->Write(res);
+		for (size_t i = 0; i < mat.n_cols; i++)
+		{
+			Col<double> xVec;
+			m_transMatSpat->apply(mat.col(i), xVec);
+			res.col(i) = xVec;
+		}
+		info.spatRecBuf->Write(res);
 
-	// 	if (m_calcSnr)
-	// 		CalcSnr(info.clStream, GetY0(info), res);
-	// 	else
-	// 		WriteStream(info.clStream, res);
-	// }
-	// else
-	// {
-	info.spatRecBuf->Write(mat);
-	if (m_calcSnr)
-		CalcSnr(info.clStream, GetY0(info), mat);
+		if (m_calcSnr)
+			CalcSnr(info.clStream, GetY0(info), res);
+		else
+			WriteStream(info.clStream, res);
+	}
 	else
-		WriteStream(info.clStream, mat);
-	// }
+	{
+		info.spatRecBuf->Write(mat);
+		if (m_calcSnr)
+			CalcSnr(info.clStream, GetY0(info), mat);
+		else
+			WriteStream(info.clStream, mat);
+	}
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -303,7 +301,7 @@ void Reconstructor::ReconstructSpat()
 	NS_LOG_FUNCTION(this);
 
 	//get N
-	klab::TSmartPointer<kl1p::TOperator<double>> N = new kl1p::TMatrixOperator<double>(m_ncMatrixBuf.ReadAll());
+	klab::TSmartPointer<kl1p::TOperator<double>> N = m_ncMatrix;
 	N = new kl1p::TScalingOperator<double>(N, 1.0 / klab::Sqrt(N->m()));
 	//get operator array
 	kl1p::TBlockDiagonalOperator<double>::TOperatorArray blockA;
@@ -315,24 +313,27 @@ void Reconstructor::ReconstructSpat()
 	}
 	//sensing block matrix A
 	klab::TSmartPointer<TOperator<double>> A = new TBlockDiagonalOperator<double>(blockA);
+	NS_ASSERT_MSG(N->n() == A->m(), "NC matrix and sensing block matrix are not matching sizes! Have you added all clusters?");
 	//stored input data
-	// Mat<double> U = m_inBuf.ReadAll() / klab::Sqrt(N->m()); //since we scaled N before
-	Mat<double> U = m_inBuf.ReadAll();
-	U = U / klab::Sqrt(N->m()); //since we scaled N before
+	Mat<double> U;
+	m_inBuf.GetMatrix(U);
+	U /= klab::Sqrt(N->m()); //since we scaled N before
 
-	klab::TSmartPointer<kl1p::TOperator<double>> Psi;
-	if (m_transMatSpat.isValid())
+	Mat<double> Y;
+	if (m_jointTrans && m_transMatSpat.isValid()) // reconstruct jointly with joint transformation
 	{
+		klab::TSmartPointer<kl1p::TOperator<double>> Psi;
 		m_transMatSpat->SetSize(A->n());
 		Psi = m_transMatSpat;
+
+		Y = m_algoSpat->Run(U, N * A * Psi);
 	}
-	// reconstruct jointly
-	NS_ASSERT_MSG(N->n() == A->m(), "NC matrix and sensing block matrix are not matching sizes! Have you added all clusters?");
-	Mat<double> Y = m_algoSpat->Run(U, N * A * Psi);
+	else // reconstruct jointly with single transformation, A will already contain them
+		Y = m_algoSpat->Run(U, N * A);
 
 	uint32_t idxL = 0;
 
-	if (m_transMatSpat.isValid()) // since the reconstruction only gives the indices of the transform we have to apply it again!
+	if (m_jointTrans && m_transMatSpat.isValid()) // since the reconstruction only gives the indices of the transform we have to apply it again!
 	{
 		for (uint32_t i = 0; i < Y.n_cols; i++)
 		{

@@ -30,41 +30,6 @@ MatFileHandler matHandler_glob;
 
 NS_LOG_COMPONENT_DEFINE("rxProbSweep");
 
-static void
-receiveCb(Ptr<const Packet> p)
-{
-	NS_LOG_FUNCTION(p);
-
-	cout << "\n"
-		 << Simulator::Now() << " Node " << Simulator::GetContext() << " Received:";
-	p->Print(cout);
-	cout << endl;
-}
-
-static void
-transmittingCb(Ptr<const Packet> p)
-{
-	NS_LOG_FUNCTION(p);
-
-	cout << "\n"
-		 << Simulator::Now() << " Node " << Simulator::GetContext() << " Sends:";
-	p->Print(cout);
-	cout << endl;
-}
-
-static void
-tempRecCb(int64_t time, uint32_t iter)
-{
-	cout << "Reconstructed temporally in " << time << " ms with " << iter << " iterations"
-		 << "\n";
-}
-
-static void
-spatRecCb(int64_t time, uint32_t iter)
-{
-	cout << "Reconstructed spatially in " << time << " ms with " << iter << " iterations"
-		 << "\n";
-}
 
 /*-------------------------  MAIN  ------------------------------*/
 
@@ -123,6 +88,8 @@ int main(int argc, char *argv[])
 
 	//uint32_t nMeasSeq;
 	Col<double> meanSnr(RXPROB_STEPS);
+	Mat<double> meanSnrTemp(nNodes,RXPROB_STEPS);
+	Mat<double> varSnrTemp(nNodes,RXPROB_STEPS);
 	Col<double> varSnr(RXPROB_STEPS);
 	for (uint32_t step = 0; step < RXPROB_STEPS; step++)
 	{
@@ -141,7 +108,7 @@ int main(int argc, char *argv[])
 		// std::vector<uint32_t> lk(1, l);
 		std::vector<uint32_t> lk;
 		lk.push_back(l);
-		CsClusterHeader::SetupCl(lk);
+		CsClusterHeader::Setup(lk);
 
 		/*********  create cluster  **********/
 		NS_LOG_INFO("Creating cluster...");
@@ -176,12 +143,6 @@ int main(int argc, char *argv[])
 		//create
 		Ptr<CsCluster> cluster = clusterHelper.Create(CLUSTER_ID, nNodes, sourceData);
 		ApplicationContainer clusterApps = cluster->GetApps();
-
-		//add trace sources to apps
-		std::string confPath = "/NodeList/*/ApplicationList/0/$CsSrcApp/"; //for all nodes add a tx callback
-		Config::ConnectWithoutContext(confPath + "Tx", MakeCallback(&transmittingCb));
-		confPath = "/NodeList/0/ApplicationList/0/$CsClusterApp/"; //for cluster node add a rx callback
-		Config::ConnectWithoutContext(confPath + "Rx", MakeCallback(&receiveCb));
 
 		//sink node
 		Ptr<CsNode> sink = CreateObject<CsNode>();
@@ -229,12 +190,8 @@ int main(int argc, char *argv[])
 
 		sinkApp->SetAttribute("MinPackets", UintegerValue(l));
 
-		sinkApp->TraceConnectWithoutContext("Rx", MakeCallback(&receiveCb));
 		sinkApp->AddCluster(cluster);
 		sinkApp->Setup(sink);
-		//setting calbacks
-		Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/RecComplete", MakeCallback(&spatRecCb));
-		Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/RecComplete", MakeCallback(&tempRecCb));
 		/*********  Running the Simulation  **********/
 
 		NS_LOG_INFO("Running Simulation...");
@@ -256,11 +213,35 @@ int main(int argc, char *argv[])
 			varSnr(step) = delta * delta2;
 		}
 		varSnr(step) /= i;
-	}
+
+		//snr mean temp
+		i = 0;
+		for (auto node = cluster->Begin(); node != cluster->End(); node++)
+		{
+			uint32_t j = 0;
+			(*node)->RmStreamByName(CsNode::STREAMNAME_UNCOMPR);
+			(*node)->RmStreamByName(CsNode::STREAMNAME_COMPR);
+			for (auto it = (*node)->StreamBegin(); it != (*node)->StreamEnd(); it++)
+			{
+				Ptr<SerialDataBuffer<double>> buf = (*it)->PeekBuffer(0);
+				double snr = buf->ReadNext();
+				double delta = snr - meanSnrTemp(i,step);
+				double snrMean = meanSnrTemp(i,step) + delta / ++j;
+				meanSnrTemp(i,step) = snrMean;
+	
+				double delta2 = snr - snrMean;
+				varSnrTemp(i,step) = delta * delta2;
+			}
+			varSnrTemp(i,step) /= j;
+			i++;
+		}
+		}
 
 	/*********  Writing output **********/
-	matHandler_glob.WriteMat<double>("meanSnr", meanSnr);
-	matHandler_glob.WriteMat<double>("varSnr", varSnr);
+	matHandler_glob.WriteMat<double>("meanSnrSpat", meanSnr);
+	matHandler_glob.WriteMat<double>("varSnrSpat", varSnr);
+	matHandler_glob.WriteMat<double>("meanSnrTemp", meanSnrTemp);
+	matHandler_glob.WriteMat<double>("varSnrTemp", varSnrTemp);
 	matHandler_glob.WriteValue<double>("nNodesUsed", nNodes);
 	matHandler_glob.WriteValue<double>("noiseVar", noiseVar);
 	matHandler_glob.WriteValue<double>("n", n);

@@ -59,11 +59,6 @@ CsClusterApp::GetTypeId(void)
 										  UintegerValue(1),
 										  MakeUintegerAccessor(&CsClusterApp::m_ncPktPLink),
 										  MakeUintegerChecker<uint32_t>())
-							.AddAttribute("NcRan", "The random variable attached to get the NC coefficients",
-										  TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
-										  StringValue("ns3::NormalRandomVariable"),
-										  MakePointerAccessor(&CsClusterApp::m_ranNc),
-										  MakePointerChecker<RandomVariableStream>())
 							.AddTraceSource("Rx", "A new packet is received",
 											MakeTraceSourceAccessor(&CsClusterApp::m_rxTrace),
 											"ns3::Packet::TracedCallback")
@@ -294,24 +289,32 @@ void CsClusterApp::RLNetworkCoding(Time dt)
 				it++;
 		}
 
-		/*--------  create packets for each link/tx device  --------*/
-		NetDeviceContainer devices = m_node->GetTxDevices();
-		for (auto it = devices.Begin(); it != devices.End(); it++)
+		// /*--------  create packets for each link/tx device  --------*/
+		// NetDeviceContainer devices = m_node->GetTxDevices();
+		// for (auto it = devices.Begin(); it != devices.End(); it++)
+		// {
+		// 	Time dtPkt = MilliSeconds(0);
+		// 	for (uint32_t i = 0; i < m_ncPktPLink; i++)
+		// 	{
+		// 		//send assuming MySimpleNetDevice, where Address is not needed
+		// 		Ptr<Packet> p = DoRLNC(pSameSeq, seqNow);
+		// 		m_txTrace(p);
+		// 		Simulator::Schedule(dtPkt, &CsClusterApp::Send, this, p, *it);
+		// 		dtPkt += GetPktInterval();
+		// 	}
+		/*--------  create packets for each link to broadcast  --------*/
+		std::vector<Ptr<Packet>> packets;
+		packets.reserve(m_ncPktPLink);
+		for (uint32_t i = 0; i < m_ncPktPLink; i++)
 		{
-			Time dtPkt = MilliSeconds(0);
-			for (uint32_t i = 0; i < m_ncPktPLink; i++)
-			{
-				//send assuming MySimpleNetDevice, where Address is not needed
-				Ptr<Packet> p = DoRLNC(pSameSeq, seqNow);
-				m_txTrace(p);
-				Simulator::Schedule(dtPkt, &CsClusterApp::Send, this, p, *it);
-				dtPkt += GetPktInterval();
-			}
+			Ptr<Packet> p = DoRLNC(pSameSeq, seqNow);
+			packets.push_back(p);
 		}
+		WriteBcPacketList(packets);
 	}
 
 	//schedule next nc intervall if time out wasn't reached or time out was disabled (m_ncTimeOut == 0)
-	if(m_ncTimeOut == 0 || m_ncTimeOutCnt < m_ncTimeOut)
+	if (m_ncTimeOut == 0 || m_ncTimeOutCnt < m_ncTimeOut)
 		m_ncEvent = Simulator::Schedule(dt, &CsClusterApp::RLNetworkCoding, this, dt);
 }
 
@@ -434,15 +437,8 @@ void CsClusterApp::StartNewSeq(CsHeader::T_SeqField seq)
 Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClusterHeader::T_SeqField seq)
 {
 	NS_LOG_FUNCTION(this << &pktList);
-	using T_Coeff = CsClusterHeader::T_NcInfoFieldValue;
 	//get coefficients
-	std::vector<T_Coeff> coeffs;
-	coeffs.reserve(pktList.size());
-	for (size_t i = 0; i < pktList.size(); i++)
-	{
-		T_Coeff c = m_ranNc->GetValue();
-		coeffs.push_back(c);
-	}
+	std::vector<double> coeffs = m_ncGen.Generate(pktList.size());
 
 	//calculate NC packet
 
@@ -452,7 +448,7 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 
 	//new header
 	CsClusterHeader headerNew;
-	CsClusterHeader::T_NcInfoField ncInfo(CsClusterHeader::GetNcInfoSize(), 0.0); // empty nc info field
+	CsClusterHeader::T_NcInfoField ncInfo(CsClusterHeader::GetNcInfoSize(),  0.0); // empty nc info field
 	CsClusterHeader::T_NcCountField ncCountMax = 0;
 
 	for (const auto &pkt : pktList)
@@ -478,7 +474,7 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 		p->CopyData(reinterpret_cast<uint8_t *>(pktData), nBytes);
 
 		//multiply each data value with the coefficient;
-		T_Coeff c = coeffs.back();
+		double c = coeffs.back();
 		coeffs.pop_back();
 
 		for (uint32_t i = 0; i < GetMaxPayloadSize(); i++)
