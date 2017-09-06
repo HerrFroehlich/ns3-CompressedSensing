@@ -143,7 +143,9 @@ int main(int argc, char *argv[])
 		 noprecode = false,
 		 bpSpat = false,
 		 ampSpat = false,
-		 calcSnr = false;
+		 calcSnr = false,
+		 bernSpat = false,
+		 identSpat = false;
 	std::string matFilePath = DEFAULT_FILE,
 				// matFilePathOut = DEFAULT_FILEOUT,
 		srcMatrixName = DEFAULT_SRCMAT_NAME;
@@ -152,6 +154,8 @@ int main(int argc, char *argv[])
 
 	cmd.AddValue("amp", "AMP when solving spatially?", ampSpat);
 	cmd.AddValue("bp", "Basis Pursuit when solving spatially?", bpSpat);
+	cmd.AddValue("bern", "Bernoulli random matrix when compressing spatially?", bernSpat);
+	cmd.AddValue("ident", "Identity random matrix when compressing spatially?", identSpat);
 	cmd.AddValue("channelDelay", "delay of all channels in ms", channelDelayTmp);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
 	cmd.AddValue("info", "Enable info messages", info);
@@ -265,6 +269,11 @@ int main(int argc, char *argv[])
 	//spatial compressor
 	Ptr<Compressor> comp = CreateObject<Compressor>();
 	comp->TraceConnectWithoutContext("Complete", MakeCallback(&compressCb));
+	if (identSpat)
+		comp->SetRanMat(CreateObject<IdentRandomMatrix>());
+	else if (bernSpat)
+		comp->SetRanMat(CreateObject<BernRandomMatrix>());
+
 	clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
 
 	//error model
@@ -325,7 +334,13 @@ int main(int argc, char *argv[])
 	Ptr<TransMatrix> transMat = CreateObject<DcTransMatrix>();
 	Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
 	rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrix>(ranMat, transMat)));
-	ranMat = CreateObject<GaussianRandomMatrix>();
+
+	if (identSpat)
+		ranMat = CreateObject<IdentRandomMatrix>();
+	else if (bernSpat)
+		ranMat = CreateObject<BernRandomMatrix>();
+	else
+		ranMat = CreateObject<GaussianRandomMatrix>();
 
 	rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 	sinkApp->SetAttribute("Reconst", PointerValue(rec));
