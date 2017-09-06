@@ -219,7 +219,8 @@ private:
   Time m_ncInterval,                         /**< network coding interval*/
       m_ncIntervalDelay;                     /**< Initial delay of network coding interval*/
   EventId m_ncEvent;                         /**< event for doing network coding*/
-  bool m_ncEnable;                           /**< Enable network coding?*/
+  bool m_ncEnable,                           /**< Enable network coding?*/
+      m_shuffle;                            /**< shuffle buffered packets?*/
 
   //Internal
   bool m_running,

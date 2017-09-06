@@ -51,6 +51,10 @@ CsClusterApp::GetTypeId(void)
 										  BooleanValue(true),
 										  MakeBooleanAccessor(&CsClusterApp::m_ncEnable),
 										  MakeBooleanChecker())
+							.AddAttribute("NcShuffle", "Don't do network coding, but shiffle buffered packets?",
+										  BooleanValue(false),
+										  MakeBooleanAccessor(&CsClusterApp::m_shuffle),
+										  MakeBooleanChecker())
 							.AddAttribute("NcMax", "Network coding: maximum NOF recombinations",
 										  UintegerValue(10),
 										  MakeUintegerAccessor(&CsClusterApp::m_ncMaxRecomb),
@@ -79,8 +83,8 @@ CsClusterApp::GetTypeId(void)
 
 CsClusterApp::CsClusterApp() : m_l(0), m_zData(), m_ncMaxRecomb(0), m_ncPktPLink(0),
 							   m_ncTimeOut(0), m_ncTimeOutCnt(0), m_ncEvent(EventId()),
-							   m_ncEnable(true), m_running(false), m_isSetup(false),
-							   m_timeoutEvent(EventId())
+							   m_ncEnable(true), m_shuffle(false),
+							   m_running(false), m_isSetup(false), m_timeoutEvent(EventId())
 {
 	NS_LOG_FUNCTION(this);
 }
@@ -144,7 +148,7 @@ void CsClusterApp::StartApplication()
 
 	CsSrcApp::StartApplication(); //start measurement cycle
 	m_running = true;
-	if (m_ncEnable)
+	if (m_ncEnable || m_shuffle)
 		m_ncEvent = Simulator::Schedule(m_ncInterval + m_ncIntervalDelay, &CsClusterApp::RLNetworkCoding, this, m_ncInterval);
 }
 
@@ -227,7 +231,7 @@ void CsClusterApp::CreateCsClusterPackets()
 		p->AddHeader(header);
 		pktList.push_back(p);
 	}
-	if (m_ncEnable) // write to network coding packet buffer
+	if (m_ncEnable || m_shuffle) // write to network coding packet buffer
 	{
 		m_ncPktBuffer.insert(m_ncPktBuffer.end(), pktList.begin(), pktList.end());
 	}
@@ -302,13 +306,29 @@ void CsClusterApp::RLNetworkCoding(Time dt)
 		// 		Simulator::Schedule(dtPkt, &CsClusterApp::Send, this, p, *it);
 		// 		dtPkt += GetPktInterval();
 		// 	}
+
 		/*--------  create packets for each link to broadcast  --------*/
 		std::vector<Ptr<Packet>> packets;
-		packets.reserve(m_ncPktPLink);
-		for (uint32_t i = 0; i < m_ncPktPLink; i++)
+		if (m_shuffle) //only shuffle their order
 		{
-			Ptr<Packet> p = DoRLNC(pSameSeq, seqNow);
-			packets.push_back(p);
+			uint32_t nPkt = pSameSeq.size();
+			packets.reserve(nPkt);
+			for (size_t i = 0; i < nPkt / 2; i++)
+			{
+				packets.push_back(pSameSeq.at(i));
+				packets.push_back(pSameSeq.at(nPkt / 2 + i));
+			}
+			if (nPkt % 2 != 0) //odd
+				packets.push_back(pSameSeq.at(nPkt-1));
+		}
+		else //do NC
+		{
+			packets.reserve(m_ncPktPLink);
+			for (uint32_t i = 0; i < m_ncPktPLink; i++)
+			{
+				Ptr<Packet> p = DoRLNC(pSameSeq, seqNow);
+				packets.push_back(p);
+			}
 		}
 		WriteBcPacketList(packets);
 	}
@@ -412,7 +432,7 @@ bool CsClusterApp::ReceiveCluster(const Ptr<const Packet> p)
 		return false;
 	}
 
-	if (m_ncEnable) //write to nc packet buffer
+	if (m_ncEnable || m_shuffle) //write to nc packet buffer
 		m_ncPktBuffer.push_back(p->Copy());
 	else //broadcast
 		WriteBcPacketList(p->Copy());
@@ -448,7 +468,7 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 
 	//new header
 	CsClusterHeader headerNew;
-	CsClusterHeader::T_NcInfoField ncInfo(CsClusterHeader::GetNcInfoSize(),  0.0); // empty nc info field
+	CsClusterHeader::T_NcInfoField ncInfo(CsClusterHeader::GetNcInfoSize(), 0.0); // empty nc info field
 	CsClusterHeader::T_NcCountField ncCountMax = 0;
 
 	for (const auto &pkt : pktList)

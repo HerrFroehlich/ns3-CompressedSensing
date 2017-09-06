@@ -318,7 +318,10 @@ int main(int argc, char *argv[])
 	clusterHelper.SetClusterAppAttribute("NcIntervalDelay", TimeValue(MilliSeconds(20)+channelDelay));
 
 	if (nonc) // switch off nc if selected or unncessary (nc1 == l1)
+	{
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
+		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(true));
+	}
 	else
 	{
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
@@ -338,10 +341,6 @@ int main(int argc, char *argv[])
 	clusters.at(1) = cluster1;
 
 	//create cluster 2
-	if (nonc)
-		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
-	else
-		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
 
 	clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(nc2));
 	if (!noprecode)
@@ -432,7 +431,7 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext(confPath + "Rx", MakeCallback(&receiveCb));
 	Config::ConnectWithoutContext(confPath + "Tx", MakeCallback(&transmittingCbCl));
 
-	//sinkApp->SetAttribute("MinPackets", UintegerValue(nc2));
+	//sinkApp->SetAttribute("MinPackets", UintegerValue(l1+l2));
 	/*********  Running the Simulation  **********/
 
 	NS_LOG_INFO("Starting Simulation...");
