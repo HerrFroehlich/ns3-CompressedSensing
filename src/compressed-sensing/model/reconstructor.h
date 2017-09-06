@@ -409,9 +409,10 @@ class Reconstructor : public ns3::Object
 	Col<double> GetX0(Ptr<DataStream<double>> stream, uint32_t n);
 
 	//internal
-	uint32_t m_seq;						  /**< current measurment sequence*/
-	bool m_calcSnr;						  /**< Calculate SNR directly?*/
-	RowDataBuffer<double> m_inBuf;		  /**< input data buffer*/
+	uint32_t m_seq;				   /**< current measurment sequence*/
+	bool m_calcSnr,				   /**< Calculate SNR directly?*/
+		m_noRecTemp;			   /**< switch off temporal reconstruction?*/
+	RowDataBuffer<double> m_inBuf; /**< input data buffer*/
 
 	//clusters
 	uint32_t m_nClusters;										 /**< NOF clusters from which we are gathering data*/
@@ -424,7 +425,7 @@ class Reconstructor : public ns3::Object
 	//operators
 	klab::TSmartPointer<RandomMatrix> m_ranMatSpat, m_ranMatTemp;	/**< Random matrix form from which sensing matrix is constructed*/
 	klab::TSmartPointer<TransMatrix> m_transMatSpat, m_transMatTemp; /**< Transformation matrix form from which sensing matrix is constructed*/
-	klab::TSmartPointer<NcMatrix> m_ncMatrix;	  /**< NC matrix with gaussian coefficients*/
+	klab::TSmartPointer<NcMatrix> m_ncMatrix;						 /**< NC matrix with gaussian coefficients*/
 	bool m_jointTrans;												 /**< joint transformation for the spatial decoding?*/
 };
 

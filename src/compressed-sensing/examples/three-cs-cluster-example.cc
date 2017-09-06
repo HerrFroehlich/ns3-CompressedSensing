@@ -39,7 +39,7 @@ NS_LOG_COMPONENT_DEFINE("ThreeCsCluster");
 MatFileHandler matHandler_glob;
 static uint32_t tTemp_glob = 0, tSpat_glob = 0, nErrorRec_glob = 0, nTx_glob = 0;
 static bool verbose = false,
-	 info = false;
+			info = false;
 
 static void
 compressCb(arma::Mat<double> matIn, arma::Mat<double> matOut)
@@ -155,18 +155,19 @@ int main(int argc, char *argv[])
 		   noiseVar = 0.0,
 		   mu = TXPROB_MODIFIER_DEFAULT;
 	bool noprecode = false,
-		 bpSpat = false,
-		 ampSpat = false,
+		 bpSolv = false,
+		 ampSolv = false,
 		 calcSnr = false,
 		 nonc = false,
-		 ncBern = false;
+		 ncBern = false,
+		 notemp = false;
 	std::string matFilePath = DEFAULT_FILE,
 				srcMatrixName = DEFAULT_SRCMAT_NAME;
 
 	CommandLine cmd;
 
-	cmd.AddValue("amp", "AMP when solving spatially?", ampSpat);
-	cmd.AddValue("bp", "Basis Pursuit when solving spatially?", bpSpat);
+	cmd.AddValue("amp", "AMP as solver?", ampSolv);
+	cmd.AddValue("bp", "Basis Pursuit as solver?", bpSolv);
 	cmd.AddValue("channelDelay", "delay of all channels in ms", channelDelayTmp);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
 	cmd.AddValue("info", "Enable info messages", info);
@@ -184,6 +185,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("nNodes", "NOF nodes per cluster", nNodes);
 	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
 	cmd.AddValue("nonc", "Disable network coding?", nonc);
+	cmd.AddValue("notemp", "Disable temporal reconstruction?", notemp);
 	cmd.AddValue("mu", "Tx probability modifier", mu);
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
 	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
@@ -389,17 +391,24 @@ int main(int argc, char *argv[])
 	ranMat = CreateObject<GaussianRandomMatrix>();
 
 	rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat, transMat)));
-	//rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat)));
+
+	if (notemp)
+		rec->SetAttribute("NoRecTemp", BooleanValue(true));
+
 	sinkApp->SetAttribute("Reconst", PointerValue(rec));
 
 	if (calcSnr)
 		rec->SetAttribute("CalcSnr", BooleanValue(true));
 
-	if (bpSpat)
+	if (bpSolv)
+	{
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_BP>()));
-	else if (ampSpat)
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_BP>()));
+	}
+	else if (ampSolv)
 	{
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_AMP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_AMP>()));
 	}
 
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_OMP/k", UintegerValue(k));

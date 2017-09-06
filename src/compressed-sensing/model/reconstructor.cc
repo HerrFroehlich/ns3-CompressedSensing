@@ -47,6 +47,10 @@ TypeId Reconstructor::GetTypeId(void)
 										  BooleanValue(false),
 										  MakeBooleanAccessor(&Reconstructor::m_calcSnr),
 										  MakeBooleanChecker())
+							.AddAttribute("NoRecTemp", "Switch off temporal reconstruction?",
+										  BooleanValue(false),
+										  MakeBooleanAccessor(&Reconstructor::m_noRecTemp),
+										  MakeBooleanChecker())
 							.AddAttribute("JointTransform", "Use a joint transformation?",
 										  BooleanValue(true),
 										  MakeBooleanAccessor(&Reconstructor::m_jointTrans),
@@ -384,10 +388,12 @@ void Reconstructor::ReconstructAll()
 	NS_LOG_FUNCTION(this);
 
 	ReconstructSpat();
-
-	for (auto const &entry : m_clusterInfoMap)
+	if (!m_noRecTemp)
 	{
-		ReconstructTemp(entry.second);
+		for (auto const &entry : m_clusterInfoMap)
+		{
+			ReconstructTemp(entry.second);
+		}
 	}
 }
 
