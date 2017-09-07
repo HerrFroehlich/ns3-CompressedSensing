@@ -6,12 +6,11 @@
 #include "ns3/cs-cluster-header.h"
 #include "ns3/mat-file-handler.h"
 
-#define nNodes 85
-#define l 32
-#define nPkt 96
-#define nRun 1
-#define file "./IOdata/coEvol.mat"
-#define ncType CsClusterHeader::E_NcCoeffType::BERN
+#define NNODES 85
+#define L 32
+#define NPKT 96
+#define NRUN 500
+#define FILE "./IOdata/coEvol.mat"
 
 double calcMaxCorr(klab::TSmartPointer<TOperator<double>> A)
 {
@@ -34,39 +33,82 @@ double calcMaxCorr(klab::TSmartPointer<TOperator<double>> A)
 
 int main(int argc, char *argv[])
 {
-	GaussianRandomMatrix phi1(l, nNodes), phi2(l, nNodes), phi3(l, nNodes);
-	phi1.Generate(1);
-	phi1.SetAttribute("Stream", IntegerValue(1));
-	phi2.Generate(1);
-	phi1.SetAttribute("Stream", IntegerValue(2));
-	phi3.Generate(1);
-	phi1.SetAttribute("Stream", IntegerValue(3));
+	bool bern = false, ident = false, nonc = false, ncBern = false;
+	std::string matFilePath = FILE;
+
+	CommandLine cmd;
+	cmd.AddValue("bern", "Bernoulli random matrix when compressing spatially?", bern);
+	cmd.AddValue("ident", "Identity random matrix when compressing spatially?", ident);
+	cmd.AddValue("nonc", "Disable network coding?", nonc);
+	cmd.AddValue("ncBern", "Use bernoulli nc coefficients?", ncBern);
+	cmd.AddValue("MATfile", "name of the Matlab file", matFilePath);
+	cmd.Parse(argc, argv);
+
+
+	ns3::Ptr<RandomMatrix> phi1, phi2, phi3;
+
+	if (ident)
+	{
+		phi1 = CreateObject<IdentRandomMatrix>(L, NNODES);
+		phi2 = CreateObject<IdentRandomMatrix>(L, NNODES);
+		phi3 = CreateObject<IdentRandomMatrix>(L, NNODES);
+	}
+	else if (bern)
+	{
+		phi1 = CreateObject<BernRandomMatrix>(L, NNODES);
+		phi2 = CreateObject<BernRandomMatrix>(L, NNODES);
+		phi3 = CreateObject<BernRandomMatrix>(L, NNODES);
+	}
+	else
+	{
+		phi1 = CreateObject<GaussianRandomMatrix>(L, NNODES);
+		phi2 = CreateObject<GaussianRandomMatrix>(L, NNODES);
+		phi3 = CreateObject<GaussianRandomMatrix>(L, NNODES);
+	}
+	phi1->Generate(1);
+	phi2->Generate(2);
+	phi3->Generate(3);
 
 	//get operator array
 	kl1p::TBlockDiagonalOperator<double>::TOperatorArray blockA;
 	blockA.reserve(3);
-	blockA.push_back(phi1.Clone());
-	blockA.push_back(phi2.Clone());
-	blockA.push_back(phi3.Clone());
+	blockA.push_back(phi1->Clone());
+	blockA.push_back(phi2->Clone());
+	blockA.push_back(phi3->Clone());
 	klab::TSmartPointer<TOperator<double>> A = new TBlockDiagonalOperator<double>(blockA);
 	A = new kl1p::TScalingOperator<double>(A, 1.0 / klab::Sqrt(A->m()));
 
-	klab::TSmartPointer<NcMatrix> N = new NcMatrix(3 * l);
+	klab::TSmartPointer<NcMatrix> N = new NcMatrix(3 * L);
 
-	std::vector<uint32_t> ls(3, l);
-	CsClusterHeader::Setup(ls, ncType);
+	std::vector<uint32_t> ls(3, L);
+	if (ncBern)
+		CsClusterHeader::Setup(ls, CsClusterHeader::E_NcCoeffType::BERN);
+	else
+		CsClusterHeader::Setup(ls);
 
 	CsClusterHeader::NcCoeffGenerator ncGen;
 
-	arma::Mat<double> coh(nRun, nPkt);
+	arma::Mat<double> coh(NRUN, NPKT);
 
-	for (uint32_t run = 0; run < nRun; run++)
+	for (uint32_t run = 0; run < NRUN; run++)
 	{
-		for (uint32_t i = 0; i < nPkt; i++)
+		std::vector<int> mix(NPKT);
+		if (nonc)
 		{
-			//std::vector<double> coeffs = ncGen.Generate(3 * l);
-			std::vector<double> coeffs(3 * l, 0.0);
-			coeffs.at(i) = 1.0;
+			std::iota(std::begin(mix), std::end(mix), 0);
+			random_shuffle(std::begin(mix), std::end(mix));
+		}
+
+		for (uint32_t i = 0; i < NPKT; i++)
+		{
+			std::vector<double> coeffs(3 * L, 0.0);
+			if (nonc)
+			{
+				coeffs.at(mix.at(i)) = 1.0;
+			}
+			else
+				coeffs = ncGen.Generate(3 * L);
+
 			N->WriteRow(coeffs);
 			klab::TSmartPointer<TOperator<double>> Nnorm = new kl1p::TScalingOperator<double>(N, 1.0 / klab::Sqrt(N->m()));
 			coh(run, i) = calcMaxCorr(Nnorm * A);
@@ -76,7 +118,7 @@ int main(int argc, char *argv[])
 
 	MatFileHandler matHandler;
 
-	matHandler.Open(file);
+	matHandler.Open(matFilePath);
 	matHandler.WriteMat("Coherence", coh);
 	return 0;
 }
