@@ -166,7 +166,10 @@ int main(int argc, char *argv[])
 		 ampSpat = false,
 		 calcSnr = false,
 		 nonc = false,
-		 ncBern = false;
+		 ncBern = false,
+		 notemp = false,
+		 bernSpat = false,
+		 identSpat = false;
 	std::string matFilePath = DEFAULT_FILE,
 				srcMatrixName = DEFAULT_SRCMAT_NAME;
 
@@ -174,6 +177,8 @@ int main(int argc, char *argv[])
 
 	cmd.AddValue("amp", "AMP when solving spatially?", ampSpat);
 	cmd.AddValue("bp", "Basis Pursuit when solving spatially?", bpSpat);
+	cmd.AddValue("bern", "Bernoulli random matrix when compressing spatially?", bernSpat);
+	cmd.AddValue("ident", "Identity random matrix when compressing spatially?", identSpat);
 	cmd.AddValue("channelDelay", "delay of all channels in ms", channelDelayTmp);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
 	cmd.AddValue("info", "Enable info messages", info);
@@ -191,6 +196,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("nNodes", "NOF nodes per cluster", nNodes);
 	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
 	cmd.AddValue("nonc", "Disable network coding?", nonc);
+	cmd.AddValue("notemp", "Disable temporal reconstruction?", notemp);
 	cmd.AddValue("mu", "Tx probability modifier", mu);
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
 	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
@@ -277,6 +283,11 @@ int main(int argc, char *argv[])
 	//spatial compressor
 	Ptr<Compressor> comp = CreateObject<Compressor>();
 	comp->TraceConnectWithoutContext("Complete", MakeCallback(&compressCb));
+	if (identSpat)
+		comp->SetRanMat(CreateObject<IdentRandomMatrix>());
+	else if (bernSpat)
+		comp->SetRanMat(CreateObject<BernRandomMatrix>());
+
 	clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
 	//error model
 	Ptr<RateErrorModel> errModel = CreateObject<RateErrorModel>();
@@ -315,7 +326,7 @@ int main(int argc, char *argv[])
 	clusters.at(0) = cluster0;
 	//create cluster 1
 
-	clusterHelper.SetClusterAppAttribute("NcIntervalDelay", TimeValue(MilliSeconds(20)+channelDelay));
+	clusterHelper.SetClusterAppAttribute("NcIntervalDelay", TimeValue(MilliSeconds(20) + channelDelay));
 
 	if (nonc) // switch off nc if selected or unncessary (nc1 == l1)
 	{
@@ -354,7 +365,6 @@ int main(int argc, char *argv[])
 	clusterApps.Add(cluster2->GetApps());
 	clusters.at(2) = cluster2;
 
-
 	NS_LOG_INFO("Connecting...");
 
 	/*********  CONNECT  **********/
@@ -390,14 +400,23 @@ int main(int argc, char *argv[])
 	Ptr<TransMatrix> transMat = CreateObject<DcTransMatrix>();
 	Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
 	rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrix>(ranMat, transMat)));
-	ranMat = CreateObject<GaussianRandomMatrix>();
+	if (identSpat)
+		ranMat = CreateObject<IdentRandomMatrix>();
+	else if (bernSpat)
+		ranMat = CreateObject<BernRandomMatrix>();
+	else
+		ranMat = CreateObject<GaussianRandomMatrix>();
 
 	rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 	//rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat)));
-	sinkApp->SetAttribute("Reconst", PointerValue(rec));
 
 	if (calcSnr)
 		rec->SetAttribute("CalcSnr", BooleanValue(true));
+
+	if (notemp)
+		rec->SetAttribute("NoRecTemp", BooleanValue(true));
+
+	sinkApp->SetAttribute("Reconst", PointerValue(rec));
 
 	if (bpSpat)
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_BP>()));
