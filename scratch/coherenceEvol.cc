@@ -9,7 +9,7 @@
 #define NNODES 85
 #define L 32
 #define NPKT 96
-#define NRUN 500
+#define NRUN 20
 #define FILE "./IOdata/coEvol.mat"
 
 double calcMaxCorr(klab::TSmartPointer<TOperator<double>> A)
@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
 	A = new kl1p::TScalingOperator<double>(A, 1.0 / klab::Sqrt(A->m()));
 
 	klab::TSmartPointer<NcMatrix> N = new NcMatrix(3 * L);
+	klab::TSmartPointer<TransMatrix> Psi = new DcTransMatrix(3*NNODES);
 
 	std::vector<uint32_t> ls(3, L);
 	if (ncBern)
@@ -111,7 +112,7 @@ int main(int argc, char *argv[])
 
 			N->WriteRow(coeffs);
 			klab::TSmartPointer<TOperator<double>> Nnorm = new kl1p::TScalingOperator<double>(N, 1.0 / klab::Sqrt(N->m()));
-			coh(run, i) = calcMaxCorr(Nnorm * A);
+			coh(run, i) = calcMaxCorr(Nnorm * A *  klab::TSmartPointer<TOperator<double>>(Psi));
 		}
 		N->Reset();
 	}
