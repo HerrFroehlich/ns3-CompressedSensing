@@ -406,6 +406,9 @@ int main(int argc, char *argv[])
 
 	rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 
+	if(nonc)
+		rec->SetAttribute("NoNC", BooleanValue(true));
+
 	if (notemp)
 		rec->SetAttribute("NoRecTemp", BooleanValue(true));
 
@@ -444,7 +447,7 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprFail", MakeCallback(&comprFailSpat));
 	Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$MySimpleNetDevice/PhyRxDrop", MakeCallback(&packetDrop));
 
-	//sinkApp->SetAttribute("MinPackets", UintegerValue(nc2));
+	//sinkApp->SetAttribute("MinPackets", UintegerValue(48));
 	/*********  Running the Simulation  **********/
 
 	NS_LOG_INFO("Starting Simulation...");

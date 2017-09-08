@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
 			 l2 = DEFAULT_L,
 			 nc0 = DEFAULT_L,
 			 nc1 = DEFAULT_L,
-			 nc2 = 3 * DEFAULT_L,
+			 nc2 = DEFAULT_L,
 			 k = DEFAULT_K,
 			 ks = DEFAULT_K;
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
@@ -413,6 +413,9 @@ int main(int argc, char *argv[])
 	if (calcSnr)
 		rec->SetAttribute("CalcSnr", BooleanValue(true));
 
+	if(nonc)
+		rec->SetAttribute("NoNC", BooleanValue(true));
+
 	if (notemp)
 		rec->SetAttribute("NoRecTemp", BooleanValue(true));
 
@@ -450,7 +453,7 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext(confPath + "Rx", MakeCallback(&receiveCb));
 	Config::ConnectWithoutContext(confPath + "Tx", MakeCallback(&transmittingCbCl));
 
-	//sinkApp->SetAttribute("MinPackets", UintegerValue(l1+l2));
+	sinkApp->SetAttribute("MinPackets", UintegerValue(nc1+nc2));
 	/*********  Running the Simulation  **********/
 
 	NS_LOG_INFO("Starting Simulation...");

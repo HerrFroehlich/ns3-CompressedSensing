@@ -51,6 +51,10 @@ TypeId Reconstructor::GetTypeId(void)
 										  BooleanValue(false),
 										  MakeBooleanAccessor(&Reconstructor::m_noRecTemp),
 										  MakeBooleanChecker())
+							.AddAttribute("NoNC", "Switch off pseudo normalization of the NC matrix?",
+										  BooleanValue(false),
+										  MakeBooleanAccessor(&Reconstructor::m_noNc),
+										  MakeBooleanChecker())
 							.AddAttribute("JointTransform", "Use a joint transformation?",
 										  BooleanValue(true),
 										  MakeBooleanAccessor(&Reconstructor::m_jointTrans),
@@ -306,7 +310,9 @@ void Reconstructor::ReconstructSpat()
 
 	//get N
 	klab::TSmartPointer<kl1p::TOperator<double>> N = m_ncMatrix;
-	N = new kl1p::TScalingOperator<double>(N, 1.0 / klab::Sqrt(N->m()));
+	if (!m_noNc)
+		N = new kl1p::TScalingOperator<double>(N, 1.0 / klab::Sqrt(N->m()));
+
 	//get operator array
 	kl1p::TBlockDiagonalOperator<double>::TOperatorArray blockA;
 	blockA.reserve(m_nClusters);
@@ -315,13 +321,17 @@ void Reconstructor::ReconstructSpat()
 		ClusterInfo info = entry.second;
 		blockA.push_back(GetASpat(info));
 	}
+
 	//sensing block matrix A
 	klab::TSmartPointer<TOperator<double>> A = new TBlockDiagonalOperator<double>(blockA);
 	NS_ASSERT_MSG(N->n() == A->m(), "NC matrix and sensing block matrix are not matching sizes! Have you added all clusters?");
+
 	//stored input data
 	Mat<double> U;
 	m_inBuf.GetMatrix(U);
-	U /= klab::Sqrt(N->m()); //since we scaled N before
+
+	if (!m_noNc)
+		U /= klab::Sqrt(N->m()); //since we scaled N before
 
 	Mat<double> Y;
 	if (m_jointTrans && m_transMatSpat.isValid()) // reconstruct jointly with joint transformation

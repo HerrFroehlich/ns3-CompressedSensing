@@ -335,6 +335,8 @@ int main(int argc, char *argv[])
 	Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
 	rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 
+	rec->SetAttribute("NoNC", BooleanValue(true));
+
 	if (identSpat)
 		ranMat = CreateObject<IdentRandomMatrix>();
 	else if (bernSpat)

@@ -99,6 +99,8 @@ class RecMatrix : public Object
 * of this class. When the Reconstructor is resetted, the input buffers are cleared and a new run starts by appending
 * a new DataStream to the clusters/nodes. The name of the DataStream instances is generated from a given run number.
 *
+* In case that network coding is disable the attribute NoNC should be set to true. Else the NC-matrix is normalized wrongly, which may inflict
+* performance of algorithms like AMP.
 */
 class Reconstructor : public ns3::Object
 {
@@ -411,7 +413,8 @@ class Reconstructor : public ns3::Object
 	//internal
 	uint32_t m_seq;				   /**< current measurment sequence*/
 	bool m_calcSnr,				   /**< Calculate SNR directly?*/
-		m_noRecTemp;			   /**< switch off temporal reconstruction?*/
+		m_noRecTemp,			   /**< switch off temporal reconstruction?*/
+		m_noNc;					   /**< is NC activated*/
 	RowDataBuffer<double> m_inBuf; /**< input data buffer*/
 
 	//clusters
@@ -420,7 +423,7 @@ class Reconstructor : public ns3::Object
 
 	//algorithms
 	Ptr<CsAlgorithm> m_algoSpat, /**< spatial reconstruction algorithm*/
-		m_algoTemp;
+		m_algoTemp;				 /**< temporal reconstruction algorithm*/
 
 	//operators
 	klab::TSmartPointer<RandomMatrix> m_ranMatSpat, m_ranMatTemp;	/**< Random matrix form from which sensing matrix is constructed*/
