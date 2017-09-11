@@ -13,7 +13,7 @@
 NS_LOG_COMPONENT_DEFINE("CsSinkApp");
 NS_OBJECT_ENSURE_REGISTERED(CsSinkApp);
 
-//const std::string CsSinkApp::SEQSTREAMNAME = "PacketSeq";
+const std::string CsSinkApp::NRX_STREAMNAME = "nPktRx";
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
@@ -72,6 +72,9 @@ void CsSinkApp::Setup(Ptr<CsNode> node)
 	{
 		(*it)->SetReceiveCallback(MakeCallback(&CsSinkApp::Receive, this));
 	}
+	m_rxCnt_stream = Create<DataStream<double>>(NRX_STREAMNAME);
+	m_node->AddStream(m_rxCnt_stream);
+
 	m_isSetup = true;
 	//StartNewSeq();
 }
@@ -206,6 +209,9 @@ void CsSinkApp::ReconstructNext()
 
 void CsSinkApp::StartNewSeq(uint32_t seqDiff)
 {
+	vector<double> rxCnt(1, double(m_rxPacketsSeq));
+	m_rxCnt_stream->CreateBuffer(rxCnt);
+
 	m_rxPacketsSeq = 0;
 	m_recAttempt = 0;
 	m_seqCount += seqDiff;

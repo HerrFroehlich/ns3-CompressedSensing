@@ -26,7 +26,7 @@ using namespace ns3;
 * \ingroup csApps
 * \class CsSinkApp
 *
-* \brief A sink app receiving from several clusters, reconstructing spatially and temporally and saves the result to binary files
+* \brief A sink app receiving from several clusters, reconstructing spatially and temporally
 *
 * description
 *
@@ -34,12 +34,12 @@ using namespace ns3;
 class CsSinkApp : public Application
 {
   public:
-	//static const std::string SEQSTREAMNAME; /**< name base of DataStream storing packets sequence numbers*/
+	static const std::string NRX_STREAMNAME; /**< name of DataStream storing NOF packets received per sequence*/
 
 	enum E_DropCause
 	{
-		NOT_A_CLUSTER,   /**< received data from non cluster node  */
-		EXPIRED_SEQ,	 /**< received old sequence number*/
+		NOT_A_CLUSTER,  /**< received data from non cluster node  */
+		EXPIRED_SEQ,	/**< received old sequence number*/
 		UNKNOWN_CLUSTER /**< received from cluster which was not registered with AddCluster*/
 	};
 	typedef void (*RxDropCallback)(Ptr<const Packet>, E_DropCause); /**< callback signature:  dropping a received packet*/
@@ -126,9 +126,9 @@ class CsSinkApp : public Application
 	TracedCallback<Ptr<const Packet>> m_rxTrace;				  /**< received a packet*/
 	TracedCallback<Ptr<const Packet>, E_DropCause> m_rxDropTrace; /**< callback:  dropping a received packet*/
 
-	uint32_t m_minPackets,											   /**< minmum NOF packets to start reconstructing*/
-		m_rxPacketsSeq;												   /**< NOF received packets for this measurement sequence*/
-	const static uint32_t N_SRCNODES_MAX = CsHeader::MAX_SRCNODES + 1; /**< maximum NOF source nodes, +1 since cluster is also source!*/
+	uint32_t m_minPackets, /**< minmum NOF packets to start reconstructing*/
+		m_rxPacketsSeq;	/**< NOF received packets for this measurement sequence*/
+	Ptr<DataStream<double>> m_rxCnt_stream;
 };
 
 #endif //CS_SINK_APP_H
