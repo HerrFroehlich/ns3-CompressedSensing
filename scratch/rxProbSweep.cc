@@ -27,9 +27,23 @@ using namespace ns3;
 using namespace std;
 
 MatFileHandler matHandler_glob;
+uint32_t nPktAtHead_glob;
 
 NS_LOG_COMPONENT_DEFINE("rxProbSweep");
 
+
+static void
+receiveCb(Ptr<const Packet> p)
+{
+	//p->Print(std::cout);
+	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/MinPackets", UintegerValue(++nPktAtHead_glob));
+}
+
+static void
+receiveCbSink(Ptr<const Packet> p)
+{
+	//p->Print(std::cout);
+}
 
 /*-------------------------  MAIN  ------------------------------*/
 
@@ -57,7 +71,6 @@ int main(int argc, char *argv[])
 	cmd.AddValue("file", "path to mat file to read from", matFilePath);
 	cmd.AddValue("k", "sparsity of original source measurements (needed when using OMP temporally)", k);
 	cmd.AddValue("ks", "sparsity of the colums of Y (needed when using OMP spatially)", ks);
-	cmd.AddValue("l", "NOF meas. vectors after spatial compression, rows of Z", l);
 	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
 	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
@@ -69,11 +82,7 @@ int main(int argc, char *argv[])
 
 	Time channelDelay = MilliSeconds(channelDelayTmp);
 
-	if (l > nNodes)
-	{
-		cout << "l must be <= nNodes!" << endl;
-		return 1;
-	}
+	l = nNodes;
 
 	/*********  Logging  **********/
 
@@ -88,13 +97,15 @@ int main(int argc, char *argv[])
 
 	//uint32_t nMeasSeq;
 	Col<double> meanSnr(RXPROB_STEPS);
-	Mat<double> meanSnrTemp(nNodes,RXPROB_STEPS);
-	Mat<double> varSnrTemp(nNodes,RXPROB_STEPS);
+	Mat<double> meanSnrTemp(nNodes, RXPROB_STEPS);
+	Mat<double> varSnrTemp(nNodes, RXPROB_STEPS);
 	Col<double> varSnr(RXPROB_STEPS);
 	for (uint32_t step = 0; step < RXPROB_STEPS; step++)
 	{
-		NS_LOG_INFO("STEP " << step);
 
+		nPktAtHead_glob = 1; // since we have from the cluster head for sure
+
+		NS_LOG_INFO("STEP " << step);
 		/*********  read matlab file  **********/
 		NS_LOG_INFO("Reading mat file...");
 		matHandler_glob.Open(matFilePath);
@@ -131,8 +142,11 @@ int main(int argc, char *argv[])
 		clusterHelper.SetClusterAppAttribute("ComprTemp", PointerValue(comprTemp));
 
 		//spatial compressor
-		Ptr<Compressor> comp = CreateObject<Compressor>();
-		clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
+		// Ptr<Compressor> comp = CreateObject<Compressor>();
+		// comp->SetRanMat(CreateObject<IdentRandomMatrix>());
+		// comp->TraceConnectWithoutContext("Complete", MakeCallback(&compressCb));
+		// clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
+		clusterHelper.SetClusterAppAttribute("ComprSpatEnable", BooleanValue(false));
 
 		//noise
 		clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
@@ -143,6 +157,9 @@ int main(int argc, char *argv[])
 		//create
 		Ptr<CsCluster> cluster = clusterHelper.Create(CLUSTER_ID, nNodes, sourceData);
 		ApplicationContainer clusterApps = cluster->GetApps();
+
+		//traces
+		Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsClusterApp/Rx", MakeCallback(&receiveCb));
 
 		//sink node
 		Ptr<CsNode> sink = CreateObject<CsNode>();
@@ -179,19 +196,19 @@ int main(int argc, char *argv[])
 		Ptr<TransMatrix> transMat = CreateObject<DcTransMatrix>();
 		Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
 		rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrix>(ranMat, transMat)));
-		ranMat = CreateObject<GaussianRandomMatrix>();
+		ranMat = CreateObject<IdentRandomMatrix>();
 		rec->SetAttribute("CalcSnr", BooleanValue(true));
 		rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat, transMat)));
+		rec->SetAttribute("NoNC", BooleanValue(true));
 		sinkApp->SetAttribute("Reconst", PointerValue(rec));
 
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_OMP/k", UintegerValue(k));
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/k", UintegerValue(ks));
 		// recTemp->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
 
-		sinkApp->SetAttribute("MinPackets", UintegerValue(l));
-
 		sinkApp->AddCluster(cluster);
 		sinkApp->Setup(sink);
+		Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Rx", MakeCallback(&receiveCbSink));
 		/*********  Running the Simulation  **********/
 
 		NS_LOG_INFO("Running Simulation...");
@@ -225,17 +242,18 @@ int main(int argc, char *argv[])
 			{
 				Ptr<SerialDataBuffer<double>> buf = (*it)->PeekBuffer(0);
 				double snr = buf->ReadNext();
-				double delta = snr - meanSnrTemp(i,step);
-				double snrMean = meanSnrTemp(i,step) + delta / ++j;
-				meanSnrTemp(i,step) = snrMean;
-	
+				double delta = snr - meanSnrTemp(i, step);
+				double snrMean = meanSnrTemp(i, step) + delta / ++j;
+				meanSnrTemp(i, step) = snrMean;
+
 				double delta2 = snr - snrMean;
-				varSnrTemp(i,step) = delta * delta2;
+				varSnrTemp(i, step) = delta * delta2;
 			}
-			varSnrTemp(i,step) /= j;
+			varSnrTemp(i, step) /= j;
 			i++;
 		}
-		}
+		matHandler_glob.WriteValue<double>("nPktRx" + to_string(step), nPktAtHead_glob);
+	}
 
 	/*********  Writing output **********/
 	matHandler_glob.WriteMat<double>("meanSnrSpat", meanSnr);
