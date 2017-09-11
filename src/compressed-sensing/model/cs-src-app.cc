@@ -110,6 +110,13 @@ void CsSrcApp::Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input)
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
+void CsSrcApp::ResetIn()
+{
+	m_fdata->Reset();
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 void CsSrcApp::SetTempCompressor(Ptr<CompressorTemp> comp)
 {
 	NS_LOG_FUNCTION(this << comp);

@@ -164,6 +164,11 @@ class SerialDataBuffer : public ns3::Object
 	void Clear();
 
 	/**
+	* \brief resets the buffer by setting the read index to zero
+	*/
+	void Reset();
+
+	/**
 	* \brief deletes and resizes the data buffer
 	*
 	* \param size size of new buffer
@@ -341,6 +346,12 @@ template <typename T>
 void SerialDataBuffer<T>::Clear()
 {
 	m_wrIdx = 0;
+	m_rdIdx = 0;
+}
+
+template <typename T>
+void SerialDataBuffer<T>::Reset()
+{
 	m_rdIdx = 0;
 }
 

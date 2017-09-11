@@ -64,6 +64,14 @@ class CsSrcApp : public Application
 	virtual void Setup(Ptr<CsNode> node, Ptr<SerialDataBuffer<double>> input);
 
 	/**
+	* \brief resets the input buffers read index
+	*
+	* Needed if one wishes to resend the input data
+	*
+	*/
+	void ResetIn();
+
+	/**
 	* \brief Sets the used temporal compressor.
 	*
 	*  It is setuped with the previously defined/default seed and sizes 
