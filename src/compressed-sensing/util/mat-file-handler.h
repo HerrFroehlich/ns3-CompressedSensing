@@ -167,7 +167,7 @@ class MatFileHandler : public Object
 	template <typename T>
 	void WriteMat(const DataStreamContainer<T> &container)
 	{
-		for (auto it = container.Begin(); it != container.End(); it++)
+		for (auto it = container.StreamBegin(); it != container.StreamEnd(); it++)
 		{
 			WriteMat<T>(*(*it));
 		}
