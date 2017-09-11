@@ -94,6 +94,33 @@ class NodeDataBufferMeta : public ns3::Object
 	Col<T> ReadCol(uint32_t colIdx) const;
 
 	/**
+	* \brief reads a row from the buffer
+	*
+	* \param rowIdx  row index
+	*
+	* \return  row vector
+	*/
+	Row<T> ReadRow(uint32_t RowIdx) const;
+
+	/**
+	* \brief reads a column from the matrix into a buffer
+	*
+	* \param colIdx column index
+	* \param buf	buffer pointer
+	* \param bufSize buffer size
+	*/
+	void ReadCol(uint32_t colIdx, T *buf, uint32_t bufSize) const;
+
+	/**
+	* \brief reads a row from  the matrix into a buffer
+	*
+	* \param rowIdx  row index
+	* \param buf	buffer pointer
+	* \param bufSize buffer size
+	*/
+	void ReadRow(uint32_t rowIdx, T *buf, uint32_t bufSize) const;
+
+	/**
 	* \brief reads meta of a certain row
 	*
 	* \param idx row index
@@ -222,7 +249,7 @@ uint32_t NodeDataBufferMeta<T, TM>::WriteData(const T *buffer, uint32_t bufSize,
 	NS_ASSERT(buffer); //null pointer check
 	NS_ASSERT_MSG(bufSize == m_nCol, " Buffer size  must equal N!");
 
-	const Row<T> vect(const_cast<T*> (buffer), bufSize, false);
+	const Row<T> vect(const_cast<T *>(buffer), bufSize, false);
 	return WriteData(vect, meta);
 	// T *matMem_ptr = m_dataMat.memptr(); // here data is stored in a column 	by column order
 
@@ -259,6 +286,32 @@ Col<T> NodeDataBufferMeta<T, TM>::ReadCol(uint32_t colIdx) const
 {
 	NS_ASSERT_MSG(colIdx < m_nCol, "Index exceeding NOF columns");
 	return m_dataMat.col(colIdx);
+}
+
+template <typename T, typename TM>
+Row<T> NodeDataBufferMeta<T, TM>::ReadRow(uint32_t rowIdx) const
+{
+	NS_ASSERT_MSG(rowIdx < GetWrRow(), "Index exceeding NOF rows");
+	return m_dataMat.row(rowIdx);
+}
+
+template <typename T, typename TM>
+void NodeDataBufferMeta<T, TM>::ReadCol(uint32_t colIdx, T *buf, uint32_t bufSize) const
+{
+	NS_ASSERT_MSG(colIdx < m_nCol, "Index exceeding NOF columns");
+	NS_ASSERT_MSG(!(bufSize > GetWrRow()), "Buffer size is too large!");
+	std::copy(m_dataMat.colptr(colIdx), m_dataMat.colptr(colIdx) + bufSize, buf);
+}
+
+template <typename T, typename TM>
+void NodeDataBufferMeta<T, TM>::ReadRow(uint32_t rowIdx, T *buf, uint32_t bufSize) const
+{
+	NS_ASSERT_MSG(rowIdx < GetWrRow(), "Index exceeding NOF rows");
+	NS_ASSERT_MSG(!(bufSize > m_nCol), "Buffer size is too large!");
+	for (uint32_t i = 0; i < bufSize; i++)
+	{
+		*(buf + i) = *(m_dataMat.colptr(i) + rowIdx);
+	}
 }
 
 template <typename T, typename TM>

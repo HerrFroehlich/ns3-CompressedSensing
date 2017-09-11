@@ -130,6 +130,33 @@ class NodeDataBuffer : public ns3::Object
 	Col<T> ReadCol(uint32_t colIdx) const;
 
 	/**
+	* \brief reads a row from the buffer
+	*
+	* \param rowIdx  row index
+	*
+	* \return  row vector
+	*/
+	Row<T> ReadRow(uint32_t RowIdx) const;
+
+	/**
+	* \brief reads a column from the matrix into a buffer
+	*
+	* \param colIdx column index
+	* \param buf	buffer pointer
+	* \param bufSize buffer size
+	*/
+	void ReadCol(uint32_t colIdx, T *buf, uint32_t bufSize) const;
+
+	/**
+	* \brief reads a row from  the matrix into a buffer
+	*
+	* \param rowIdx  row index
+	* \param buf	buffer pointer
+	* \param bufSize buffer size
+	*/
+	void ReadRow(uint32_t rowIdx, T *buf, uint32_t bufSize) const;
+
+	/**
 	* \brief reads all written data
 	*
 	* \return the buffer (sub)matrix
@@ -316,6 +343,32 @@ Col<T> NodeDataBuffer<T>::ReadCol(uint32_t colIdx) const
 {
 	NS_ASSERT_MSG(colIdx < m_nCol, "Index exceeding NOF columns");
 	return m_dataMat.col(colIdx);
+}
+
+template <typename T>
+Row<T> NodeDataBuffer<T>::ReadRow(uint32_t rowIdx) const
+{
+	NS_ASSERT_MSG(rowIdx < GetWrRow(), "Index exceeding NOF rows");
+	return m_dataMat.row(rowIdx);
+}
+
+template <typename T>
+void NodeDataBuffer<T>::ReadCol(uint32_t colIdx, T *buf, uint32_t bufSize) const
+{
+	NS_ASSERT_MSG(colIdx < m_nCol, "Index exceeding NOF columns");
+	NS_ASSERT_MSG(!(bufSize > GetWrRow()), "Buffer size is too large!");
+	std::copy(m_dataMat.colptr(colIdx), m_dataMat.colptr(colIdx)+bufSize, buf);
+}
+
+template <typename T>
+void NodeDataBuffer<T>::ReadRow(uint32_t rowIdx, T *buf, uint32_t bufSize) const
+{
+	NS_ASSERT_MSG(rowIdx < GetWrRow(), "Index exceeding NOF rows");
+	NS_ASSERT_MSG(!(bufSize >  m_nCol), "Buffer size is too large!");
+	for(uint32_t i = 0; i < bufSize; i++)
+	{
+		*(buf + i) = *(m_dataMat.colptr(i) + rowIdx);
+	}
 }
 
 template <typename T>
