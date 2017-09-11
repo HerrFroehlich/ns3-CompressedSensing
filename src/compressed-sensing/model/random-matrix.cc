@@ -180,7 +180,11 @@ void IdentRandomMatrix::Generate(uint32_t seed, bool force)
 		uint32_t n = nCols(),
 				 m = nRows();
 
-		if (n > 1)
+		if (n == m)
+		{
+			m_mat.eye(m, n);
+		}
+		else if (n > 1)
 		{
 
 			m_mat = arma::zeros<arma::mat>(m, n);
