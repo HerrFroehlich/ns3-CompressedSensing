@@ -142,7 +142,7 @@ class DataStream : public ns3::SimpleRefCount<DataStream<T>>
 	* \param vec data vector
 	*
 	*/
-	void CreateBuffer(std::vector<T> vec)
+	void CreateBuffer(const std::vector<T> &vec)
 	{
 		Ptr<T_Buffer> buf = Create<T_Buffer>(vec.size());
 		buf->WriteNext(vec);
