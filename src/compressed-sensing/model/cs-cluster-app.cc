@@ -30,6 +30,10 @@ CsClusterApp::GetTypeId(void)
 										  UintegerValue(64),
 										  MakeUintegerAccessor(&CsClusterApp::m_l),
 										  MakeUintegerChecker<uint32_t>())
+							.AddAttribute("ComprSpatEnable", "Enable Spatial Compression?",
+										  BooleanValue(true),
+										  MakeBooleanAccessor(&CsClusterApp::m_spatComprEnable),
+										  MakeBooleanChecker())
 							.AddAttribute("nNodes", "NOF source nodes (including cluster node)",
 										  UintegerValue(MAX_N_SRCNODES),
 										  MakeUintegerAccessor(&CsClusterApp::m_nNodes),
@@ -43,15 +47,15 @@ CsClusterApp::GetTypeId(void)
 										  UintegerValue(10),
 										  MakeUintegerAccessor(&CsClusterApp::m_ncTimeOut),
 										  MakeUintegerChecker<uint32_t>())
-							.AddAttribute("NcIntervalDelay", "Initial Network coding interval delay",
+							.AddAttribute("NcIntervalDelay", "Initial Network Coding interval delay",
 										  TimeValue(MilliSeconds(10)),
 										  MakeTimeAccessor(&CsClusterApp::m_ncIntervalDelay),
 										  MakeTimeChecker())
-							.AddAttribute("NcEnable", "Enable Network coding?",
+							.AddAttribute("NcEnable", "Enable Network Coding?",
 										  BooleanValue(true),
 										  MakeBooleanAccessor(&CsClusterApp::m_ncEnable),
 										  MakeBooleanChecker())
-							.AddAttribute("NcShuffle", "Don't do network coding, but shiffle buffered packets?",
+							.AddAttribute("NcShuffle", "Don't do Network Coding, but shiffle buffered packets?",
 										  BooleanValue(false),
 										  MakeBooleanAccessor(&CsClusterApp::m_shuffle),
 										  MakeBooleanChecker())
@@ -59,7 +63,7 @@ CsClusterApp::GetTypeId(void)
 										  UintegerValue(10),
 										  MakeUintegerAccessor(&CsClusterApp::m_ncMaxRecomb),
 										  MakeUintegerChecker<uint32_t>())
-							.AddAttribute("NcPktPerLink", "Network coding: NOF coded packet per link at each interval",
+							.AddAttribute("NcPktPerLink", "Network Coding: NOF coded packet per link at each interval",
 										  UintegerValue(1),
 										  MakeUintegerAccessor(&CsClusterApp::m_ncPktPLink),
 										  MakeUintegerChecker<uint32_t>())
@@ -99,6 +103,8 @@ void CsClusterApp::Setup(const Ptr<CsCluster> cluster, Ptr<SerialDataBuffer<doub
 	CsSrcApp::Setup(cluster->GetClusterHead(), input);
 
 	/*--------  Setup buffers and compressor  --------*/
+	NS_ASSERT_MSG(m_spatComprEnable || m_nNodes == m_l, "With disabled spatial compression N must be equal to l!");
+
 	m_srcDataBuffer.Resize(m_nNodes, m_m);
 
 	m_seed = cluster->GetClusterSeed();
@@ -177,17 +183,21 @@ bool CsClusterApp::CompressNextSpat()
 		m_srcDataBuffer.WriteData(m_yTemp.GetMem(), m_m, m_node->GetNodeId());
 		m_yTemp.Clear(); // so we now if it was written to again
 	}
-	m_srcDataBuffer.SortByMeta();
 
-	uint32_t zBufSize = m_zData.nElem();
-	double *zData = new double[zBufSize];
+	if (m_spatComprEnable) // only do this if spatial compression was enabled
+	{
+		m_srcDataBuffer.SortByMeta();
 
-	m_comp->CompressSparse(m_srcDataBuffer.ReadAll(),
-						   m_srcDataBuffer.ReadAllMeta(),
-						   zData, zBufSize);
-	//m_comp->Compress(m_srcDataBuffer.ReadAll(),
-	//    zData, m_l * m_m);
-	m_zData.Write(zData, zBufSize);
+		uint32_t zBufSize = m_zData.nElem();
+		double *zData = new double[zBufSize];
+
+		m_comp->CompressSparse(m_srcDataBuffer.ReadAll(),
+							   m_srcDataBuffer.ReadAllMeta(),
+							   zData, zBufSize);
+		m_zData.Write(zData, zBufSize);
+
+		delete[] zData;
+	}
 
 	//write info bit field
 	m_srcInfo.reset();
@@ -196,8 +206,6 @@ bool CsClusterApp::CompressNextSpat()
 		uint32_t idx = m_srcDataBuffer.ReadMeta(i);
 		m_srcInfo[idx] = 1;
 	}
-
-	delete[] zData;
 
 	return true;
 }
@@ -209,34 +217,69 @@ void CsClusterApp::CreateCsClusterPackets()
 	NS_LOG_FUNCTION(this);
 
 	/*--------  Create packets from that data  --------*/
-	uint32_t payloadSize = GetMaxPayloadSizeByte();
-	uint32_t packetsNow = m_l;
-	std::vector<Ptr<Packet>> pktList;
-	pktList.reserve(packetsNow);
 
-	CsClusterHeader header;
-	header.SetClusterId(m_clusterId);
-	header.SetNodeId(m_nodeId);
-	header.SetDataSize(payloadSize);
-	header.SetSrcInfo(m_srcInfo, m_clusterId);
-	header.SetSeq(m_nextSeq);
+	if (m_spatComprEnable)
+	{
+		uint32_t payloadSize = GetMaxPayloadSizeByte();
+		uint32_t packetsNow = m_l;
+		std::vector<Ptr<Packet>> pktList;
+		pktList.reserve(packetsNow);
 
-	for (uint32_t i = 0; i < packetsNow; i++)
-	{
-		T_PktData zRowData[m_zData.nCols()];
-		m_zData.ReadRow(i, zRowData, m_zData.nCols());
-		uint8_t *byte_ptr = reinterpret_cast<uint8_t *>(zRowData);
-		Ptr<Packet> p = Create<Packet>(byte_ptr, payloadSize);
-		header.SetNcInfoNew(m_clusterId, i);
-		p->AddHeader(header);
-		pktList.push_back(p);
+		CsClusterHeader header;
+		header.SetClusterId(m_clusterId);
+		header.SetNodeId(m_nodeId);
+		header.SetDataSize(payloadSize);
+		header.SetSrcInfo(m_srcInfo, m_clusterId);
+		header.SetSeq(m_nextSeq);
+
+		for (uint32_t i = 0; i < packetsNow; i++)
+		{
+			T_PktData zRowData[m_zData.nCols()];
+			m_zData.ReadRow(i, zRowData, m_zData.nCols());
+			uint8_t *byte_ptr = reinterpret_cast<uint8_t *>(zRowData);
+			Ptr<Packet> p = Create<Packet>(byte_ptr, payloadSize);
+			header.SetNcInfoNew(m_clusterId, i);
+			p->AddHeader(header);
+			pktList.push_back(p);
+		}
+		if (m_ncEnable || m_shuffle) // write to network coding packet buffer
+		{
+			m_ncPktBuffer.insert(m_ncPktBuffer.end(), pktList.begin(), pktList.end());
+		}
+		else // simply broadcast
+			WriteBcPacketList(pktList);
 	}
-	if (m_ncEnable || m_shuffle) // write to network coding packet buffer
+	else //in this case we didn't do the spatial compression and N=l
 	{
-		m_ncPktBuffer.insert(m_ncPktBuffer.end(), pktList.begin(), pktList.end());
+		uint32_t payloadSize = GetMaxPayloadSizeByte();
+		uint32_t packetsNow = m_srcDataBuffer.GetWrRow();
+		std::vector<Ptr<Packet>> pktList;
+		pktList.reserve(packetsNow);
+
+		CsClusterHeader header;
+		header.SetClusterId(m_clusterId);
+		header.SetNodeId(m_nodeId);
+		header.SetDataSize(payloadSize);
+		header.SetSrcInfo(m_srcInfo, m_clusterId);
+		header.SetSeq(m_nextSeq);
+
+		for (uint32_t i = 0; i < packetsNow; i++)
+		{
+			T_PktData data[m_m];
+			m_srcDataBuffer.ReadRow(i, data, m_m);
+			uint8_t *byte_ptr = reinterpret_cast<uint8_t *>(data);
+			Ptr<Packet> p = Create<Packet>(byte_ptr, payloadSize);
+			header.SetNcInfoNew(m_clusterId, m_srcDataBuffer.ReadMeta(i));
+			p->AddHeader(header);
+			pktList.push_back(p);
+		}
+		if (m_ncEnable || m_shuffle) // write to network coding packet buffer
+		{
+			m_ncPktBuffer.insert(m_ncPktBuffer.end(), pktList.begin(), pktList.end());
+		}
+		else // simply broadcast
+			WriteBcPacketList(pktList);
 	}
-	else // simply broadcast
-		WriteBcPacketList(pktList);
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -319,7 +362,7 @@ void CsClusterApp::RLNetworkCoding(Time dt)
 				packets.push_back(pSameSeq.at(nPkt / 2 + i));
 			}
 			if (nPkt % 2 != 0) //odd
-				packets.push_back(pSameSeq.at(nPkt-1));
+				packets.push_back(pSameSeq.at(nPkt - 1));
 		}
 		else //do NC
 		{

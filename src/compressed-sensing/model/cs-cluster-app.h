@@ -199,6 +199,7 @@ private:
   Ptr<Packet> DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClusterHeader::T_SeqField seq);
 
   //Spatial compression
+  bool m_spatComprEnable;                                             /**< Enable Spatial Compression?*/
   uint32_t m_l,                                                       /**< NOF of spatial and temporal compressed vectors*/
       m_nNodes,                                                       /**< NOF nodes in Cluster*/
       m_seed;                                                         /**< seed used for generating the temporal random sensing matrix*/
@@ -220,7 +221,7 @@ private:
       m_ncIntervalDelay;                     /**< Initial delay of network coding interval*/
   EventId m_ncEvent;                         /**< event for doing network coding*/
   bool m_ncEnable,                           /**< Enable network coding?*/
-      m_shuffle;                            /**< shuffle buffered packets?*/
+      m_shuffle;                             /**< shuffle buffered packets?*/
 
   //Internal
   bool m_running,
