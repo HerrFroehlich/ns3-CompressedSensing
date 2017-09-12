@@ -162,7 +162,8 @@ int main(int argc, char *argv[])
 		 ncBern = false,
 		 notemp = false,
 		 bernSpat = false,
-		 identSpat = false;
+		 identSpat = false,
+		 onlyprecode = false;
 	std::string matFilePath = DEFAULT_FILE,
 				srcMatrixName = DEFAULT_SRCMAT_NAME;
 
@@ -188,10 +189,11 @@ int main(int argc, char *argv[])
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
 	cmd.AddValue("nNodes", "NOF nodes per cluster", nNodes);
 	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
-	cmd.AddValue("nonc", "Disable network coding?", nonc);
+	cmd.AddValue("nonc", "Disable network coding recombinations of clusterheads?", nonc);
 	cmd.AddValue("notemp", "Disable temporal reconstruction?", notemp);
 	cmd.AddValue("mu", "Tx probability modifier", mu);
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
+	cmd.AddValue("onlyprecode", "Do only spatial precoding? Switches off NC completly at cluster heads. ", onlyprecode);
 	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
 	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
 	cmd.AddValue("tol", "Tolerance for solvers", tol);
@@ -209,6 +211,11 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	if (onlyprecode && noprecode)
+	{
+		cout << "Can't disable precoding  and do only precoding!" << endl;
+		return 1;
+	}
 	/*********  Logging  **********/
 	if (verbose)
 	{
@@ -248,14 +255,25 @@ int main(int argc, char *argv[])
 	NS_LOG_INFO("Setting up...");
 
 	// std::vector<uint32_t> lk(1, l);
-	std::vector<uint32_t> lk;
-	lk.push_back(l0);
-	lk.push_back(l1);
-	lk.push_back(l2);
-	if (ncBern)
-		CsClusterHeader::Setup(lk, CsClusterHeader::E_NcCoeffType::BERN);
+	std::vector<uint32_t> lc;
+
+	if (onlyprecode) // in this case l = N
+	{
+		lc.push_back(nNodes);
+		lc.push_back(nNodes);
+		lc.push_back(nNodes);
+	}
 	else
-		CsClusterHeader::Setup(lk);
+	{
+		lc.push_back(l0);
+		lc.push_back(l1);
+		lc.push_back(l2);
+	}
+
+	if (ncBern)
+		CsClusterHeader::Setup(lc, CsClusterHeader::E_NcCoeffType::BERN);
+	else
+		CsClusterHeader::Setup(lc);
 
 	/*********  set up clusters  **********/
 	vector<Ptr<CsCluster>> clusters(3);
@@ -273,15 +291,21 @@ int main(int argc, char *argv[])
 	comprTemp->SetAttribute("RanMatrix", PointerValue(ident));
 	clusterHelper.SetSrcAppAttribute("ComprTemp", PointerValue(comprTemp));
 	clusterHelper.SetClusterAppAttribute("ComprTemp", PointerValue(comprTemp));
-	//spatial compressor
-	Ptr<Compressor> comp = CreateObject<Compressor>();
-	comp->TraceConnectWithoutContext("Complete", MakeCallback(&compressCb));
-	if (identSpat)
-		comp->SetRanMat(CreateObject<IdentRandomMatrix>());
-	else if (bernSpat)
-		comp->SetRanMat(CreateObject<BernRandomMatrix>());
 
-	clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
+	//spatial compressor
+	if (onlyprecode)
+		clusterHelper.SetClusterAppAttribute("ComprSpatEnable", BooleanValue(false));
+	else
+	{
+		Ptr<Compressor> comp = CreateObject<Compressor>();
+		comp->TraceConnectWithoutContext("Complete", MakeCallback(&compressCb));
+		if (identSpat)
+			comp->SetRanMat(CreateObject<IdentRandomMatrix>());
+		else if (bernSpat)
+			comp->SetRanMat(CreateObject<BernRandomMatrix>());
+
+		clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
+	}
 	//error model
 	Ptr<RateErrorModel> errModel = CreateObject<RateErrorModel>();
 	if (rateErr > 0.0)
@@ -297,9 +321,11 @@ int main(int argc, char *argv[])
 	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
 
 	//create cluster 0
-
-	if (nonc || nc0 == l0) // switch off nc if selected or unncessary (nc0 == l0)
+	if (nonc || nc1 == l1 || onlyprecode) // switch off nc if selected
+	{
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
+		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(false));
+	}
 	else
 	{
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
@@ -313,14 +339,21 @@ int main(int argc, char *argv[])
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
 
-	clusterHelper.SetCompression(n, m, l0);
+	if (onlyprecode) // in this case l = N
+		clusterHelper.SetCompression(n, m, nNodes);
+	else
+		clusterHelper.SetCompression(n, m, l0);
+
 	Ptr<CsCluster> cluster0 = clusterHelper.Create(CLUSTER_ID, nNodes, sourceData); // will remove streams from source data
 	ApplicationContainer clusterApps = cluster0->GetApps();
 	clusters.at(0) = cluster0;
 	//create cluster 1
 
-	if (nonc || nc0 == l0) // switch off nc if selected or unncessary (nc1 == l1)
+	if (nonc || nc1 == l1 || onlyprecode) // switch off nc if selected or unncessary (nc1 == l1)
+	{
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
+		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(true));
+	}
 	else
 	{
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
@@ -333,27 +366,42 @@ int main(int argc, char *argv[])
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
-	clusterHelper.SetCompression(n, m, l1);
+
+	if (onlyprecode) // in this case l = N
+		clusterHelper.SetCompression(n, m, nNodes);
+	else
+		clusterHelper.SetCompression(n, m, l1);
 
 	Ptr<CsCluster> cluster1 = clusterHelper.Create(CLUSTER_ID + 1, nNodes, sourceData); // will remove streams from source data
 	clusterApps.Add(cluster1->GetApps());
 	clusters.at(1) = cluster1;
 
 	//create cluster 2
-	if (nonc)
+	if (nonc || onlyprecode)
+	{
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
+		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(true));
+	}
 	else
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
 
-	clusterHelper.SetClusterAppAttribute("NcIntervalDelay", TimeValue(MilliSeconds(11)));
+	uint32_t maxL = max(l0, l1);
+	clusterHelper.SetClusterAppAttribute("NcIntervalDelay", TimeValue(MilliSeconds(2 * (10 + channelDelayTmp)) +
+																	  DataRate(dataRate).CalculateBytesTxTime(maxL * m * sizeof(double)))); //waiting for the other nodes to complete transmission
 	clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(nc2));
+
 	if (!noprecode)
 	{
 		double txProb = mu * (l2 - 1) / ((nNodes - 1) * (1 - rateErr));
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
-	clusterHelper.SetCompression(n, m, l2);
+
+	if (onlyprecode) // in this case l = N
+		clusterHelper.SetCompression(n, m, nNodes);
+	else
+		clusterHelper.SetCompression(n, m, l2);
+
 	Ptr<CsCluster> cluster2 = clusterHelper.Create(CLUSTER_ID + 2, nNodes, sourceData); // will remove streams from source data
 	clusterApps.Add(cluster2->GetApps());
 	clusters.at(2) = cluster2;
@@ -397,7 +445,8 @@ int main(int argc, char *argv[])
 	Ptr<TransMatrix> transMat = CreateObject<DcTransMatrix>();
 	Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
 	rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrix>(ranMat, transMat)));
-	if (identSpat)
+
+	if (identSpat || onlyprecode)
 		ranMat = CreateObject<IdentRandomMatrix>();
 	else if (bernSpat)
 		ranMat = CreateObject<BernRandomMatrix>();
@@ -406,7 +455,7 @@ int main(int argc, char *argv[])
 
 	rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 
-	if(nonc)
+	if (nonc)
 		rec->SetAttribute("NoNC", BooleanValue(true));
 
 	if (notemp)
@@ -447,7 +496,7 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprFail", MakeCallback(&comprFailSpat));
 	Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$MySimpleNetDevice/PhyRxDrop", MakeCallback(&packetDrop));
 
-	//sinkApp->SetAttribute("MinPackets", UintegerValue(48));
+	//sinkApp->SetAttribute("MinPackets", UintegerValue(nc2));
 	/*********  Running the Simulation  **********/
 
 	NS_LOG_INFO("Starting Simulation...");
