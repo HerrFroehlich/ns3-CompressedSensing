@@ -10,6 +10,9 @@
 NS_LOG_COMPONENT_DEFINE("CsClusterApp");
 NS_OBJECT_ENSURE_REGISTERED(CsClusterApp);
 
+const std::string CsClusterApp::NRX_SRC_STREAMNAME = "nPktRxSrc";
+const std::string CsClusterApp::NRX_CL_STREAMNAME = "nPktRxCl";
+
 TypeId
 CsClusterApp::GetTypeId(void)
 {
@@ -39,7 +42,7 @@ CsClusterApp::GetTypeId(void)
 										  MakeUintegerAccessor(&CsClusterApp::m_nNodes),
 										  MakeUintegerChecker<uint32_t>())
 							.AddAttribute("NcInterval", "Network coding interval",
-										  TimeValue(MilliSeconds(200)),
+										  TimeValue(MilliSeconds(1000)),
 										  MakeTimeAccessor(&CsClusterApp::m_ncInterval),
 										  MakeTimeChecker(Seconds(0)))
 							.AddAttribute("NcIntervalTimeOut",
@@ -87,8 +90,8 @@ CsClusterApp::GetTypeId(void)
 
 CsClusterApp::CsClusterApp() : m_l(0), m_zData(), m_ncMaxRecomb(0), m_ncPktPLink(0),
 							   m_ncTimeOut(0), m_ncTimeOutCnt(0), m_ncEvent(EventId()),
-							   m_ncEnable(true), m_shuffle(false),
-							   m_running(false), m_isSetup(false), m_timeoutEvent(EventId())
+							   m_ncEnable(true), m_shuffle(false), m_running(false), m_isSetup(false),
+							   m_timeoutEvent(EventId()), m_nPktRxSeq_src(0), m_nPktRxSeq_cl(0)
 {
 	NS_LOG_FUNCTION(this);
 }
@@ -113,6 +116,13 @@ void CsClusterApp::Setup(const Ptr<CsCluster> cluster, Ptr<SerialDataBuffer<doub
 	m_comp->Setup(m_seed, m_nNodes, m_l, m_m);
 
 	m_zData.Resize(m_l, m_m);
+
+	//add a stream stroing the NOF received packets from sources at each sequence
+	m_rxCnt_src_stream = Create<DataStream<double>>(NRX_SRC_STREAMNAME);
+	m_rxCnt_cl_stream = Create<DataStream<double>>(NRX_CL_STREAMNAME);
+	cluster->AddStream(m_rxCnt_src_stream);
+	cluster->AddStream(m_rxCnt_cl_stream);
+
 	m_isSetup = true;
 }
 
@@ -304,6 +314,11 @@ void CsClusterApp::RLNetworkCoding(Time dt)
 {
 	NS_LOG_FUNCTION(this);
 
+	//save rx counts
+	double rxCnt = m_nPktRxSeq_cl;
+	m_rxCnt_cl_stream->CreateBuffer(&rxCnt, 1);
+	m_nPktRxSeq_cl = 0;
+
 	if (m_ncPktBuffer.size())
 		m_ncTimeOutCnt = 0; //reset time out counter
 	else
@@ -417,6 +432,9 @@ bool CsClusterApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idU
 bool CsClusterApp::ReceiveSrc(const Ptr<const Packet> packet)
 {
 	NS_LOG_FUNCTION(this << packet);
+
+	m_nPktRxSeq_src++;
+
 	//cancel old time out event and start a new
 	Simulator::Cancel(m_timeoutEvent);
 	m_timeoutEvent = Simulator::Schedule(m_timeout, &CsClusterApp::StartNewSeq, this, m_nextSeq + 1);
@@ -462,6 +480,9 @@ bool CsClusterApp::ReceiveSrc(const Ptr<const Packet> packet)
 bool CsClusterApp::ReceiveCluster(const Ptr<const Packet> p)
 {
 	NS_LOG_FUNCTION(this << p);
+
+	m_nPktRxSeq_cl++;
+
 	CsClusterHeader header;
 	p->PeekHeader(header);
 	if (header.GetNcCount() >= m_ncMaxRecomb) //maximum NOF recombination reached
@@ -487,6 +508,21 @@ bool CsClusterApp::ReceiveCluster(const Ptr<const Packet> p)
 void CsClusterApp::StartNewSeq(CsHeader::T_SeqField seq)
 {
 	NS_LOG_FUNCTION(this << seq);
+
+	//save back rx counts for sources
+	double rxCnt = m_nPktRxSeq_src;
+	m_rxCnt_src_stream->CreateBuffer(&rxCnt, 1);
+	m_nPktRxSeq_src = 0;
+
+	if (!m_ncEnable && !m_shuffle) //else we save each NC sequence, is always from sequence before
+	{
+		//save rx counts
+		double rxCnt = m_nPktRxSeq_cl;
+		m_rxCnt_cl_stream->CreateBuffer(&rxCnt, 1);
+		m_nPktRxSeq_cl = 0;
+	}
+
+	//compress next
 	if (CompressNextSpat())
 	{
 		CreateCsClusterPackets();
@@ -500,11 +536,11 @@ void CsClusterApp::StartNewSeq(CsHeader::T_SeqField seq)
 Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClusterHeader::T_SeqField seq)
 {
 	NS_LOG_FUNCTION(this << &pktList);
+
 	//get coefficients
 	std::vector<double> coeffs = m_ncGen.Generate(pktList.size());
 
 	//calculate NC packet
-
 	uint32_t nBytes = GetMaxPayloadSizeByte(),
 			 nValues = GetMaxPayloadSize();
 	T_PktData dataBuf[nValues] = {0.0};

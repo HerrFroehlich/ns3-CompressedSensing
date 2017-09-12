@@ -64,6 +64,9 @@
 class CsClusterApp : public CsSrcApp
 {
 public:
+  static const std::string NRX_SRC_STREAMNAME; /**< name of DataStream storing NOF packets fom sources received per sequence*/
+  static const std::string NRX_CL_STREAMNAME; /**< name of DataStream storing NOF packets fom other clusters received per sequence*/
+  
   enum E_DropCause
   {
     SIZE_MISMATCH,      /**< size of received data is not matching with expected size  */
@@ -228,7 +231,9 @@ private:
       m_isSetup;
   Time m_timeout;         /**< time to wait for new source data of same sequence*/
   EventId m_timeoutEvent; /**< timeout event when waiting for new source data*/
-  EventId m_txEvent;      /**< transmission schedule event*/
+  uint32_t m_nPktRxSeq_src, /**< NOF packets received in a measurment sequence from sources*/
+      m_nPktRxSeq_cl;      /**< NOF packets received in a measurment sequence from other clusters*/
+  Ptr<DataStream<double>> m_rxCnt_src_stream, m_rxCnt_cl_stream;
 
   //Traces
   TracedCallback<Ptr<const Packet>> m_rxTrace;                  /**< received a packet*/
