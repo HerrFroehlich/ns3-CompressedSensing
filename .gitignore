@@ -1,6 +1,9 @@
 *
 */**
 !.gitignore
+!src/
+!src_additional/
 !src/**
 !src_additional/**
+!scratch/
 !scratch/**
