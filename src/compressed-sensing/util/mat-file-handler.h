@@ -117,6 +117,19 @@ class MatFileHandler : public Object
 	DataStream<T> ReadMat(std::string name) const;
 
 	/**
+	* \brief read one ore more vectors from a single variable  into an arma::Mat
+	*
+	* It is asserted that the variable with the given name exists, has the correct type and is a vector or a matrix.ix.
+	*
+	* \param name name of the variable and of the returned DataStream
+	* \param mat arma::Mat to write to	
+	* \tparam type of data (so far only double)
+	*
+	*/
+	template <typename T>
+	void ReadMat(std::string name, arma::Mat<T> &mat) const;
+
+	/**
 	* \brief writes a value to the mat file
 	*
 	* Asserts that a file has been opened yet, that the variable was created succesfully.
@@ -138,7 +151,7 @@ class MatFileHandler : public Object
 	*
 	*/
 	template <typename T>
-	void WriteMat(std::string name, const arma::Mat<T> &mat); 
+	void WriteMat(std::string name, const arma::Mat<T> &mat);
 
 	/**
 	* \brief interpretates the DataStream as a MxN matrix and writes to the mat file
@@ -187,7 +200,7 @@ class MatFileHandler : public Object
 	*
 	*/
 	template <typename T>
- 	void WriteStruct(const DataStreamContainer<T> &container);
+	void WriteStruct(const DataStreamContainer<T> &container);
 
 	/**
 	* \brief writes the data from a CsCluster and all its attached nodes
@@ -215,7 +228,6 @@ class MatFileHandler : public Object
 	S_VAR_INFO GetVarInfo(std::string name);
 
   private:
-
 	/**
 	* \brief create a matrix field for a structure
 	*
@@ -226,7 +238,7 @@ class MatFileHandler : public Object
 	*
 	*/
 	template <typename T>
-	matvar_t* CreateStructMatField(Ptr<DataStream<T>> stream);
+	matvar_t *CreateStructMatField(Ptr<DataStream<T>> stream);
 
 	const static mat_ft MAT_VERSION = MAT_FT_MAT5;											  /**< version of the mat file */
 	const static matio_compression MAT_COMPRESSION = matio_compression::MAT_COMPRESSION_NONE; /**< compression when writting variables*/

@@ -100,7 +100,7 @@ double MatFileHandler::ReadValue(std::string name) const
 	NS_ABORT_MSG_IF(!matvar, "Variable does not exist!");
 	NS_ABORT_MSG_IF(!(matvar->data_type == matio_types::MAT_T_DOUBLE && !matvar->isComplex), "Variable is not a double!");
 	NS_ABORT_MSG_IF(!(matvar->rank == 2 || (matvar->dims[0] == 1 && matvar->dims[1] == 1)),
-				  "Variable is not a single value");
+					"Variable is not a single value");
 
 	return *((double *)matvar->data);
 }
@@ -118,7 +118,7 @@ DataStream<double> MatFileHandler::ReadMat(std::string name) const
 	NS_ABORT_MSG_IF(!matvar, "Variable " + name + " does not exist!");
 	NS_ABORT_MSG_IF(!(matvar->class_type == matio_classes::MAT_C_DOUBLE && !matvar->isComplex), "Variable is not a double!");
 	NS_ABORT_MSG_IF(!(matvar->rank == 2 && (matvar->dims[0] >= 1 && matvar->dims[1] >= 1)),
-				  "Variable is not a vector/ matrix!");
+					"Variable is not a vector/ matrix!");
 
 	uint32_t nStreams = matvar->dims[1],
 			 nVal = matvar->dims[0];
@@ -137,7 +137,37 @@ DataStream<double> MatFileHandler::ReadMat(std::string name) const
 	Mat_VarFree(matvar);
 	return stream;
 }
+
 template DataStream<double> MatFileHandler::ReadMat<double>(std::string) const;
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+template <>
+void MatFileHandler::ReadMat(std::string name, arma::Mat<double> &mat) const
+{
+	NS_ABORT_MSG_IF(!m_isOpen, "Open file first!");
+	matvar_t *matvar;
+
+	matvar = Mat_VarRead(m_matFile, name.c_str());
+	NS_ABORT_MSG_IF(!matvar, "Variable " + name + " does not exist!");
+	NS_ABORT_MSG_IF(!(matvar->class_type == matio_classes::MAT_C_DOUBLE && !matvar->isComplex), "Variable is not a double!");
+	NS_ABORT_MSG_IF(!(matvar->rank == 2 && (matvar->dims[0] >= 1 && matvar->dims[1] >= 1)),
+					"Variable is not a vector/ matrix!");
+
+	uint32_t n = matvar->dims[1],
+			 m = matvar->dims[0];
+
+	double *data = (double *)matvar->data;
+
+	mat.set_size(m, n);
+
+	std::copy(data, data + m * n, mat.memptr());
+
+	Mat_VarFree(matvar);
+}
+template void MatFileHandler::ReadMat(std::string name, arma::Mat<double> &mat) const;
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
 template <>
 void MatFileHandler::WriteValue(std::string name, double value)
