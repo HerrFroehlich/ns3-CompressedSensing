@@ -23,26 +23,26 @@ Finally copy those files to *ns3-allinone/ns-3.26/src/compressed-sensing/lib/*.
 ##### matio #####
 The matio library source files can be found in the work directory (*ns3-allinone/ns-3.26/*) under *libs_additional/matio-1.5.10*.
 Here first create an output directory with e.g:  
-    *mkdir out*
-To configure run:
-    *./configure --prefix=ABS_PATH/out --enable-shared*
+    *mkdir out*  
+To configure run:  
+    *./configure --prefix=ABS_PATH/out --enable-shared*  
 where *ABS_PATH* is the absoulte path to *libs_additional/matio-1.5.10*.
-Then run:  
+Then run:   
     *make*
-And finally:  
+And finally:    
     *make install*
 The output can be fund under *out/lib*. Place *libmatio.a* and *libmatio.la* in *ns3-allinone/ns-3.26/src/compressed-sensing/lib/*.
 The *.so* files have to be put under *ns3-allinone/ns-3.26/build*. Be aware that when you run *./waf clean* those will be deleted also and have to be recopied! 
 ### Doxygen ###
 To change the configuration edit in the work directory *doc/doxygen.conf*
-To build the doxygen run (doxygen must have been installed)  
-    *./waf doxygen*
+To build the doxygen run (doxygen must have been installed)    
+    *./waf doxygen*  
 The output can be found  under *doc/html* or (if set in the config) *doc/latex*.
 The start page for the html version is *doc/html/index.html*.
 
 ## Running Scripts ##
-To run a script *cd* to the work directory (*ns3-allinone/ns-3.26/*) and use the following syntax  
-    *./waf --run "SCRIPT --flags"*
+To run a script *cd* to the work directory (*ns3-allinone/ns-3.26/*) and use the following syntax    
+    *./waf --run "SCRIPT --flags"*  
 where *SCRIPT* is the name of the program and *--flags* are its corresponding flag options.
 
 ### Creating Data / Evaluation ###
@@ -67,27 +67,27 @@ Scripts to evaluate the simulation output are found under */src_additional/Matla
 
 
 ### Compressed Sensing ###
-Using kl1p this module provides several classes needed for using compressive sensing in a network
-* Reconstructor
+Using kl1p this module provides several classes needed for using compressive sensing in a network    
+ * Reconstructor
     * reconstructs spatially and temporally compressed data
     * uses RandomMatrix, TransMatrix, CsAlgorithm (those are forming the API kl1p <=> ns3)
-* Applications
+ * Applications
     * Source Application CsSrcApp: compresses temporally in measurement intervalls
     * Cluster Head Application CsClusterApp:
         * does network coding of the data from the source nodes ("spatial compression")
         * recombines optionally incoming data from other cluster heads
-* Network
+ * Network
     * CsNode: extension of the ns3::Node to differ Tx/Rx net devices, node IDs, etc...
     * CsCluster: represents a cluster of several CsNode instances
-* Utils/ Helpers:
+ * Utils/ Helpers:
     * MatFileHandler: Reading and writing from MATLAB files(*.mat*)
     * CsClusterSimpleHelper: Creates a CsCluster with MySimpleChannel and MySimpleNetDevice instances for all Nodes
     * TopologySimpleHelper: Connects CsCluster instances to each other and a sink (CsNode) with MySimpleChannel and  MySimpleNetDevice instances for all cluster heads/sink
-* Scripts:
+ * Scripts:
     * single-cs-cluster-example : A single cluster connected to a sink with several source nodes
     * scratch/tree: 3 clusters connected in a tree topology:  
-    * C --- C ---S
+    * C --- C ---S   
       C --- |
     * cratch/diamond : 3 clusters connected in a diamond topology:  
-    * C --- C --- S
+    * C --- C --- S   
       | --- C ---|
