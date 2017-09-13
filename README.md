@@ -43,7 +43,8 @@ The start page for the html version is *doc/html/index.html*.
 ## Running Scripts ##
 To run a script *cd* to the work directory (*ns3-allinone/ns-3.26/*) and use the following syntax    
     *./waf --run "SCRIPT --flags"*  
-where *SCRIPT* is the name of the program and *--flags* are its corresponding flag options.
+where *SCRIPT* is the name of the program and *--flags* are its corresponding flag options.  
+Use * --PrintHelp* to show the options available.
 
 ### Creating Data / Evaluation ###
 Simulation data is written and read from MATLAB files (*.mat*).
