@@ -369,15 +369,17 @@ void CsClusterApp::RLNetworkCoding(Time dt)
 		std::vector<Ptr<Packet>> packets;
 		if (m_shuffle) //only shuffle their order
 		{
-			uint32_t nPkt = pSameSeq.size();
-			packets.reserve(nPkt);
-			for (size_t i = 0; i < nPkt / 2; i++)
-			{
-				packets.push_back(pSameSeq.at(i));
-				packets.push_back(pSameSeq.at(nPkt / 2 + i));
-			}
-			if (nPkt % 2 != 0) //odd
-				packets.push_back(pSameSeq.at(nPkt - 1));
+			//uint32_t nPkt = pSameSeq.size();
+			// packets.reserve(nPkt);
+			// for (size_t i = 0; i < nPkt / 2; i++)
+			// {
+			// 	packets.push_back(pSameSeq.at(i));
+			// 	packets.push_back(pSameSeq.at(nPkt / 2 + i));
+			// }
+			// if (nPkt % 2 != 0) //odd
+			// 	packets.push_back(pSameSeq.at(nPkt - 1));
+			packets = pSameSeq;
+			std::random_shuffle(pSameSeq.begin(), pSameSeq.end());
 		}
 		else //do NC
 		{
