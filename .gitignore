@@ -7,3 +7,5 @@
 !src_additional/**
 !scratch/
 !scratch/**
+!libs_additional/
+!libs_additional/**
