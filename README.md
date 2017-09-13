@@ -26,11 +26,11 @@ Here first create an output directory with e.g:
     *mkdir out*  
 To configure run:  
     *./configure --prefix=ABS_PATH/out --enable-shared*  
-where *ABS_PATH* is the absoulte path to *libs_additional/matio-1.5.10*.
-Then run:   
-    *make*
-And finally:    
-    *make install*
+where *ABS_PATH* is the absoulte path to *libs_additional/matio-1.5.10*.  
+Then run:    
+    *make*    
+And finally:        
+    *make install*   
 The output can be fund under *out/lib*. Place *libmatio.a* and *libmatio.la* in *ns3-allinone/ns-3.26/src/compressed-sensing/lib/*.
 The *.so* files have to be put under *ns3-allinone/ns-3.26/build*. Be aware that when you run *./waf clean* those will be deleted also and have to be recopied! 
 ### Doxygen ###
