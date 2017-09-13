@@ -6,11 +6,11 @@ We want to make use of compressed sensing techniques to exploit temporal and spa
 ## Installing ##
 1. download ns3-26 from [https://www.nsnam.org/ns-3-26/download/](URL)
 2. clone/copy the data from this repo in to *.../ns3-allinone/ns-3.26/*
-3. in .../ns3-allinone/ns-3.26/ (= work directory) run:
-	*./waf configure -d optimized --enable-examples*
-	OR for a debug build:
+3. in .../ns3-allinone/ns-3.26/ (= work directory) run:  
+	*./waf configure -d optimized --enable-examples*  
+	OR for a debug build:  
 	*./waf configure --enable-examples*
-4. to build run 
+4. to build run  
 	*./waf build*
 
 ### 	Rebuilding 3rd party libraries ###
@@ -22,26 +22,26 @@ The output can be found in the *bin* folder in a subdirectory.
 Finally copy those files to *ns3-allinone/ns-3.26/src/compressed-sensing/lib/*.
 ##### matio #####
 The matio library source files can be found in the work directory (*ns3-allinone/ns-3.26/*) under *libs_additional/matio-1.5.10*.
-Here first create an output directory with e.g:
+Here first create an output directory with e.g:  
     *mkdir out*
 To configure run:
     *./configure --prefix=ABS_PATH/out --enable-shared*
 where *ABS_PATH* is the absoulte path to *libs_additional/matio-1.5.10*.
-Then run:
+Then run:  
     *make*
-And finally:
+And finally:  
     *make install*
 The output can be fund under *out/lib*. Place *libmatio.a* and *libmatio.la* in *ns3-allinone/ns-3.26/src/compressed-sensing/lib/*.
 The *.so* files have to be put under *ns3-allinone/ns-3.26/build*. Be aware that when you run *./waf clean* those will be deleted also and have to be recopied! 
 ### Doxygen ###
 To change the configuration edit in the work directory *doc/doxygen.conf*
-To build the doxygen run (doxygen must have been installed)
+To build the doxygen run (doxygen must have been installed)  
     *./waf doxygen*
 The output can be found  under *doc/html* or (if set in the config) *doc/latex*.
 The start page for the html version is *doc/html/index.html*.
 
 ## Running Scripts ##
-To run a script *cd* to the work directory (*ns3-allinone/ns-3.26/*) and use the following syntax
+To run a script *cd* to the work directory (*ns3-allinone/ns-3.26/*) and use the following syntax  
     *./waf --run "SCRIPT --flags"*
 where *SCRIPT* is the name of the program and *--flags* are its corresponding flag options.
 
@@ -82,12 +82,12 @@ Using kl1p this module provides several classes needed for using compressive sen
 * Utils/ Helpers:
     * MatFileHandler: Reading and writing from MATLAB files(*.mat*)
     * CsClusterSimpleHelper: Creates a CsCluster with MySimpleChannel and MySimpleNetDevice instances for all Nodes
-    * TopologySimpleHelper: Connects CsCluster instances to each other and a sink (CsNode) with MySimpleChannel and                  MySimpleNetDevice instances for all cluster heads/sink
+    * TopologySimpleHelper: Connects CsCluster instances to each other and a sink (CsNode) with MySimpleChannel and  MySimpleNetDevice instances for all cluster heads/sink
 * Scripts:
     * single-cs-cluster-example : A single cluster connected to a sink with several source nodes
-    * scratch/tree: 3 clusters connected in a tree topology:
+    * scratch/tree: 3 clusters connected in a tree topology:  
     * C --- C ---S
       C --- |
-    * cratch/diamond : 3 clusters connected in a diamond topology:
+    * cratch/diamond : 3 clusters connected in a diamond topology:  
     * C --- C --- S
       | --- C ---|
