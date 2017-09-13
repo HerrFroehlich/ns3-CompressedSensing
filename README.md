@@ -67,23 +67,23 @@ Scripts to evaluate the simulation output are found under */src_additional/Matla
 
 
 ### Compressed Sensing ###
-Using kl1p this module provides several classes needed for using compressive sensing in a network    
- * Reconstructor
+* Using kl1p this module provides several classes needed for using compressive sensing in a network    
+* Reconstructor
     * reconstructs spatially and temporally compressed data
     * uses RandomMatrix, TransMatrix, CsAlgorithm (those are forming the API kl1p <=> ns3)
- * Applications
+* Applications
     * Source Application CsSrcApp: compresses temporally in measurement intervalls
     * Cluster Head Application CsClusterApp:
         * does network coding of the data from the source nodes ("spatial compression")
         * recombines optionally incoming data from other cluster heads
- * Network
+* Network
     * CsNode: extension of the ns3::Node to differ Tx/Rx net devices, node IDs, etc...
     * CsCluster: represents a cluster of several CsNode instances
- * Utils/ Helpers:
+* Utils/ Helpers:
     * MatFileHandler: Reading and writing from MATLAB files(*.mat*)
     * CsClusterSimpleHelper: Creates a CsCluster with MySimpleChannel and MySimpleNetDevice instances for all Nodes
     * TopologySimpleHelper: Connects CsCluster instances to each other and a sink (CsNode) with MySimpleChannel and  MySimpleNetDevice instances for all cluster heads/sink
- * Scripts:
+* Scripts:
     * single-cs-cluster-example : A single cluster connected to a sink with several source nodes
     * scratch/tree: 3 clusters connected in a tree topology:  
     * C --- C ---S   
