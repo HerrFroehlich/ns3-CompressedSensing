@@ -145,7 +145,9 @@ int main(int argc, char *argv[])
 		 ampSpat = false,
 		 calcSnr = false,
 		 bernSpat = false,
-		 identSpat = false;
+		 notemp = false,
+		 identSpat = false,
+		 onlyprecode = false;
 	std::string matFilePath = DEFAULT_FILE,
 				// matFilePathOut = DEFAULT_FILEOUT,
 		srcMatrixName = DEFAULT_SRCMAT_NAME;
@@ -162,12 +164,14 @@ int main(int argc, char *argv[])
 	cmd.AddValue("k", "sparsity of original source measurements (needed when using OMP temporally)", k);
 	cmd.AddValue("ks", "sparsity of the colums of Y (needed when using OMP spatially)", ks);
 	cmd.AddValue("l", "NOF meas. vectors after spatial compression, rows of Z", l);
+	cmd.AddValue("mu", "Tx probability modifier", mu);
 	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
 	cmd.AddValue("nNodes", "NOF source nodes in topology", nNodes);
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
+	cmd.AddValue("notemp", "Disable temporal reconstruction?", notemp);
 	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
-	cmd.AddValue("mu", "Tx probability modifier", mu);
+	cmd.AddValue("onlyprecode", "Do only spatial precoding? Switches off NC completly at cluster heads. ", onlyprecode);
 	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
 	cmd.AddValue("seq", "Reconstruct sequentially for each received packet", seq);
 	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
@@ -186,6 +190,11 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	if (onlyprecode && noprecode)
+	{
+		cout << "Can't disable precoding  and do only precoding!" << endl;
+		return 1;
+	}
 	/*********  Logging  **********/
 	if (verbose)
 	{
@@ -231,15 +240,16 @@ int main(int argc, char *argv[])
 	NS_LOG_INFO("Setting up...");
 
 	// std::vector<uint32_t> lk(1, l);
-	std::vector<uint32_t> lk;
-	lk.push_back(l);
-	CsClusterHeader::Setup(lk);
+	std::vector<uint32_t> lc;
+	if (onlyprecode) // in this case l = N
+		lc.push_back(nNodes);
+	else
+		lc.push_back(l);
+	CsClusterHeader::Setup(lc);
 
 	/*********  create cluster  **********/
 	NS_LOG_INFO("Creating cluster...");
 	CsClusterSimpleHelper clusterHelper;
-
-	clusterHelper.SetCompression(n, m, l);
 	//delay & data rate
 	clusterHelper.SetChannelAttribute("Delay", TimeValue(channelDelay));
 	clusterHelper.SetSrcDeviceAttribute("DataRate", DataRateValue(dataRate));
@@ -267,14 +277,24 @@ int main(int argc, char *argv[])
 	//clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(l));
 
 	//spatial compressor
-	Ptr<Compressor> comp = CreateObject<Compressor>();
-	comp->TraceConnectWithoutContext("Complete", MakeCallback(&compressCb));
-	if (identSpat)
-		comp->SetRanMat(CreateObject<IdentRandomMatrix>());
-	else if (bernSpat)
-		comp->SetRanMat(CreateObject<BernRandomMatrix>());
+	if (onlyprecode)
+		clusterHelper.SetClusterAppAttribute("ComprSpatEnable", BooleanValue(false));
+	else
+	{
+		Ptr<Compressor> comp = CreateObject<Compressor>();
+		comp->TraceConnectWithoutContext("Complete", MakeCallback(&compressCb));
+		if (identSpat)
+			comp->SetRanMat(CreateObject<IdentRandomMatrix>());
+		else if (bernSpat)
+			comp->SetRanMat(CreateObject<BernRandomMatrix>());
 
-	clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
+		clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
+	}
+
+	if (onlyprecode) // in this case l = N
+		clusterHelper.SetCompression(n, m, nNodes);
+	else
+		clusterHelper.SetCompression(n, m, l);
 
 	//error model
 	Ptr<RateErrorModel> errModel = CreateObject<RateErrorModel>();
@@ -337,7 +357,7 @@ int main(int argc, char *argv[])
 
 	rec->SetAttribute("NoNC", BooleanValue(true));
 
-	if (identSpat)
+	if (identSpat || onlyprecode)
 		ranMat = CreateObject<IdentRandomMatrix>();
 	else if (bernSpat)
 		ranMat = CreateObject<BernRandomMatrix>();
@@ -350,6 +370,8 @@ int main(int argc, char *argv[])
 	if (calcSnr)
 		rec->SetAttribute("CalcSnr", BooleanValue(true));
 
+	if (notemp)
+		rec->SetAttribute("NoRecTemp", BooleanValue(true));
 	// Ptr<TransMatrix<cx_double>> transMat = CreateObject<FourierTransMatrix<cx_double>>();
 	// Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
 	// rec->SetAttribute("RecMatTempCx", PointerValue(Create<RecMatrixCx>(ranMat, transMat)));
