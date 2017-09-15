@@ -424,7 +424,7 @@ int main(int argc, char *argv[])
 	{
 		TopologySimpleHelper::LinksDouble links(3);
 		links.SetClLink(0, 2, 1 - err02);
-		links.SetClLink(1, 1, 1 - err12);
+		links.SetClLink(1, 2, 1 - err12);
 		links.SetSinkLink(2, 1);
 		topHelper.Create(clusters, sink, links);
 	}
