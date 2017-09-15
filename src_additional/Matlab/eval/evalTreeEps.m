@@ -2,6 +2,9 @@
 %
 % Evaluates the output for a 3 simulation with tree topolgy. 
 % The snr was calculated during the simulation (flag: --snr).
+% The (mean) SNR is plotted over the reduction of the NOF transmissions (e) with
+% increasing incoming packets at the sink. Also the distribution over e is
+% plotted, when all packets have been received at the sink.
 % The sink is expected to receive the same NOF packets (<=> attempts) in each sequence.
 %
 % Be sure to load the data first!
