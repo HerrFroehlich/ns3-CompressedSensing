@@ -28,10 +28,13 @@ nRxSinkMax = max(nRxSink);
 %% Get NOF transmission
 for c = 1:nClusters
     clName = ['Cluster' num2str(c-1)];
-       
+    l = eval(['l' num2str(c-1)]);   
     nRxSrc = eval([clName '.nPktRxSrc']);
-    nRxCl = eval([clName '.nPktRxCl']);
-    nTx = nTx + nRxSrc +  nRxCl(1:nMeasSeq); %+1 since cluster head is also source
+    if(~isempty(nRxSrc))
+        nTx = nTx + nRxSrc +  l;
+    else
+        nTx = nTx + l;
+    end
 end
 min_nTx = min(nTx);
 max_nTx = max(nTx);
@@ -67,14 +70,18 @@ nTxS_dist = histc(nTxS, min_nTx+1:max_nTxS)/nMeasSeq;
 nTxS_distNan = nTxS_dist;
 nTxS_distNan(nTxS_dist==0) = nan; %don't plot 0s
 
+
+idx = nTxS_dist==0;
+snrFinal = snrSpatMean(~idx);
+snrFinalNan = snrSpatMean;
+snrFinalNan(idx) = nan;
+
 %plot
 figure;
 yyaxis left; plot(eps, snrSpatMean); ylabel('mean SNR in dB');
 yyaxis right;stem(eps, nTxS_distNan); ylabel('% of SEQ');
 title(['SNR with ' ALGO_NAME ' Spatial Reconstruction']);xlabel('\epsilon_P'); 
 figure;
-snrFinal = snrSpatMean;
-snrFinal(nTxS_dist==0) = nan;
-yyaxis left;stem(eps, snrFinal);ylabel('mean SNR in dB');
+yyaxis left;stem(eps, snrFinalNan);ylabel('mean SNR in dB');
 yyaxis right;stem(eps, nTxS_distNan); ylabel('% of SEQ');
 title(['Final SNR with ' ALGO_NAME ' Spatial Reconstruction']);xlabel('\epsilon_P'); 

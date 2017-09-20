@@ -12,6 +12,7 @@
 
 %% SETTINGS
 ALGO_NAME = 'OMP';  % Name of used algorithm
+edges = -5:155;
 %% INI
 %load('data.mat')
 
@@ -24,12 +25,13 @@ min_nTx = min(nTx);
 max_nTx = max(nTx);
 %% Get SNR ordered by NOF transmissions
 
-snrSpatMax = zeros(nMeasSeq,1);
+snrSpatFin = zeros(nMeasSeq,1);
 for meas = 1:nMeasSeq
     %% spatial snr
     snrSpat = eval(['Cluster0.RecSeq'  num2str(meas-1)]);
-    snrSpatMax(meas) = max(snrSpat);
+    snrSpatFin(meas) = snrSpat(end);
 end
 %% plot
-histogram(snrSpatMax); xlabel('mean SNR in dB');
+figure;
+histogram(snrSpatFin, edges); xlabel('mean SNR in dB');
 title(['SNR with ' ALGO_NAME ' Spatial Reconstruction']);xlabel('\epsilon_P'); 
