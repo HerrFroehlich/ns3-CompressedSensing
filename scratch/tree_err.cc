@@ -1,13 +1,22 @@
+/**
+* \file three-cs-cluster-example
+*
+* \author Tobias Waurick
+* \date 23.08.17
+*
+* c0-----|
+* 		c2----s
+* c1-----|		
+*/
 
-#define DEFAULT_NOF_SRCNODES 100
+#define DEFAULT_NOF_SRCNODES 85
 #define DEFAULT_CHANNELDELAY_MS 1
-#define DEFAULT_DRATE_BPS 1000000 // 1Mbitps
-#define DEFAULT_N 256
+#define DEFAULT_DRATE_BPS 0 // 1Mbitps
+#define DEFAULT_N 512
 #define DEFAULT_M 64
-#define DEFAULT_L 64
+#define DEFAULT_L 32
 #define DEFAULT_FILE "./IOdata/data.mat"
-#define DEFAULT_K 20
-// #define DEFAULT_FILEOUT "./IOdata/dataOut.mat"
+#define DEFAULT_K 5
 #define DEFAULT_SRCMAT_NAME "X"
 #define CLUSTER_ID 0
 #define DEFAULT_TOL 1e-3
@@ -20,16 +29,17 @@
 #include "ns3/cs-sink-app.h"
 #include "ns3/reconstructor.h"
 #include "ns3/mat-file-handler.h"
+#include "ns3/topology-simple-helper.h"
 
 using namespace ns3;
 using namespace std;
 
-NS_LOG_COMPONENT_DEFINE("SingleCsCluster");
+NS_LOG_COMPONENT_DEFINE("ThreeCsCluster");
 
 MatFileHandler matHandler_glob;
-uint32_t tTemp_glob = 0, tSpat_glob = 0, nErrorRec_glob = 0, nErrorComp_glob = 0;
-bool verbose = false,
-	 info = false;
+static uint32_t tTemp_glob = 0, tSpat_glob = 0, nErrorRec_glob = 0, nTx_glob = 0;
+static bool verbose = false,
+			info = false;
 
 static void
 compressCb(arma::Mat<double> matIn, arma::Mat<double> matOut)
@@ -66,6 +76,7 @@ transmittingCb(Ptr<const Packet> p)
 		p->Print(cout);
 		cout << endl;
 	}
+	nTx_glob++;
 }
 
 static void
@@ -98,7 +109,6 @@ comprFailSpat(CsHeader::T_IdField id)
 {
 	if (info || verbose)
 		cout << "Spatial compression failed within cluster " << static_cast<int>(id) << endl;
-	nErrorComp_glob++;
 }
 
 static void
@@ -131,31 +141,37 @@ int main(int argc, char *argv[])
 			 dataRate = DEFAULT_DRATE_BPS,
 			 n = DEFAULT_N,
 			 m = DEFAULT_M,
-			 l = DEFAULT_L,
+			 l0 = DEFAULT_L,
+			 l1 = DEFAULT_L,
+			 l2 = DEFAULT_L,
+			 nc0 = DEFAULT_L,
+			 nc1 = DEFAULT_L,
+			 nc2 = 3 * DEFAULT_L,
 			 k = DEFAULT_K,
 			 ks = DEFAULT_K;
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
-		   rateErr = 0.0,
+		   err02 = 0.0,
+		   err12 = 0.0,
 		   tol = DEFAULT_TOL,
 		   noiseVar = 0.0,
 		   mu = TXPROB_MODIFIER_DEFAULT;
-	bool seq = false,
-		 noprecode = false,
-		 bpSpat = false,
-		 ampSpat = false,
+	bool noprecode = false,
+		 bpSolv = false,
+		 ampSolv = false,
 		 calcSnr = false,
-		 bernSpat = false,
+		 nonc = false,
+		 ncBern = false,
 		 notemp = false,
+		 bernSpat = false,
 		 identSpat = false,
 		 onlyprecode = false;
 	std::string matFilePath = DEFAULT_FILE,
-				// matFilePathOut = DEFAULT_FILEOUT,
-		srcMatrixName = DEFAULT_SRCMAT_NAME;
+				srcMatrixName = DEFAULT_SRCMAT_NAME;
 
 	CommandLine cmd;
 
-	cmd.AddValue("amp", "AMP when solving spatially?", ampSpat);
-	cmd.AddValue("bp", "Basis Pursuit when solving spatially?", bpSpat);
+	cmd.AddValue("amp", "AMP as solver?", ampSolv);
+	cmd.AddValue("bp", "Basis Pursuit as solver?", bpSolv);
 	cmd.AddValue("bern", "Bernoulli random matrix when compressing spatially?", bernSpat);
 	cmd.AddValue("ident", "Identity random matrix when compressing spatially?", identSpat);
 	cmd.AddValue("channelDelay", "delay of all channels in ms", channelDelayTmp);
@@ -163,28 +179,35 @@ int main(int argc, char *argv[])
 	cmd.AddValue("info", "Enable info messages", info);
 	cmd.AddValue("k", "sparsity of original source measurements (needed when using OMP temporally)", k);
 	cmd.AddValue("ks", "sparsity of the colums of Y (needed when using OMP spatially)", ks);
-	cmd.AddValue("l", "NOF meas. vectors after spatial compression, rows of Z", l);
-	cmd.AddValue("mu", "Tx probability modifier", mu);
+	cmd.AddValue("l0", "NOF meas. vectors after spatial compression, rows of Z of cluster 0", l0);
+	cmd.AddValue("l1", "NOF meas. vectors after spatial compression, rows of Z of cluster 1", l1);
+	cmd.AddValue("l2", "NOF meas. vectors after spatial compression, rows of Z of cluster 1", l2);
+	cmd.AddValue("nc0", "NOF network coded packets per link in each inverval at cluster head 0", nc0);
+	cmd.AddValue("nc1", "NOF network coded packets per link in each inverval at cluster head 1", nc1);
+	cmd.AddValue("nc2", "NOF network coded packets per link in each inverval at cluster head 2", nc2);
+	cmd.AddValue("ncBern", "Use bernoulli nc coefficients?", ncBern);
 	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
-	cmd.AddValue("nNodes", "NOF source nodes in topology", nNodes);
-	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
-	cmd.AddValue("notemp", "Disable temporal reconstruction?", notemp);
+	cmd.AddValue("nNodes", "NOF nodes per cluster", nNodes);
 	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
+	cmd.AddValue("nonc", "Disable network coding recombinations of clusterheads?", nonc);
+	cmd.AddValue("notemp", "Disable temporal reconstruction?", notemp);
+	cmd.AddValue("mu", "Tx probability modifier", mu);
+	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
 	cmd.AddValue("onlyprecode", "Do only spatial precoding? Switches off NC completly at cluster heads. ", onlyprecode);
-	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
-	cmd.AddValue("seq", "Reconstruct sequentially for each received packet", seq);
+	cmd.AddValue("err02", "Probability of between cluster head 0 and 2 (uniform rate error model)", err02);
+	cmd.AddValue("err12", "Probability of between cluster head 1 and 2 (uniform rate error model)", err12);
 	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
 	cmd.AddValue("tol", "Tolerance for solvers", tol);
 	cmd.AddValue("verbose", "Verbose Mode", verbose);
-	cmd.AddValue("MATfile", "path to the matlab file with extension", matFilePath);
 	cmd.AddValue("MATsrc", "name of the matrix in the mat file containing the data for the source nodes", srcMatrixName);
+	cmd.AddValue("MATfile", "name of the Matlab file", matFilePath);
 
 	cmd.Parse(argc, argv);
 
 	Time channelDelay = MilliSeconds(channelDelayTmp);
 
-	if (l > nNodes)
+	if ((l0 > nNodes) || (l1 > nNodes) || (l2 > nNodes))
 	{
 		cout << "l must be <= nNodes!" << endl;
 		return 1;
@@ -199,7 +222,7 @@ int main(int argc, char *argv[])
 	if (verbose)
 	{
 		LogComponentEnableAll(LOG_LEVEL_WARN);
-		LogComponentEnable("SingleCsCluster", LOG_LEVEL_FUNCTION);
+		LogComponentEnable("ThreeCsCluster", LOG_LEVEL_FUNCTION);
 		LogComponentEnable("CsSrcApp", LOG_LEVEL_FUNCTION);
 		LogComponentEnable("CsClusterApp", LOG_LEVEL_FUNCTION);
 		LogComponentEnable("CsSinkApp", LOG_LEVEL_FUNCTION);
@@ -211,7 +234,7 @@ int main(int argc, char *argv[])
 	else if (info)
 	{
 		LogComponentEnableAll(LOG_LEVEL_WARN);
-		LogComponentEnable("SingleCsCluster", LOG_LEVEL_INFO);
+		LogComponentEnable("ThreeCsCluster", LOG_LEVEL_INFO);
 		LogComponentEnable("CsSrcApp", LOG_LEVEL_INFO);
 		LogComponentEnable("CsClusterApp", LOG_LEVEL_INFO);
 		LogComponentEnable("CsSinkApp", LOG_LEVEL_INFO);
@@ -221,10 +244,6 @@ int main(int argc, char *argv[])
 	else
 	{
 		LogComponentEnableAll(LOG_LEVEL_WARN);
-		LogComponentEnable("SingleCsCluster", LOG_LEVEL_WARN);
-		LogComponentEnable("CsSrcApp", LOG_LEVEL_WARN);
-		LogComponentEnable("CsClusterApp", LOG_LEVEL_WARN);
-		LogComponentEnable("CsSinkApp", LOG_LEVEL_WARN);
 	}
 
 	/*********  read matlab file  **********/
@@ -233,48 +252,47 @@ int main(int argc, char *argv[])
 	DataStream<double> sourceData = matHandler_glob.ReadMat<double>(srcMatrixName);
 	uint32_t nMeasSeq = sourceData.GetMaxSize() / n;
 
-	//uint32_t k = matHandler_glob.ReadValue<double>(kName); // casting double  to uint32_t
-	//matHandler_glob.Open(matFilePathOut);				   // open output file
 	/*********  setup CsHeader  **********/
 
 	NS_LOG_INFO("Setting up...");
 
 	// std::vector<uint32_t> lk(1, l);
 	std::vector<uint32_t> lc;
-	if (onlyprecode) // in this case l = N
-		lc.push_back(nNodes);
-	else
-		lc.push_back(l);
-	CsClusterHeader::Setup(lc);
 
-	/*********  create cluster  **********/
+	if (onlyprecode) // in this case l = N
+	{
+		lc.push_back(nNodes);
+		lc.push_back(nNodes);
+		lc.push_back(nNodes);
+	}
+	else
+	{
+		lc.push_back(l0);
+		lc.push_back(l1);
+		lc.push_back(l2);
+	}
+
+	if (ncBern)
+		CsClusterHeader::Setup(lc, CsClusterHeader::E_NcCoeffType::BERN);
+	else
+		CsClusterHeader::Setup(lc);
+
+	/*********  set up clusters  **********/
+	vector<Ptr<CsCluster>> clusters(3);
+
 	NS_LOG_INFO("Creating cluster...");
 	CsClusterSimpleHelper clusterHelper;
+
 	//delay & data rate
 	clusterHelper.SetChannelAttribute("Delay", TimeValue(channelDelay));
 	clusterHelper.SetSrcDeviceAttribute("DataRate", DataRateValue(dataRate));
 	clusterHelper.SetClusterDeviceAttribute("DataRate", DataRateValue(dataRate));
-
 	// temporal compressor
 	Ptr<CompressorTemp> comprTemp = CreateObject<CompressorTemp>();
 	Ptr<RandomMatrix> ident = CreateObject<IdentRandomMatrix>();
 	comprTemp->SetAttribute("RanMatrix", PointerValue(ident));
 	clusterHelper.SetSrcAppAttribute("ComprTemp", PointerValue(comprTemp));
 	clusterHelper.SetClusterAppAttribute("ComprTemp", PointerValue(comprTemp));
-
-	if (!noprecode)
-	{
-		double txProb = mu * (l - 1) / ((nNodes - 1) * (1 - rateErr));
-		if (txProb <= 1 && txProb >= 0)
-			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
-	}
-
-	//noise
-	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
-
-	//disable network coding
-	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
-	//clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(l));
 
 	//spatial compressor
 	if (onlyprecode)
@@ -290,59 +308,134 @@ int main(int argc, char *argv[])
 
 		clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
 	}
+	//error model
+	Ptr<RateErrorModel> errModel = CreateObject<RateErrorModel>();
+	// if (rateErr > 0.0)
+	// {
+	// 	errModel->SetRate(rateErr);
+	// 	errModel->SetUnit(RateErrorModel::ErrorUnit::ERROR_UNIT_PACKET);
+	// 	errModel->AssignStreams(0);
+	// 	clusterHelper.SetSrcDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
+	// 	clusterHelper.SetClusterDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
+	// }
+
+	//noise
+	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
+
+	//create cluster 0
+	if (nonc || nc0 == l0 || onlyprecode) // switch off nc if selected
+	{
+		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
+		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(true));
+	}
+	else
+	{
+		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
+		clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(nc0));
+	}
+
+	if (!noprecode)
+	{
+		double txProb = mu * (l0 - 1) / (nNodes - 1);
+		if (txProb <= 1 && txProb >= 0)
+			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
+	}
 
 	if (onlyprecode) // in this case l = N
 		clusterHelper.SetCompression(n, m, nNodes);
 	else
-		clusterHelper.SetCompression(n, m, l);
+		clusterHelper.SetCompression(n, m, l0);
 
-	//error model
-	Ptr<RateErrorModel> errModel = CreateObject<RateErrorModel>();
-	if (rateErr > 0.0)
+	Ptr<CsCluster> cluster0 = clusterHelper.Create(CLUSTER_ID, nNodes, sourceData); // will remove streams from source data
+	ApplicationContainer clusterApps = cluster0->GetApps();
+	clusters.at(0) = cluster0;
+	//create cluster 1
+
+	if (nonc || nc1 == l1 || onlyprecode) // switch off nc if selected or unncessary (nc1 == l1)
 	{
-		errModel->SetRate(rateErr);
-		errModel->SetUnit(RateErrorModel::ErrorUnit::ERROR_UNIT_PACKET);
-		// errModel->AssignStreams(0);
-		clusterHelper.SetSrcDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
-		clusterHelper.SetClusterDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
+		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
+		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(true));
+	}
+	else
+	{
+		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
+		clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(nc1));
 	}
 
-	//create
-	Ptr<CsCluster> cluster = clusterHelper.Create(CLUSTER_ID, nNodes, sourceData);
-	ApplicationContainer clusterApps = cluster->GetApps();
+	if (!noprecode)
+	{
+		double txProb = mu * (l1 - 1) / (nNodes - 1);
+		if (txProb <= 1 && txProb >= 0)
+			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
+	}
+
+	if (onlyprecode) // in this case l = N
+		clusterHelper.SetCompression(n, m, nNodes);
+	else
+		clusterHelper.SetCompression(n, m, l1);
+
+	Ptr<CsCluster> cluster1 = clusterHelper.Create(CLUSTER_ID + 1, nNodes, sourceData); // will remove streams from source data
+	clusterApps.Add(cluster1->GetApps());
+	clusters.at(1) = cluster1;
+
+	//create cluster 2
+	if (nonc || onlyprecode)
+	{
+		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
+		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(true));
+	}
+	else
+		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
+
+	uint32_t maxL = max(l0, l1);
+	clusterHelper.SetClusterAppAttribute("NcIntervalDelay", TimeValue(MilliSeconds(2 * (10 + channelDelayTmp)) +
+																	  DataRate(dataRate).CalculateBytesTxTime(maxL * m * sizeof(double)))); //waiting for the other nodes to complete transmission
+	clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(nc2));
+
+	if (!noprecode)
+	{
+		double txProb = mu * (l2 - 1) / (nNodes - 1);
+		if (txProb <= 1 && txProb >= 0)
+			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
+	}
+
+	if (onlyprecode) // in this case l = N
+		clusterHelper.SetCompression(n, m, nNodes);
+	else
+		clusterHelper.SetCompression(n, m, l2);
+
+	Ptr<CsCluster> cluster2 = clusterHelper.Create(CLUSTER_ID + 2, nNodes, sourceData); // will remove streams from source data
+	clusterApps.Add(cluster2->GetApps());
+	clusters.at(2) = cluster2;
 
 	//add trace sources to apps
 	std::string confPath = "/NodeList/*/ApplicationList/0/$CsSrcApp/"; //for all nodes add a tx callback
 	Config::ConnectWithoutContext(confPath + "Tx", MakeCallback(&transmittingCb));
-	confPath = "/NodeList/0/ApplicationList/0/$CsClusterApp/"; //for cluster node add a rx callback
+	confPath = "/NodeList/*/ApplicationList/0/$CsClusterApp/"; //for cluster node add a rx callback
 	Config::ConnectWithoutContext(confPath + "Rx", MakeCallback(&receiveCb));
 
-	//sink node
-	Ptr<CsNode> sink = CreateObject<CsNode>();
-	/*********  create netdevices and channels  **********/
-	NS_LOG_INFO("Connect to sink...");
+	NS_LOG_INFO("Connecting...");
 
-	Ptr<MySimpleChannel> channel = CreateObject<MySimpleChannel>();
-	channel->SetAttribute("Delay", TimeValue(channelDelay));
-	Ptr<MySimpleNetDevice> devA = CreateObject<MySimpleNetDevice>(),
-						   devB = CreateObject<MySimpleNetDevice>();
+	/*********  CONNECT  **********/
+	Ptr<CsNode> sink = CreateObject<CsNode>(CsNode::NodeType::SINK);
+	TopologySimpleHelper topHelper;
 
-	devA->SetAttribute("DataRate", DataRateValue(dataRate));
-	devB->SetAttribute("DataRate", DataRateValue(dataRate));
-	if (rateErr > 0.0)
-		devB->SetAttribute("ReceiveErrorModel", PointerValue(errModel));
-	// channel->Add(devA);
-	// channel->Add(devB);
-
-	Ptr<CsNode>
-		clusterNode = cluster->GetClusterHead();
-	clusterNode->AddTxDevice(devA);
-	sink->AddDevice(devB);
-
-	devA->SetNode(clusterNode);
-	devA->SetChannel(channel);
-	devB->SetNode(sink);
-	devB->SetChannel(channel);
+	if (err02 > 0.0 || err12 > 0.0)
+	{
+		TopologySimpleHelper::LinksDouble links(3);
+		links.SetClLink(0, 2, 1 - err02);
+		links.SetClLink(1, 2, 1 - err12);
+		links.SetSinkLink(2, 1);
+		topHelper.Create(clusters, sink, links);
+	}
+	else
+	{
+		TopologySimpleHelper::LinksBool links(3);
+		links.SetClLink(0, 2);
+		links.SetClLink(1, 2);
+		links.SetSinkLink(2);
+		topHelper.Create(clusters, sink, links);
+	}
 
 	//adding sink app
 	NS_LOG_INFO("Adding Applications...");
@@ -355,8 +448,6 @@ int main(int argc, char *argv[])
 	Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
 	rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 
-	rec->SetAttribute("NoNC", BooleanValue(true));
-
 	if (identSpat || onlyprecode)
 		ranMat = CreateObject<IdentRandomMatrix>();
 	else if (bernSpat)
@@ -365,53 +456,39 @@ int main(int argc, char *argv[])
 		ranMat = CreateObject<GaussianRandomMatrix>();
 
 	rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat, transMat)));
+
+	if (nonc)
+		rec->SetAttribute("NoNC", BooleanValue(true));
+
+	if (notemp)
+		rec->SetAttribute("NoRecTemp", BooleanValue(true));
+
 	sinkApp->SetAttribute("Reconst", PointerValue(rec));
 
 	if (calcSnr)
 		rec->SetAttribute("CalcSnr", BooleanValue(true));
 
-	if (notemp)
-		rec->SetAttribute("NoRecTemp", BooleanValue(true));
-	// Ptr<TransMatrix<cx_double>> transMat = CreateObject<FourierTransMatrix<cx_double>>();
-	// Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
-	// rec->SetAttribute("RecMatTempCx", PointerValue(Create<RecMatrixCx>(ranMat, transMat)));
-	// ranMat = CreateObject<GaussianRandomMatrix>();
-	// if(ampSpat)
-	// 	ranMat->NormalizeToM();
-
-	// rec->SetAttribute("RecMatSpatCx", PointerValue(Create<RecMatrixCx>(ranMat, transMat)));
-	// sinkApp->SetAttribute("Reconst", PointerValue(rec));
-
-	// Ptr<TransMatrix> transMat = CreateObject<FourierTransMatrix<double>>();
-	// Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
-	// rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
-	// ranMat = CreateObject<GaussianRandomMatrix>();
-	// if(ampSpat)
-	// 	ranMat->NormalizeToM();
-
-	// rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
-	// sinkApp->SetAttribute("Reconst", PointerValue(rec));
-
-	if (bpSpat)
+	if (bpSolv)
+	{
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_BP>()));
-	else if (ampSpat)
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_BP>()));
+	}
+	else if (ampSolv)
 	{
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_AMP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_AMP>()));
 	}
 
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_OMP/k", UintegerValue(k));
-	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/k", UintegerValue(ks));
+	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/k", UintegerValue(ks)); // times three since we have three clusters
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/Tolerance", DoubleValue(tol));
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/Tolerance", DoubleValue(tol));
 	// recTemp->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
 
-	if (!seq)
-		sinkApp->SetAttribute("MinPackets", UintegerValue(l * (1 - rateErr)));
-	else
-		sinkApp->SetAttribute("MinPackets", UintegerValue(0));
-
 	sinkApp->TraceConnectWithoutContext("Rx", MakeCallback(&receiveCb));
-	sinkApp->AddCluster(cluster);
+	sinkApp->AddCluster(cluster2);
+	sinkApp->AddCluster(cluster0);
+	sinkApp->AddCluster(cluster1);
 	sinkApp->Setup(sink);
 	//setting calbacks
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/RecComplete", MakeCallback(&spatRecCb));
@@ -420,6 +497,8 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/RecError", MakeCallback(&recErrorCb));
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprFail", MakeCallback(&comprFailSpat));
 	Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$MySimpleNetDevice/PhyRxDrop", MakeCallback(&packetDrop));
+
+	//sinkApp->SetAttribute("MinPackets", UintegerValue(nc2));
 	/*********  Running the Simulation  **********/
 
 	NS_LOG_INFO("Starting Simulation...");
@@ -430,29 +509,41 @@ int main(int argc, char *argv[])
 	/*********  Writing output **********/
 	if (calcSnr) // remove in/output streams of the cluster head/ source nodes to write less
 	{
-		for (auto it = cluster->Begin(); it != cluster->End(); it++)
+		for (auto it = cluster0->Begin(); it != cluster0->End(); it++)
+		{
+			(*it)->RmStreamByName(CsNode::STREAMNAME_UNCOMPR);
+			(*it)->RmStreamByName(CsNode::STREAMNAME_COMPR);
+		}
+		for (auto it = cluster1->Begin(); it != cluster1->End(); it++)
+		{
+			(*it)->RmStreamByName(CsNode::STREAMNAME_UNCOMPR);
+			(*it)->RmStreamByName(CsNode::STREAMNAME_COMPR);
+		}
+		for (auto it = cluster2->Begin(); it != cluster2->End(); it++)
 		{
 			(*it)->RmStreamByName(CsNode::STREAMNAME_UNCOMPR);
 			(*it)->RmStreamByName(CsNode::STREAMNAME_COMPR);
 		}
 	}
 
-	matHandler_glob.WriteCluster(*cluster);
+	matHandler_glob.WriteCluster(*cluster0);
+	matHandler_glob.WriteCluster(*cluster1);
+	matHandler_glob.WriteCluster(*cluster2);
+	matHandler_glob.WriteMat(*sink);
 	matHandler_glob.WriteValue<double>("nNodesUsed", nNodes);
 	matHandler_glob.WriteValue<double>("n", n);
 	matHandler_glob.WriteValue<double>("m", m);
-	matHandler_glob.WriteValue<double>("l", l);
-	matHandler_glob.WriteValue<bool>("precode", !noprecode);
-	matHandler_glob.WriteValue<double>("rateErr", rateErr);
-	matHandler_glob.WriteValue<double>("noiseVar", noiseVar);
+	matHandler_glob.WriteValue<double>("l0", l0);
+	matHandler_glob.WriteValue<double>("l1", l1);
+	matHandler_glob.WriteValue<double>("l2", l2);
+	matHandler_glob.WriteValue<double>("nc0", nc0);
+	matHandler_glob.WriteValue<double>("nc1", nc1);
+	matHandler_glob.WriteValue<double>("nc2", nc2);
 	matHandler_glob.WriteValue<double>("totalTimeTemp", tTemp_glob);
 	matHandler_glob.WriteValue<double>("totalTimeSpat", tSpat_glob);
 	matHandler_glob.WriteValue<double>("nErrorRec", nErrorRec_glob);
-	matHandler_glob.WriteValue<double>("nErrorComp", nErrorComp_glob);
-	if (!seq)
-		matHandler_glob.WriteValue<double>("attempts", 1);
-	else
-		matHandler_glob.WriteValue<double>("attempts", l);
+	matHandler_glob.WriteValue<double>("nTx", nTx_glob);
+
 	matHandler_glob.WriteValue<double>("nMeasSeq", nMeasSeq);
 
 	return 0;
