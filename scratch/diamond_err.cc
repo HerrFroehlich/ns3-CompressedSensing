@@ -297,7 +297,7 @@ int main(int argc, char *argv[])
 
 	//create cluster 0
 
-	if (nonc || nc0 == l0) // switch off nc if selected or unncessary (nc0 == l0)
+	if (nonc) // switch off nc if selected or unncessary (nc0 == l0)
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
 	else
 	{
