@@ -3,13 +3,13 @@ FILE_PATH = './out/data';       %output mat file base name
 m = 64;                         %size of compressed measurement vector
 %n = 512;                        %size of measurement vector per sequence
 %% DEFINES
-MAX_NODES = 256;
+%MAX_NODES = 256;
 RAND_MIN = 0.5;
 RAND_MAX = 1.5;
 %% INPUT
 nNodes = input('Number of nodes: ');
 assert(nNodes > 0, 'Not enough nodes');
-assert(nNodes <= MAX_NODES, 'too many nodes');
+%assert(nNodes <= MAX_NODES, 'too many nodes');
 
 nSamp = input('NOF Samples: ');
 rho = input('Sparsity Ratio: ');

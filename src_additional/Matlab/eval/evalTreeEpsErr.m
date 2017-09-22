@@ -1,6 +1,6 @@
 %%
 %
-% Evaluates the output for a 3 simulation with tree topolgy. 
+% Evaluates the output for a 3 simulation with tree topolgy and link errors. 
 % The snr was calculated during the simulation (flag: --snr).
 % This evaluates the tree topology when --onlyprecoding was used.
 % The (mean) SNR is plotted over the reduction of the NOF transmissions (e) with
@@ -19,29 +19,31 @@ P0       = 8*85;    % NOF transmission without NC
 %% INIT
 nClusters = 3;      % NOF clusters used
 %load('data.mat')
-nTx =  zeros(1,nMeasSeq); % NOF transmissions without sink link
-nTxS =  zeros(1,nMeasSeq); % NOF transmissions with sink link
+nTx =  zeros(1,nMeasSeq);
 
 %% get max NOF tx to sink
-nRxSink = Cluster2.nPktRxSrc+Cluster2.nPktRxCl(1:nMeasSeq) + 1; %+1 since cluster head is also source
+nRxSink = l2+Cluster2.nPktRxCl(1:nMeasSeq);
 nRxSinkMax = max(nRxSink);
 
-%% Get NOF transmission without sink link
+%% Get NOF transmission
 for c = 1:nClusters
     clName = ['Cluster' num2str(c-1)];
-       
+    l = eval(['l' num2str(c-1)]);   
     nRxSrc = eval([clName '.nPktRxSrc']);
-    nRxCl = eval([clName '.nPktRxCl']);
-    nTx = nTx + nRxSrc +  nRxCl(1:nMeasSeq);
+    if(~isempty(nRxSrc))
+        nTx = nTx + nRxSrc +  l;
+    else
+        nTx = nTx + l;
+    end
 end
-nTxS = nTx + nRxSink;
 min_nTx = min(nTx);
 max_nTx = max(nTx);
-min_nTxS = min_nTx +1; % one transmission C2-> sink
-max_nTxS = max_nTx + nRxSinkMax; % all transmissions C2->sink
-nTxS_dist = histc(nTxS, min_nTxS:max_nTxS)/nMeasSeq;
+nTxS = nTx+nRxSink; % NOF tx with sink link
+
 %% Get SNR ordered by NOF transmissions
+
 snrSpat = nan(nMeasSeq, max_nTx-min_nTx+nRxSinkMax, nClusters);
+snrSpatFin = zeros(nMeasSeq); %final SNR
 for c = 1:nClusters
     for meas = 1:nMeasSeq
         %% spatial snr
@@ -50,6 +52,7 @@ for c = 1:nClusters
         snrNow = stField;
         range = (nTx(meas) - min_nTx)+(1:nRxSink(meas));
         snrSpat(meas, range, c) = snrNow(:);
+        snrSpatFin(meas) = snrNow(end);
     end
 end
 %% plot
@@ -59,10 +62,26 @@ snrSpatMean =  squeeze(nanmean(snrSpatMeanCl));
 
 
 %considering connection to sink
+min_nTxS = min_nTx +1; % one transmission C2-> sink
+max_nTxS = max_nTx + nRxSinkMax; % all transmissions C2->sink
 eps = (min_nTxS:max_nTxS)/P0; 
 % calculate distribution
+nTxS_dist = histc(nTxS, min_nTx+1:max_nTxS)/nMeasSeq;
+nTxS_distNan = nTxS_dist;
+nTxS_distNan(nTxS_dist==0) = nan; %don't plot 0s
 
+
+idx = nTxS_dist==0;
+snrFinal = snrSpatMean(~idx);
+snrFinalNan = snrSpatMean;
+snrFinalNan(idx) = nan;
+
+%plot
 figure;
 yyaxis left; plot(eps, snrSpatMean); ylabel('mean SNR in dB');
-yyaxis right;plot(eps, nTxS_dist); ylabel('% of SEQ');
+yyaxis right;stem(eps, nTxS_distNan); ylabel('% of SEQ');
 title(['SNR with ' ALGO_NAME ' Spatial Reconstruction']);xlabel('\epsilon_P'); 
+figure;
+yyaxis left;stem(eps, snrFinalNan);ylabel('mean SNR in dB');
+yyaxis right;stem(eps, nTxS_distNan); ylabel('% of SEQ');
+title(['Final SNR with ' ALGO_NAME ' Spatial Reconstruction']);xlabel('\epsilon_P'); 

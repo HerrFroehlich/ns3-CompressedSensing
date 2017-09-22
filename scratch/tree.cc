@@ -321,7 +321,7 @@ int main(int argc, char *argv[])
 	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
 
 	//create cluster 0
-	if (nonc || nc0 == l0 || onlyprecode) // switch off nc if selected
+	if (nonc || onlyprecode) // switch off nc if selected
 	{
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
 		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(true));
@@ -349,7 +349,7 @@ int main(int argc, char *argv[])
 	clusters.at(0) = cluster0;
 	//create cluster 1
 
-	if (nonc || nc1 == l1 || onlyprecode) // switch off nc if selected or unncessary (nc1 == l1)
+	if (nonc || onlyprecode) // switch off nc if selected or unncessary (nc1 == l1)
 	{
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
 		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(true));
@@ -383,7 +383,10 @@ int main(int argc, char *argv[])
 		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(true));
 	}
 	else
+	{
+		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(false));
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
+	}
 
 	uint32_t maxL = max(l0, l1);
 	clusterHelper.SetClusterAppAttribute("NcIntervalDelay", TimeValue(MilliSeconds(2 * (10 + channelDelayTmp)) +
