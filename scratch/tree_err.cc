@@ -543,6 +543,8 @@ int main(int argc, char *argv[])
 	matHandler_glob.WriteValue<double>("totalTimeSpat", tSpat_glob);
 	matHandler_glob.WriteValue<double>("nErrorRec", nErrorRec_glob);
 	matHandler_glob.WriteValue<double>("nTx", nTx_glob);
+	matHandler_glob.WriteValue<double>("err02", err02);
+	matHandler_glob.WriteValue<double>("err12", err12);
 
 	matHandler_glob.WriteValue<double>("nMeasSeq", nMeasSeq);
 
