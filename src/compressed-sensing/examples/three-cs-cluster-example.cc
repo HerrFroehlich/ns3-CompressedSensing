@@ -20,6 +20,7 @@
 #define DEFAULT_SRCMAT_NAME "X"
 #define CLUSTER_ID 0
 #define DEFAULT_TOL 1e-3
+#define DEFAULT_ITER 20
 
 #define TXPROB_MODIFIER_DEFAULT 1.0
 
@@ -148,7 +149,12 @@ int main(int argc, char *argv[])
 			 nc1 = DEFAULT_L,
 			 nc2 = 3 * DEFAULT_L,
 			 k = DEFAULT_K,
-			 ks = DEFAULT_K;
+			 ks = DEFAULT_K,
+			 minP = 0,
+			 maxIter = DEFAULT_ITER;
+
+	uint64_t seed = 1;
+
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
 		   rateErr = 0.0,
 		   tol = DEFAULT_TOL,
@@ -157,6 +163,7 @@ int main(int argc, char *argv[])
 	bool noprecode = false,
 		 bpSolv = false,
 		 ampSolv = false,
+		 cosampSolv = false,
 		 calcSnr = false,
 		 nonc = false,
 		 ncBern = false,
@@ -174,27 +181,31 @@ int main(int argc, char *argv[])
 	cmd.AddValue("bern", "Bernoulli random matrix when compressing spatially?", bernSpat);
 	cmd.AddValue("ident", "Identity random matrix when compressing spatially?", identSpat);
 	cmd.AddValue("channelDelay", "delay of all channels in ms", channelDelayTmp);
+	cmd.AddValue("cosamp", "Solve with CoSaMP?", cosampSolv);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
 	cmd.AddValue("info", "Enable info messages", info);
+	cmd.AddValue("iter", "Maximmum NOF iterations", maxIter);
 	cmd.AddValue("k", "sparsity of original source measurements (needed when using OMP temporally)", k);
 	cmd.AddValue("ks", "sparsity of the colums of Y (needed when using OMP spatially)", ks);
 	cmd.AddValue("l0", "NOF meas. vectors after spatial compression, rows of Z of cluster 0", l0);
 	cmd.AddValue("l1", "NOF meas. vectors after spatial compression, rows of Z of cluster 1", l1);
 	cmd.AddValue("l2", "NOF meas. vectors after spatial compression, rows of Z of cluster 1", l2);
+	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
+	cmd.AddValue("mu", "Tx probability modifier", mu);
+	cmd.AddValue("minP", "Minimum NOF packets at sink to start reconstruction", minP);
 	cmd.AddValue("nc0", "NOF network coded packets per link in each inverval at cluster head 0", nc0);
 	cmd.AddValue("nc1", "NOF network coded packets per link in each inverval at cluster head 1", nc1);
 	cmd.AddValue("nc2", "NOF network coded packets per link in each inverval at cluster head 2", nc2);
 	cmd.AddValue("ncBern", "Use bernoulli nc coefficients?", ncBern);
-	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
 	cmd.AddValue("nNodes", "NOF nodes per cluster", nNodes);
 	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
 	cmd.AddValue("nonc", "Disable network coding recombinations of clusterheads?", nonc);
 	cmd.AddValue("notemp", "Disable temporal reconstruction?", notemp);
-	cmd.AddValue("mu", "Tx probability modifier", mu);
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
 	cmd.AddValue("onlyprecode", "Do only spatial precoding? Switches off NC completly at cluster heads. ", onlyprecode);
 	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
+	cmd.AddValue("seed", "Global seed for random streams (except random matrices)", seed);
 	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
 	cmd.AddValue("tol", "Tolerance for solvers", tol);
 	cmd.AddValue("verbose", "Verbose Mode", verbose);
@@ -243,6 +254,8 @@ int main(int argc, char *argv[])
 	{
 		LogComponentEnableAll(LOG_LEVEL_WARN);
 	}
+	//set seed
+	RngSeedManager::SetSeed(seed);
 
 	/*********  read matlab file  **********/
 	NS_LOG_INFO("Reading mat file...");
@@ -321,7 +334,7 @@ int main(int argc, char *argv[])
 	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
 
 	//create cluster 0
-	if (nonc || nc0 == l0 || onlyprecode) // switch off nc if selected
+	if (nonc || onlyprecode) // switch off nc if selected
 	{
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
 		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(true));
@@ -349,7 +362,7 @@ int main(int argc, char *argv[])
 	clusters.at(0) = cluster0;
 	//create cluster 1
 
-	if (nonc || nc1 == l1 || onlyprecode) // switch off nc if selected or unncessary (nc1 == l1)
+	if (nonc || onlyprecode) // switch off nc if selected or unncessary (nc1 == l1)
 	{
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
 		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(true));
@@ -479,9 +492,21 @@ int main(int argc, char *argv[])
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_AMP>()));
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_AMP>()));
 	}
-
-	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_OMP/k", UintegerValue(k));
-	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/k", UintegerValue(ks)); // times three since we have three clusters
+	else if (cosampSolv)
+	{
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_CoSaMP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_CoSaMP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_CoSaMP/k", UintegerValue(k));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_CoSaMP/k", UintegerValue(ks)); 
+	}
+	else
+	{
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_OMP/k", UintegerValue(k));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/k", UintegerValue(ks));
+	}
+ 
+	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/MaxIter", UintegerValue(maxIter));
+	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/MaxIter", UintegerValue(maxIter));
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/Tolerance", DoubleValue(tol));
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/Tolerance", DoubleValue(tol));
 	// recTemp->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
@@ -499,7 +524,7 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprFail", MakeCallback(&comprFailSpat));
 	Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$MySimpleNetDevice/PhyRxDrop", MakeCallback(&packetDrop));
 
-	//sinkApp->SetAttribute("MinPackets", UintegerValue(nc2));
+	sinkApp->SetAttribute("MinPackets", UintegerValue(minP));
 	/*********  Running the Simulation  **********/
 
 	NS_LOG_INFO("Starting Simulation...");
