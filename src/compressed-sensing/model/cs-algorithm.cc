@@ -12,11 +12,11 @@ ns3::TypeId CsAlgorithm::GetTypeId()
 							.SetParent<Object>()
 							.SetGroupName("CompressedSensing")
 							.AddAttribute("Tolerance", "Tolerance of solution",
-										  DoubleValue(1e-3),
+										  DoubleValue(1e-6),
 										  MakeDoubleAccessor(&CsAlgorithm::m_tol),
 										  MakeDoubleChecker<double>())
-							.AddAttribute("MaxIter", "Maximum NOF Iterations, if 0 -> no iteration limit",
-										  UintegerValue(0),
+							.AddAttribute("MaxIter", "Maximum NOF Iterations",
+										  UintegerValue(std::numeric_limits<uint32_t>::max()),
 										  MakeUintegerAccessor(&CsAlgorithm::m_maxIter),
 										  MakeUintegerChecker<uint32_t>())
 							.AddTraceSource("RecComplete", "Callback when Reconstuction completed",
@@ -28,6 +28,48 @@ ns3::TypeId CsAlgorithm::GetTypeId()
 	return tid;
 }
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+Mat<double> CsAlgorithm::Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A)
+{
+	NS_LOG_FUNCTION(this << &Y << &A);
+	NS_ASSERT_MSG(!Y.is_empty(), "Y is empty, not able to reconstruct!");
+
+	/*--------  Init  --------*/
+
+	//SystemWallClockMs wallClock;
+	klab::KTimer wallClock;
+	int64_t time = 0;
+
+	uint32_t vecLen = Y.n_cols,
+			 n = A->n(),
+			 iter = 0;
+
+	Mat<double> X(n, vecLen);
+
+	/*--------  Solve  --------*/
+
+	SetMaxIter(m_maxIter);
+	SetTolerance(m_tol);
+	try
+	{
+		wallClock.start();
+		for (uint32_t i = 0; i < vecLen; i++)
+		{
+			Col<double> xVec;
+			iter += Solve(Y.col(i), xVec, A);
+			X.col(i) = xVec;
+		}
+		wallClock.stop();
+		time = wallClock.durationInMilliseconds();
+		CallCompleteCb(time, iter);
+	}
+	catch (const klab::KException &e)
+	{
+		CallErrorCb(e);
+	};
+	return X;
+}
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
 NS_OBJECT_ENSURE_REGISTERED(CsAlgorithm_OMP);
@@ -51,27 +93,27 @@ CsAlgorithm_OMP::CsAlgorithm_OMP()
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-Mat<double> CsAlgorithm_OMP::Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A)
+void CsAlgorithm_OMP::SetMaxIter(uint32_t maxIter)
 {
-	NS_LOG_FUNCTION(this << &Y << &A);
-	NS_ASSERT_MSG(!Y.is_empty(), "Y is empty, not able to reconstruct!");
+	m_solver.setIterationLimit(maxIter);
+}
 
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void CsAlgorithm_OMP::SetTolerance(double tol)
+{
+	m_solver.setTolerance(tol);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+uint32_t CsAlgorithm_OMP::Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A)
+{
 	/*--------  Init  --------*/
 
-	//SystemWallClockMs wallClock;
-	klab::KTimer wallClock;
-	int64_t time = 0;
-
 	uint32_t k = m_k,
-			 m = Y.n_rows,
-			 vecLen = Y.n_cols,
-			 n = A->n(),
-			 maxIter = GetMaxIter(),
-			 iter = 0;
-
-	kl1p::TOMPSolver<double> omp(GetTolerance());
-
-	Mat<double> X(n, vecLen);
+			 m = A->m(),
+			 n = A->n();
 
 	/*--------  Solve  --------*/
 
@@ -79,28 +121,8 @@ Mat<double> CsAlgorithm_OMP::Run(const Mat<double> &Y, const klab::TSmartPointer
 		k = m / log10(n);
 	NS_ASSERT_MSG(k <= n, "k must be <=n !");
 
-	if (maxIter)
-		omp.setIterationLimit(maxIter);
-
-	try
-	{
-		wallClock.start();
-		for (uint32_t i = 0; i < vecLen; i++)
-		{
-			Col<double> xVec;
-			omp.solve(Y.col(i), A, k, xVec);
-			X.col(i) = xVec;
-			iter += omp.iterations();
-		}
-		wallClock.stop();
-		time = wallClock.durationInMilliseconds();
-		CallCompleteCb(time, iter);
-	}
-	catch (const klab::KException &e)
-	{
-		CallErrorCb(e);
-	};
-	return X;
+	m_solver.solve(yin, A, k, xout);
+	return m_solver.iterations();
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -122,50 +144,25 @@ CsAlgorithm_BP::CsAlgorithm_BP()
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-Mat<double> CsAlgorithm_BP::Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A)
+void CsAlgorithm_BP::SetMaxIter(uint32_t maxIter)
 {
-	NS_LOG_FUNCTION(this << &Y << &A);
-	NS_ASSERT_MSG(!Y.is_empty(), "Y is empty, not able to reconstruct!");
+	m_solver.setIterationLimit(maxIter);
+}
 
-	/*--------  Init  --------*/
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
-	//SystemWallClockMs wallClock;
-	klab::KTimer wallClock;
-	int64_t time = 0;
+void CsAlgorithm_BP::SetTolerance(double tol)
+{
+	m_solver.setTolerance(tol);
+}
 
-	uint32_t vecLen = Y.n_cols,
-			 n = A->n(),
-			 maxIter = GetMaxIter(),
-			 iter = 0;
+/*-----------------------------------------------------------------------------------------------------------------------*/
 
-	kl1p::TBasisPursuitSolver<double> bp(GetTolerance());
-
-	Mat<double> X(n, vecLen);
-
+uint32_t CsAlgorithm_BP::Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A)
+{
 	/*--------  Solve  --------*/
-
-	if (maxIter)
-		bp.setIterationLimit(maxIter);
-
-	try
-	{
-		wallClock.start();
-		for (uint32_t i = 0; i < vecLen; i++)
-		{
-			Col<double> xVec;
-			bp.solve(Y.col(i), A, xVec);
-			X.col(i) = xVec;
-			iter += bp.iterations();
-		}
-		wallClock.stop();
-		time = wallClock.durationInMilliseconds();
-		CallCompleteCb(time, iter);
-	}
-	catch (const klab::KException &e)
-	{
-		CallErrorCb(e);
-	};
-	return X;
+	m_solver.solve(yin, A, xout);
+	return m_solver.iterations();
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
@@ -186,49 +183,286 @@ CsAlgorithm_AMP::CsAlgorithm_AMP()
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
-Mat<double> CsAlgorithm_AMP::Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A)
+void CsAlgorithm_AMP::SetMaxIter(uint32_t maxIter)
 {
-	NS_LOG_FUNCTION(this << &Y << &A);
-	NS_ASSERT_MSG(!Y.is_empty(), "Y is empty, not able to reconstruct!");
+	m_solver.setIterationLimit(maxIter);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void CsAlgorithm_AMP::SetTolerance(double tol)
+{
+	m_solver.setTolerance(tol);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+uint32_t CsAlgorithm_AMP::Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A)
+{
+
+	klab::TSmartPointer<kl1p::TOperator<double>> Anorm = new kl1p::TScalingOperator<double>(A, 1.0 / klab::Sqrt(A->m())); // Pseudo-normalization of the matrix
+	//solve
+	m_solver.solve(yin, Anorm, xout);
+	xout = xout / klab::Sqrt(A->m()); //since we normalized before
+	return m_solver.iterations();
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+NS_OBJECT_ENSURE_REGISTERED(CsAlgorithm_CoSaMP);
+ns3::TypeId CsAlgorithm_CoSaMP::GetTypeId()
+{
+	static TypeId tid = TypeId("CsAlgorithm_CoSaMP")
+							.SetParent<CsAlgorithm>()
+							.SetGroupName("CompressedSensing")
+							.AddAttribute("k", "sparsity of reconstructed signal, if 0 or > n -> will be set to k = m/log(n) < n$",
+										  UintegerValue(0),
+										  MakeUintegerAccessor(&CsAlgorithm_CoSaMP::m_k),
+										  MakeUintegerChecker<uint32_t>());
+	return tid;
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+CsAlgorithm_CoSaMP::CsAlgorithm_CoSaMP()
+{
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void CsAlgorithm_CoSaMP::SetMaxIter(uint32_t maxIter)
+{
+	m_solver.setIterationLimit(maxIter);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void CsAlgorithm_CoSaMP::SetTolerance(double tol)
+{
+	m_solver.setTolerance(tol);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+uint32_t CsAlgorithm_CoSaMP::Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A)
+{
 	/*--------  Init  --------*/
-	 klab::TSmartPointer<kl1p::TOperator<double>> Anorm  = new kl1p::TScalingOperator<double>(A, 1.0/klab::Sqrt(A->m()));	// Pseudo-normalization of the matrix
-	//klab::TSmartPointer<kl1p::TOperator<double>> Anorm  = A;	// Pseudo-normalization of the matrix
-	//SystemWallClockMs wallClock;
-	klab::KTimer wallClock;
-	int64_t time = 0;
 
-	uint32_t vecLen = Y.n_cols,
-			 n = A->n(),
-			 maxIter = GetMaxIter(),
-			 iter = 0;
-
-	kl1p::TAMPSolver<double> amp(GetTolerance());
-
-	Mat<double> X(n, vecLen);
+	uint32_t k = m_k,
+			 m = A->m(),
+			 n = A->n();
 
 	/*--------  Solve  --------*/
 
-	if (maxIter)
-		amp.setIterationLimit(maxIter);
+	if (k == 0)
+		k = m / log10(n);
+	NS_ASSERT_MSG(k <= n, "k must be <=n !");
 
-	try
-	{
-		wallClock.start();
-		for (uint32_t i = 0; i < vecLen; i++)
-		{
-			Col<double> xVec;
-			amp.solve(Y.col(i), Anorm, xVec);
-			X.col(i) = xVec/klab::Sqrt(A->m()); //since we normalized before
-			//X.col(i) = xVec;
-			iter += amp.iterations();
-		}
-		wallClock.stop();
-		time = wallClock.durationInMilliseconds();
-		CallCompleteCb(time, iter);
-	}
-	catch (const klab::KException &e)
-	{
-		CallErrorCb(e);
-	};
-	return X;
+	m_solver.solve(yin, A, k, xout);
+	return m_solver.iterations();
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+NS_OBJECT_ENSURE_REGISTERED(CsAlgorithm_ROMP);
+ns3::TypeId CsAlgorithm_ROMP::GetTypeId()
+{
+	static TypeId tid = TypeId("CsAlgorithm_ROMP")
+							.SetParent<CsAlgorithm>()
+							.SetGroupName("CompressedSensing")
+							.AddAttribute("k", "sparsity of reconstructed signal, if 0 or > n -> will be set to k = m/log^2(n) < n$",
+										  UintegerValue(0),
+										  MakeUintegerAccessor(&CsAlgorithm_ROMP::m_k),
+										  MakeUintegerChecker<uint32_t>());
+	return tid;
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+CsAlgorithm_ROMP::CsAlgorithm_ROMP()
+{
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void CsAlgorithm_ROMP::SetMaxIter(uint32_t maxIter)
+{
+	m_solver.setIterationLimit(maxIter);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void CsAlgorithm_ROMP::SetTolerance(double tol)
+{
+	m_solver.setTolerance(tol);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+uint32_t CsAlgorithm_ROMP::Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A)
+{
+	/*--------  Init  --------*/
+
+	uint32_t k = m_k,
+			 m = A->m(),
+			 n = A->n();
+
+	/*--------  Solve  --------*/
+
+	if (k == 0)
+		k = m / (log10(n) * log10(n));
+	NS_ASSERT_MSG(k <= n, "k must be <=n !");
+
+	m_solver.solve(yin, A, k, xout);
+	return m_solver.iterations();
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+NS_OBJECT_ENSURE_REGISTERED(CsAlgorithm_SP);
+ns3::TypeId CsAlgorithm_SP::GetTypeId()
+{
+	static TypeId tid = TypeId("CsAlgorithm_SP")
+							.SetParent<CsAlgorithm>()
+							.SetGroupName("CompressedSensing")
+							.AddAttribute("k", "sparsity of reconstructed signal, if 0 or > n -> will be set to k = m/log^2(n) < n$",
+										  UintegerValue(0),
+										  MakeUintegerAccessor(&CsAlgorithm_SP::m_k),
+										  MakeUintegerChecker<uint32_t>());
+	return tid;
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+CsAlgorithm_SP::CsAlgorithm_SP()
+{
+}
+
+void CsAlgorithm_SP::SetMaxIter(uint32_t maxIter)
+{
+	m_solver.setIterationLimit(maxIter);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void CsAlgorithm_SP::SetTolerance(double tol)
+{
+	m_solver.setTolerance(tol);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+uint32_t CsAlgorithm_SP::Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A)
+{
+	/*--------  Init  --------*/
+
+	uint32_t k = m_k,
+			 m = A->m(),
+			 n = A->n();
+
+	/*--------  Solve  --------*/
+
+	if (k == 0)
+		k = m / (log10(n));
+	NS_ASSERT_MSG(k <= n, "k must be <=n !");
+
+	m_solver.solve(yin, A, k, xout);
+	return m_solver.iterations();
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+NS_OBJECT_ENSURE_REGISTERED(CsAlgorithm_SL0);
+ns3::TypeId CsAlgorithm_SL0::GetTypeId()
+{
+	static TypeId tid = TypeId("CsAlgorithm_SL0")
+							.SetParent<CsAlgorithm>()
+							.SetGroupName("CompressedSensing");
+	return tid;
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+CsAlgorithm_SL0::CsAlgorithm_SL0()
+{
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+void CsAlgorithm_SL0::SetMaxIter(uint32_t maxIter)
+{
+	m_solver.setIterationLimit(maxIter);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void CsAlgorithm_SL0::SetTolerance(double tol)
+{
+	m_solver.setTolerance(tol);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+uint32_t CsAlgorithm_SL0::Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A)
+{
+	/*--------  Init  --------*/
+	klab::TSmartPointer<kl1p::TOperator<double>> Anorm = new kl1p::TScalingOperator<double>(A, 1.0 / klab::Sqrt(A->m())); // Pseudo-normalization of the matrix
+	//solve
+	m_solver.solve(yin, Anorm, xout);
+	xout = xout / klab::Sqrt(A->m()); //since we normalized before
+	return m_solver.iterations();
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+NS_OBJECT_ENSURE_REGISTERED(CsAlgorithm_EMBP);
+ns3::TypeId CsAlgorithm_EMBP::GetTypeId()
+{
+	static TypeId tid = TypeId("CsAlgorithm_EMBP")
+							.SetParent<CsAlgorithm>()
+							.SetGroupName("CompressedSensing")
+							.AddAttribute("k", "sparsity of reconstructed signal, if 0 or > n -> will be set to k = m/log(n) < n$",
+										  UintegerValue(0),
+										  MakeUintegerAccessor(&CsAlgorithm_EMBP::m_k),
+										  MakeUintegerChecker<uint32_t>());
+	return tid;
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+CsAlgorithm_EMBP::CsAlgorithm_EMBP()
+{
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void CsAlgorithm_EMBP::SetMaxIter(uint32_t maxIter)
+{
+	m_solver.setIterationLimit(maxIter);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+void CsAlgorithm_EMBP::SetTolerance(double tol)
+{
+	m_solver.setTolerance(tol);
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+uint32_t CsAlgorithm_EMBP::Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A)
+{
+	/*--------  Init  --------*/
+
+	uint32_t k = m_k,
+			 m = A->m(),
+			 n = A->n();
+
+	/*--------  Solve  --------*/
+
+	if (k == 0)
+		k = m / log10(n);
+	NS_ASSERT_MSG(k <= n, "k must be <=n !");
+
+	m_solver.solve(yin, A, k, xout);
+	return m_solver.iterations();
 }

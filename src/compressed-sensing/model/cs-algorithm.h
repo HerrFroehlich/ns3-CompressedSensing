@@ -47,9 +47,41 @@ class CsAlgorithm : public ns3::Object
 	*
 	* \return the reconstructed X
 	*/
-	virtual Mat<double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A) = 0;
+	virtual Mat<double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A);
 
   protected:
+	/**
+	* \brief Starts solving
+	*
+	* Should be implemented by sub classes
+	*
+	* \param yin y vector as input
+	* \param xout x vector to write output to
+	* \param A  sensing Matrix, which was used to compress X to Y
+	*
+	* \return NOF iterations needed
+	*/
+	virtual uint32_t Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A) = 0;
+
+	/**
+	* \brief sets the maximum NOF iterations
+	*
+	* Should be implemented by sub classes
+	*
+	* \param maxIter maximum NOF iterations
+	*
+	*/
+	virtual void SetMaxIter(uint32_t maxIter) = 0;
+
+	/**
+	* \brief sets the  configured tolerance
+	*
+	* Should be implemented by sub classes
+	*
+	* \param tol toleranceto set
+	*/
+	virtual void SetTolerance(double tol) = 0;
+
 	/**
 	* \brief gets the  configured tolerance
 	*
@@ -72,6 +104,7 @@ class CsAlgorithm : public ns3::Object
 		return m_maxIter;
 	};
 
+  private:
 	/**
 	* \brief calls the complete callback
 	*
@@ -110,6 +143,8 @@ class CsAlgorithm : public ns3::Object
 *
 * \brief OMP solver algorithm
 *
+* Before using this algorithm the value of k should  be set via the Attribute System!
+* As default \f$k = \frac{m}{\log(n)} < n\f$.
 */
 class CsAlgorithm_OMP : public CsAlgorithm
 {
@@ -118,10 +153,13 @@ class CsAlgorithm_OMP : public CsAlgorithm
 	CsAlgorithm_OMP();
 
 	/*inherited from CsAlgorithm*/
-	virtual Mat<double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A);
+	virtual uint32_t Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A);
+	virtual void SetMaxIter(uint32_t maxIter);
+	virtual void SetTolerance(double tol);
 
   private:
-	uint32_t m_k; /**< sparsity of reconstructed signal, if 0 or > n -> will be set to \f$k = \frac{m}{\log(n)} < n\f$*/
+	kl1p::TOMPSolver<double> m_solver; /**< solver algorithm used*/
+	uint32_t m_k;					   /**< sparsity of reconstructed signal, if 0 or > n -> will be set to \f$k = \frac{m}{\log(n)} < n\f$*/
 };
 
 /**
@@ -138,7 +176,12 @@ class CsAlgorithm_BP : public CsAlgorithm
 	CsAlgorithm_BP();
 
 	/*inherited from CsAlgorithm*/
-	virtual Mat<double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A);
+	virtual uint32_t Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A);
+	virtual void SetMaxIter(uint32_t maxIter);
+	virtual void SetTolerance(double tol);
+
+  private:
+	kl1p::TBasisPursuitSolver<double> m_solver; /**< solver algorithm used*/
 };
 
 /**
@@ -158,7 +201,132 @@ class CsAlgorithm_AMP : public CsAlgorithm
 	CsAlgorithm_AMP();
 
 	/*inherited from CsAlgorithm*/
-	virtual Mat<double> Run(const Mat<double> &Y, const klab::TSmartPointer<kl1p::TOperator<double>> A);
+	virtual uint32_t Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A);
+	virtual void SetMaxIter(uint32_t maxIter);
+	virtual void SetTolerance(double tol);
+
+  private:
+	kl1p::TAMPSolver<double> m_solver; /**< solver algorithm used*/
 };
 
+/**
+* \ingroup rec
+* \class CsAlgorithm_CoSaMP
+*
+* \brief Compressing  solver algorithm
+*
+* Before using this algorithm the value of k should be set via the Attribute System!
+* As default \f$k = \frac{m}{\log(n)} < n\f$.
+*/
+class CsAlgorithm_CoSaMP : public CsAlgorithm
+{
+  public:
+	static ns3::TypeId GetTypeId();
+	CsAlgorithm_CoSaMP();
+
+	/*inherited from CsAlgorithm*/
+	virtual uint32_t Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A);
+	virtual void SetMaxIter(uint32_t maxIter);
+	virtual void SetTolerance(double tol);
+
+private:
+	kl1p::TCoSaMPSolver<double> m_solver; /**< solver algorithm used*/
+	uint32_t m_k; /**< sparsity of reconstructed signal, if 0 or > n -> will be set to \f$k = \frac{m}{\log(n)} < n\f$*/
+};
+
+/**
+* \ingroup rec
+* \class CsAlgorithm_ROMP
+*
+* \brief ROMP solver algorithm
+*
+* Before using this algorithm the value of k should be set via the Attribute System!
+* As default \f$k = \frac{m}{\log^2(n)} < n\f$.
+*/
+class CsAlgorithm_ROMP : public CsAlgorithm
+{
+  public:
+	static ns3::TypeId GetTypeId();
+	CsAlgorithm_ROMP();
+
+	/*inherited from CsAlgorithm*/
+	virtual uint32_t Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A);
+	virtual void SetMaxIter(uint32_t maxIter);
+	virtual void SetTolerance(double tol);
+
+private:
+	kl1p::TROMPSolver<double> m_solver; /**< solver algorithm used*/
+	uint32_t m_k; /**< sparsity of reconstructed signal, if 0 or > n -> will be set to \f$k = \frac{m}{\log^2(n)} < n\f$*/
+};
+
+/**
+* \ingroup rec
+* \class CsAlgorithm_SP
+*
+* \brief Subspace Pursuit solver algorithm
+*
+* Before using this algorithm the value of k should be set via the Attribute System!
+* As default \f$k = \frac{m}{\log(n)} < n\f$.
+*
+*/
+class CsAlgorithm_SP : public CsAlgorithm
+{
+  public:
+	static ns3::TypeId GetTypeId();
+	CsAlgorithm_SP();
+
+	/*inherited from CsAlgorithm*/
+	virtual uint32_t Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A);
+	virtual void SetMaxIter(uint32_t maxIter);
+	virtual void SetTolerance(double tol);
+
+  private:
+	kl1p::TSubspacePursuitSolver<double> m_solver; /**< solver algorithm used*/
+	uint32_t m_k; /**< sparsity of reconstructed signal, if 0 or > n -> will be set to \f$k = \frac{m}{\log(n)} < n\f$*/
+};
+
+/**
+* \ingroup rec
+* \class CsAlgorithm_SL0
+*
+* \brief Smoothed L0 solver algorithm
+*
+*/
+class CsAlgorithm_SL0 : public CsAlgorithm
+{
+  public:
+	static ns3::TypeId GetTypeId();
+	CsAlgorithm_SL0();
+
+	/*inherited from CsAlgorithm*/
+	virtual uint32_t Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A);
+	virtual void SetMaxIter(uint32_t maxIter);
+	virtual void SetTolerance(double tol);
+private:
+  kl1p::TSL0Solver<double> m_solver; /**< solver algorithm used*/
+};
+
+/**
+* \ingroup rec
+* \class CsAlgorithm_EMBP
+*
+* \brief EMBP solver algorithm
+*
+* Before using this algorithm the value of k should be set via the Attribute System!
+* As default \f$k = \frac{m}{\log(n)} < n\f$.
+*/
+class CsAlgorithm_EMBP : public CsAlgorithm
+{
+  public:
+	static ns3::TypeId GetTypeId();
+	CsAlgorithm_EMBP();
+
+	/*inherited from CsAlgorithm*/
+	virtual uint32_t Solve(const Col<double> &yin, Col<double> &xout, const klab::TSmartPointer<kl1p::TOperator<double>> A);
+	virtual void SetMaxIter(uint32_t maxIter);
+	virtual void SetTolerance(double tol);
+private:
+  kl1p::TEMBPSolver<double> m_solver; /**< solver algorithm used*/
+  uint32_t m_k; /**< sparsity of reconstructed signal, if 0 or > n -> will be set to \f$k = \frac{m}{\log(n)} < n\f$*/
+};
 #endif //CS_ALGORITHM_H
