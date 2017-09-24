@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("cosamp", "Solve with CoSaMP?", cosampSolv);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
 	cmd.AddValue("info", "Enable info messages", info);
-	cmd.AddValue("iter", "Maximmum NOF iterations", maxIter);
+	cmd.AddValue("iter", "Maximum NOF iterations for solver", maxIter);
 	cmd.AddValue("k", "sparsity of original source measurements (needed when using OMP temporally)", k);
 	cmd.AddValue("ks", "sparsity of the colums of Y (needed when using OMP spatially)", ks);
 	cmd.AddValue("l0", "NOF meas. vectors after spatial compression, rows of Z of cluster 0", l0);
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
 	cmd.AddValue("onlyprecode", "Do only spatial precoding? Switches off NC completly at cluster heads. ", onlyprecode);
 	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
-	cmd.AddValue("seed", "Global seed for random streams (except random matrices)", seed);
+	cmd.AddValue("seed", "Global seed for random streams  > 0 (except random matrices)", seed);
 	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
 	cmd.AddValue("tol", "Tolerance for solvers", tol);
 	cmd.AddValue("verbose", "Verbose Mode", verbose);
@@ -227,6 +227,14 @@ int main(int argc, char *argv[])
 		cout << "Can't disable precoding  and do only precoding!" << endl;
 		return 1;
 	}
+
+	if (seed == 0)
+	{
+		cout << "Seed must be > 0" << endl;
+		return 1;
+	}
+	else //set seed
+		RngSeedManager::SetSeed(seed);
 	/*********  Logging  **********/
 	if (verbose)
 	{
@@ -254,8 +262,6 @@ int main(int argc, char *argv[])
 	{
 		LogComponentEnableAll(LOG_LEVEL_WARN);
 	}
-	//set seed
-	RngSeedManager::SetSeed(seed);
 
 	/*********  read matlab file  **********/
 	NS_LOG_INFO("Reading mat file...");
@@ -497,14 +503,14 @@ int main(int argc, char *argv[])
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_CoSaMP>()));
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_CoSaMP>()));
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_CoSaMP/k", UintegerValue(k));
-		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_CoSaMP/k", UintegerValue(ks)); 
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_CoSaMP/k", UintegerValue(ks));
 	}
 	else
 	{
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_OMP/k", UintegerValue(k));
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/k", UintegerValue(ks));
 	}
- 
+
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/MaxIter", UintegerValue(maxIter));
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/MaxIter", UintegerValue(maxIter));
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/Tolerance", DoubleValue(tol));

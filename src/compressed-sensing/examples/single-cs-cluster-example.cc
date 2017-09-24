@@ -1,16 +1,19 @@
-
+/*
+* Default solver is OMP
+*/
 #define DEFAULT_NOF_SRCNODES 100
 #define DEFAULT_CHANNELDELAY_MS 1
 #define DEFAULT_DRATE_BPS 1000000 // 1Mbitps
-#define DEFAULT_N 256
+#define DEFAULT_N 512
 #define DEFAULT_M 64
-#define DEFAULT_L 64
+#define DEFAULT_L 96
 #define DEFAULT_FILE "./IOdata/data.mat"
-#define DEFAULT_K 20
+#define DEFAULT_K 5
 // #define DEFAULT_FILEOUT "./IOdata/dataOut.mat"
 #define DEFAULT_SRCMAT_NAME "X"
 #define CLUSTER_ID 0
 #define DEFAULT_TOL 1e-3
+#define DEFAULT_ITER 1000
 
 #define TXPROB_MODIFIER_DEFAULT 1.0
 
@@ -27,7 +30,9 @@ using namespace std;
 NS_LOG_COMPONENT_DEFINE("SingleCsCluster");
 
 MatFileHandler matHandler_glob;
-uint32_t tTemp_glob = 0, tSpat_glob = 0, nErrorRec_glob = 0, nErrorComp_glob = 0;
+uint32_t  nErrorRec_glob = 0;
+vector<int64_t> tSpat_glob, tTemp_glob;
+vector<uint32_t> iterSpat_glob, iterTemp_glob;
 bool verbose = false,
 	 info = false;
 
@@ -74,7 +79,8 @@ tempRecCb(int64_t time, uint32_t iter)
 	if (info || verbose)
 		cout << "Reconstructed temporally in " << time << " ms with " << iter << " iterations"
 			 << "\n";
-	tTemp_glob += time;
+	tTemp_glob.push_back(time);
+	iterTemp_glob.push_back(iter);
 }
 
 static void
@@ -83,22 +89,17 @@ spatRecCb(int64_t time, uint32_t iter)
 	if (info || verbose)
 		cout << "Reconstructed spatially in " << time << " ms with " << iter << " iterations"
 			 << "\n";
-	tSpat_glob += time;
+	tSpat_glob.push_back(time);
+	iterSpat_glob.push_back(iter);
 }
 static void
 recErrorCb(const klab::KException &e)
 {
+	tSpat_glob.push_back(-1);
+	iterSpat_glob.push_back(0);
 	if (info || verbose)
 		cout << "Reconstruction failed with error " << e.what();
 	nErrorRec_glob++;
-}
-
-static void
-comprFailSpat(CsHeader::T_IdField id)
-{
-	if (info || verbose)
-		cout << "Spatial compression failed within cluster " << static_cast<int>(id) << endl;
-	nErrorComp_glob++;
 }
 
 static void
@@ -133,48 +134,53 @@ int main(int argc, char *argv[])
 			 m = DEFAULT_M,
 			 l = DEFAULT_L,
 			 k = DEFAULT_K,
-			 ks = DEFAULT_K;
+			 ks = DEFAULT_K,
+			 solver = 0,
+			 maxIter = DEFAULT_ITER,
+			 minP = 0;
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
 		   rateErr = 0.0,
 		   tol = DEFAULT_TOL,
 		   noiseVar = 0.0,
 		   mu = TXPROB_MODIFIER_DEFAULT;
-	bool seq = false,
-		 noprecode = false,
-		 bpSpat = false,
-		 ampSpat = false,
+	bool noprecode = false,
 		 calcSnr = false,
 		 bernSpat = false,
-		 notemp = false,
 		 identSpat = false,
+		 notemp = false,
+		 nc = false,
 		 onlyprecode = false;
 	std::string matFilePath = DEFAULT_FILE,
 				// matFilePathOut = DEFAULT_FILEOUT,
 		srcMatrixName = DEFAULT_SRCMAT_NAME;
 
+	uint64_t seed = 1;
+
 	CommandLine cmd;
 
-	cmd.AddValue("amp", "AMP when solving spatially?", ampSpat);
-	cmd.AddValue("bp", "Basis Pursuit when solving spatially?", bpSpat);
 	cmd.AddValue("bern", "Bernoulli random matrix when compressing spatially?", bernSpat);
 	cmd.AddValue("ident", "Identity random matrix when compressing spatially?", identSpat);
 	cmd.AddValue("channelDelay", "delay of all channels in ms", channelDelayTmp);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
 	cmd.AddValue("info", "Enable info messages", info);
-	cmd.AddValue("k", "sparsity of original source measurements (needed when using OMP temporally)", k);
-	cmd.AddValue("ks", "sparsity of the colums of Y (needed when using OMP spatially)", ks);
+	cmd.AddValue("iter", "Maximum NOF iterations for solver", maxIter);
+	cmd.AddValue("k", "sparsity of original source measurements", k);
+	cmd.AddValue("ks", "sparsity of the colums of Y", ks);
 	cmd.AddValue("l", "NOF meas. vectors after spatial compression, rows of Z", l);
 	cmd.AddValue("mu", "Tx probability modifier", mu);
 	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
+	cmd.AddValue("minP", "Minimum NOF packets at sink to start reconstruction", minP);
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
+	cmd.AddValue("nc", "Enable network coding recombinations of clusterheads?", nc);
 	cmd.AddValue("nNodes", "NOF source nodes in topology", nNodes);
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
 	cmd.AddValue("notemp", "Disable temporal reconstruction?", notemp);
 	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
 	cmd.AddValue("onlyprecode", "Do only spatial precoding? Switches off NC completly at cluster heads. ", onlyprecode);
 	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
-	cmd.AddValue("seq", "Reconstruct sequentially for each received packet", seq);
+	cmd.AddValue("seed", "Global seed for random streams > 0 (except random matrices)", seed);
 	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
+	cmd.AddValue("solver", "Solvers: 0=OMP | 1=BP | 2=AMP | 3=CoSaMP | 4=ROMP | 5=SP | 6=SL0 | 7=EMBP", solver);
 	cmd.AddValue("tol", "Tolerance for solvers", tol);
 	cmd.AddValue("verbose", "Verbose Mode", verbose);
 	cmd.AddValue("MATfile", "path to the matlab file with extension", matFilePath);
@@ -195,6 +201,14 @@ int main(int argc, char *argv[])
 		cout << "Can't disable precoding  and do only precoding!" << endl;
 		return 1;
 	}
+
+	if (seed == 0)
+	{
+		cout << "Seed must be > 0" << endl;
+		return 1;
+	}
+	else //set seed
+		RngSeedManager::SetSeed(seed);
 	/*********  Logging  **********/
 	if (verbose)
 	{
@@ -272,9 +286,9 @@ int main(int argc, char *argv[])
 	//noise
 	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
 
-	//disable network coding
-	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
-	//clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(l));
+	//network coding
+	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(nc));
+	clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(l));
 
 	//spatial compressor
 	if (onlyprecode)
@@ -372,43 +386,66 @@ int main(int argc, char *argv[])
 
 	if (notemp)
 		rec->SetAttribute("NoRecTemp", BooleanValue(true));
-	// Ptr<TransMatrix<cx_double>> transMat = CreateObject<FourierTransMatrix<cx_double>>();
-	// Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
-	// rec->SetAttribute("RecMatTempCx", PointerValue(Create<RecMatrixCx>(ranMat, transMat)));
-	// ranMat = CreateObject<GaussianRandomMatrix>();
-	// if(ampSpat)
-	// 	ranMat->NormalizeToM();
 
-	// rec->SetAttribute("RecMatSpatCx", PointerValue(Create<RecMatrixCx>(ranMat, transMat)));
-	// sinkApp->SetAttribute("Reconst", PointerValue(rec));
-
-	// Ptr<TransMatrix> transMat = CreateObject<FourierTransMatrix<double>>();
-	// Ptr<RandomMatrix> ranMat = CreateObject<IdentRandomMatrix>();
-	// rec->SetAttribute("RecMatTemp", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
-	// ranMat = CreateObject<GaussianRandomMatrix>();
-	// if(ampSpat)
-	// 	ranMat->NormalizeToM();
-
-	// rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrixReal>(ranMat, transMat)));
-	// sinkApp->SetAttribute("Reconst", PointerValue(rec));
-
-	if (bpSpat)
-		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_BP>()));
-	else if (ampSpat)
+	switch (solver)
 	{
+	case 0: // OMP
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_OMP/k", UintegerValue(k));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/k", UintegerValue(ks));
+		break;
+	case 1: // BP
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_BP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_BP>()));
+		break;
+	case 2: // AMP
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_AMP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_AMP>()));
+		break;
+	case 3: // CoSaMP
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_CoSaMP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_CoSaMP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_CoSaMP/k", UintegerValue(k));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_CoSaMP/k", UintegerValue(ks));
+		break;
+	case 4: //ROMP
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_ROMP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_ROMP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_ROMP/k", UintegerValue(k));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_ROMP/k", UintegerValue(ks));
+		break;
+	case 5: //SP
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_SP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_SP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_SP/k", UintegerValue(k));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_SP/k", UintegerValue(ks));
+		break;
+	case 6: // SL0
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_SL0>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_SL0>()));
+		break;
+	case 7: // EMBP
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat", PointerValue(CreateObject<CsAlgorithm_EMBP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp", PointerValue(CreateObject<CsAlgorithm_EMBP>()));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_EMBP/k", UintegerValue(k));
+		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_EMBP/k", UintegerValue(ks));
+		break;
+
+	default:
+		cout << "Invalid solver!";
+		return 1;
+		break;
 	}
 
-	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_OMP/k", UintegerValue(k));
-	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm_OMP/k", UintegerValue(ks));
+	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/MaxIter", UintegerValue(maxIter));
+	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/MaxIter", UintegerValue(maxIter));
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/Tolerance", DoubleValue(tol));
 	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/Tolerance", DoubleValue(tol));
 	// recTemp->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
 
-	if (!seq)
+	if (minP >= l)
 		sinkApp->SetAttribute("MinPackets", UintegerValue(l * (1 - rateErr)));
 	else
-		sinkApp->SetAttribute("MinPackets", UintegerValue(0));
+		sinkApp->SetAttribute("MinPackets", UintegerValue(minP));
 
 	sinkApp->TraceConnectWithoutContext("Rx", MakeCallback(&receiveCb));
 	sinkApp->AddCluster(cluster);
@@ -418,7 +455,6 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/RecComplete", MakeCallback(&tempRecCb));
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm/RecError", MakeCallback(&recErrorCb));
 	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoSpat/$CsAlgorithm/RecError", MakeCallback(&recErrorCb));
-	Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSrcApp/$CsClusterApp/ComprFail", MakeCallback(&comprFailSpat));
 	Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$MySimpleNetDevice/PhyRxDrop", MakeCallback(&packetDrop));
 	/*********  Running the Simulation  **********/
 
@@ -445,14 +481,15 @@ int main(int argc, char *argv[])
 	matHandler_glob.WriteValue<bool>("precode", !noprecode);
 	matHandler_glob.WriteValue<double>("rateErr", rateErr);
 	matHandler_glob.WriteValue<double>("noiseVar", noiseVar);
-	matHandler_glob.WriteValue<double>("totalTimeTemp", tTemp_glob);
-	matHandler_glob.WriteValue<double>("totalTimeSpat", tSpat_glob);
+	matHandler_glob.WriteVector<int64_t>("totalTimeTemp", tTemp_glob);
+	matHandler_glob.WriteVector<int64_t>("totalTimeSpat", tSpat_glob);
+	matHandler_glob.WriteVector<uint32_t>("totalIterTemp", iterTemp_glob);
+	matHandler_glob.WriteVector<uint32_t>("totalIterSpat", iterSpat_glob);
 	matHandler_glob.WriteValue<double>("nErrorRec", nErrorRec_glob);
-	matHandler_glob.WriteValue<double>("nErrorComp", nErrorComp_glob);
-	if (!seq)
+	if (minP >= l)
 		matHandler_glob.WriteValue<double>("attempts", 1);
 	else
-		matHandler_glob.WriteValue<double>("attempts", l);
+		matHandler_glob.WriteValue<double>("attempts", l-minP+1);
 	matHandler_glob.WriteValue<double>("nMeasSeq", nMeasSeq);
 
 	return 0;
