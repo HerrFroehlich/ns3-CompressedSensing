@@ -264,7 +264,7 @@ int main(int argc, char *argv[])
 	/*********  read matlab file  **********/
 	NS_LOG_INFO("Reading mat file...");
 	MatFileHandler matHandler;
-	matHandler.Open(matInPath);
+	matHandler.OpenExisting(matInPath);
 	DataStream<double> sourceData = matHandler.ReadMat<double>(srcMatrixName);
 	uint32_t nMeasSeq = sourceData.GetMaxSize() / n;
 
