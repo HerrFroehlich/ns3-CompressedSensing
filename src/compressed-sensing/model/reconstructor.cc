@@ -334,19 +334,31 @@ void Reconstructor::ReconstructSpat()
 		U /= klab::Sqrt(N->m()); //since we scaled N before
 
 	Mat<double> Y;
+	klab::TSmartPointer<kl1p::TOperator<double>> H;
 	if (m_jointTrans && m_transMatSpat.isValid()) // reconstruct jointly with joint transformation
 	{
 		klab::TSmartPointer<kl1p::TOperator<double>> Psi;
 		m_transMatSpat->SetSize(A->n());
 		Psi = m_transMatSpat;
 
-		Y = m_algoSpat->Run(U, N * A * Psi);
+		//calculate the sensing matrix
+		Mat<double> Hmat; 
+		H = N * A * Psi;
+		H->toMatrix(Hmat);
+		H = new kl1p::TMatrixOperator<double>(Hmat);
+
+		Y = m_algoSpat->Run(U, H);
 	}
 	else // reconstruct jointly with single transformation, A will already contain them
-		Y = m_algoSpat->Run(U, N * A);
+	{
+		Mat<double> Hmat;
+		H = N * A;
+		H->toMatrix(Hmat);
+		H = new kl1p::TMatrixOperator<double>(Hmat);
+	}
+		Y = m_algoSpat->Run(U, H);
 
 	uint32_t idxL = 0;
-
 	if (m_jointTrans && m_transMatSpat.isValid()) // since the reconstruction only gives the indices of the transform we have to apply it again!
 	{
 		for (uint32_t i = 0; i < Y.n_cols; i++)
