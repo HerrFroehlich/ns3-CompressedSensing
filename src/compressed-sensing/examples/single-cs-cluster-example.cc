@@ -29,8 +29,7 @@ using namespace std;
 
 NS_LOG_COMPONENT_DEFINE("SingleCsCluster");
 
-MatFileHandler matHandler_glob;
-uint32_t  nErrorRec_glob = 0;
+uint32_t nErrorRec_glob = 0;
 vector<int64_t> tSpat_glob, tTemp_glob;
 vector<uint32_t> iterSpat_glob, iterTemp_glob;
 bool verbose = false,
@@ -150,9 +149,9 @@ int main(int argc, char *argv[])
 		 notemp = false,
 		 nc = false,
 		 onlyprecode = false;
-	std::string matFilePath = DEFAULT_FILE,
-				// matFilePathOut = DEFAULT_FILEOUT,
-		srcMatrixName = DEFAULT_SRCMAT_NAME;
+	std::string matInPath = DEFAULT_FILE,
+				matOutPath = "",
+				srcMatrixName = DEFAULT_SRCMAT_NAME;
 
 	uint64_t seed = 1;
 
@@ -183,8 +182,9 @@ int main(int argc, char *argv[])
 	cmd.AddValue("solver", "Solvers: 0=OMP | 1=BP | 2=AMP | 3=CoSaMP | 4=ROMP | 5=SP | 6=SL0 | 7=EMBP", solver);
 	cmd.AddValue("tol", "Tolerance for solvers", tol);
 	cmd.AddValue("verbose", "Verbose Mode", verbose);
-	cmd.AddValue("MATfile", "path to the matlab file with extension", matFilePath);
 	cmd.AddValue("MATsrc", "name of the matrix in the mat file containing the data for the source nodes", srcMatrixName);
+	cmd.AddValue("MATin", "path to the matlab file with extension", matInPath);
+	cmd.AddValue("MATout", "name of the Matlab output file (if empty = input file)", matOutPath);
 
 	cmd.Parse(argc, argv);
 
@@ -243,12 +243,13 @@ int main(int argc, char *argv[])
 
 	/*********  read matlab file  **********/
 	NS_LOG_INFO("Reading mat file...");
-	matHandler_glob.Open(matFilePath);
-	DataStream<double> sourceData = matHandler_glob.ReadMat<double>(srcMatrixName);
+	MatFileHandler matHandler;
+	matHandler.Open(matInPath);
+	DataStream<double> sourceData = matHandler.ReadMat<double>(srcMatrixName);
 	uint32_t nMeasSeq = sourceData.GetMaxSize() / n;
 
-	//uint32_t k = matHandler_glob.ReadValue<double>(kName); // casting double  to uint32_t
-	//matHandler_glob.Open(matFilePathOut);				   // open output file
+	//uint32_t k = matHandler.ReadValue<double>(kName); // casting double  to uint32_t
+	//matHandler.Open(matInPathOut);				   // open output file
 	/*********  setup CsHeader  **********/
 
 	NS_LOG_INFO("Setting up...");
@@ -473,24 +474,27 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	matHandler_glob.WriteCluster(*cluster);
-	matHandler_glob.WriteValue<double>("nNodesUsed", nNodes);
-	matHandler_glob.WriteValue<double>("n", n);
-	matHandler_glob.WriteValue<double>("m", m);
-	matHandler_glob.WriteValue<double>("l", l);
-	matHandler_glob.WriteValue<bool>("precode", !noprecode);
-	matHandler_glob.WriteValue<double>("rateErr", rateErr);
-	matHandler_glob.WriteValue<double>("noiseVar", noiseVar);
-	matHandler_glob.WriteVector<int64_t>("totalTimeTemp", tTemp_glob);
-	matHandler_glob.WriteVector<int64_t>("totalTimeSpat", tSpat_glob);
-	matHandler_glob.WriteVector<uint32_t>("totalIterTemp", iterTemp_glob);
-	matHandler_glob.WriteVector<uint32_t>("totalIterSpat", iterSpat_glob);
-	matHandler_glob.WriteValue<double>("nErrorRec", nErrorRec_glob);
+	if (!matOutPath.empty())
+		matHandler.Open(matOutPath);
+
+	matHandler.WriteCluster(*cluster);
+	matHandler.WriteValue<double>("nNodesUsed", nNodes);
+	matHandler.WriteValue<double>("n", n);
+	matHandler.WriteValue<double>("m", m);
+	matHandler.WriteValue<double>("l", l);
+	matHandler.WriteValue<bool>("precode", !noprecode);
+	matHandler.WriteValue<double>("rateErr", rateErr);
+	matHandler.WriteValue<double>("noiseVar", noiseVar);
+	matHandler.WriteVector<int64_t>("totalTimeTemp", tTemp_glob);
+	matHandler.WriteVector<int64_t>("totalTimeSpat", tSpat_glob);
+	matHandler.WriteVector<uint32_t>("totalIterTemp", iterTemp_glob);
+	matHandler.WriteVector<uint32_t>("totalIterSpat", iterSpat_glob);
+	matHandler.WriteValue<double>("nErrorRec", nErrorRec_glob);
 	if (minP >= l)
-		matHandler_glob.WriteValue<double>("attempts", 1);
+		matHandler.WriteValue<double>("attempts", 1);
 	else
-		matHandler_glob.WriteValue<double>("attempts", l-minP+1);
-	matHandler_glob.WriteValue<double>("nMeasSeq", nMeasSeq);
+		matHandler.WriteValue<double>("attempts", l - minP + 1);
+	matHandler.WriteValue<double>("nMeasSeq", nMeasSeq);
 
 	return 0;
 }
