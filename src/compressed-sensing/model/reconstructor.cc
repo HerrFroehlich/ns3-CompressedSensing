@@ -346,8 +346,6 @@ void Reconstructor::ReconstructSpat()
 		H = N * A * Psi;
 		H->toMatrix(Hmat);
 		H = new kl1p::TMatrixOperator<double>(Hmat);
-
-		Y = m_algoSpat->Run(U, H);
 	}
 	else // reconstruct jointly with single transformation, A will already contain them
 	{
