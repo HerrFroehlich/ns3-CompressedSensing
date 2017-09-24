@@ -143,6 +143,19 @@ class MatFileHandler : public Object
 	void WriteValue(std::string name, T value);
 
 	/**
+	* \brief writes a vector to the mat file
+	*
+	* Asserts that a file has been opened yet, and that the variable was created succesfully.
+	*
+	* \param name name of new variable
+	* \param vec vector to write
+	* \tparam type of data (double, uint32_t, int64_t)
+	*
+	*/
+	template <typename T>
+	void WriteVector(std::string name, const std::vector<T> &vec);
+
+	/**
 	* \brief writes a MxN matrix with the given name from a arma::Mat<T> to the mat file 
 	*
 	* \param name name of the variable to create

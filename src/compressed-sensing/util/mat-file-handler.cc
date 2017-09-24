@@ -168,7 +168,6 @@ void MatFileHandler::ReadMat(std::string name, arma::Mat<double> &mat) const
 template void MatFileHandler::ReadMat(std::string name, arma::Mat<double> &mat) const;
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
-
 template <>
 void MatFileHandler::WriteValue(std::string name, double value)
 {
@@ -214,6 +213,72 @@ void MatFileHandler::WriteValue(std::string name, bool value)
 	Mat_VarFree(matvar);
 }
 template void MatFileHandler::WriteValue<bool>(std::string name, bool);
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+template <>
+void MatFileHandler::WriteVector(std::string name, const std::vector<double> &vec)
+{
+	NS_ABORT_MSG_IF(!m_isOpen, "Open file first!");
+	if (m_varInfoMap.count(name)) // overwrite existing
+	{
+		NS_LOG_WARN("Overwriting variable " + name);
+		Mat_VarDelete(m_matFile, name.c_str());
+	}
+
+	size_t dims[2] = {vec.size(), 1};
+	matvar_t *matvar = Mat_VarCreate(name.c_str(), MAT_C_DOUBLE, MAT_T_DOUBLE, 2, dims, (void *)vec.data(), MAT_F_DONT_COPY_DATA);
+	NS_ABORT_MSG_IF(!matvar, "Could not create variable!");
+	
+	Mat_VarWrite(m_matFile, matvar, MAT_COMPRESSION);
+	CreateInfo(name, matvar);
+	Mat_VarFree(matvar);
+}
+template void MatFileHandler::WriteVector(std::string, const std::vector<double> &);
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+template <>
+void MatFileHandler::WriteVector(std::string name, const std::vector<uint32_t> &vec)
+{
+	NS_ABORT_MSG_IF(!m_isOpen, "Open file first!");
+	if (m_varInfoMap.count(name)) // overwrite existing
+	{
+		NS_LOG_WARN("Overwriting variable " + name);
+		Mat_VarDelete(m_matFile, name.c_str());
+	}
+
+	size_t dims[2] = {vec.size(), 1};
+	matvar_t *matvar = Mat_VarCreate(name.c_str(), MAT_C_UINT32, MAT_T_UINT32, 2, dims, (void *)vec.data(), MAT_F_DONT_COPY_DATA);
+	NS_ABORT_MSG_IF(!matvar, "Could not create variable!");
+	
+	Mat_VarWrite(m_matFile, matvar, MAT_COMPRESSION);
+	CreateInfo(name, matvar);
+	Mat_VarFree(matvar);
+}
+template void MatFileHandler::WriteVector(std::string, const std::vector<uint32_t> &);
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
+template <>
+void MatFileHandler::WriteVector(std::string name, const std::vector<int64_t> &vec)
+{
+	NS_ABORT_MSG_IF(!m_isOpen, "Open file first!");
+	if (m_varInfoMap.count(name)) // overwrite existing
+	{
+		NS_LOG_WARN("Overwriting variable " + name);
+		Mat_VarDelete(m_matFile, name.c_str());
+	}
+
+	size_t dims[2] = {vec.size(), 1};
+	matvar_t *matvar = Mat_VarCreate(name.c_str(), MAT_C_INT64, MAT_T_INT64, 2, dims, (void *)vec.data(), MAT_F_DONT_COPY_DATA);
+	NS_ABORT_MSG_IF(!matvar, "Could not create variable!");
+	
+	Mat_VarWrite(m_matFile, matvar, MAT_COMPRESSION);
+	CreateInfo(name, matvar);
+	Mat_VarFree(matvar);
+}
+template void MatFileHandler::WriteVector(std::string, const std::vector<int64_t> &);
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
