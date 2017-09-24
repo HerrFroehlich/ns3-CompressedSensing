@@ -67,6 +67,32 @@ bool MatFileHandler::Open(std::string path)
 
 /*-----------------------------------------------------------------------------------------------------------------------*/
 
+void MatFileHandler::OpenExisting(std::string path)
+{
+	//check if an other file was opened before
+	if (m_isOpen)
+		Mat_Close(m_matFile);
+
+	// try to open mat file
+	m_matFile = Mat_Open(path.c_str(), MAT_ACC_RDWR); //open for read/write
+
+	NS_ABORT_MSG_IF(m_matFile == NULL, "Could not open file!");
+
+	m_isOpen = true;
+
+	matvar_t *matvar;
+	//check existing variabels and write info to internal map
+	while ((matvar = Mat_VarReadNextInfo(m_matFile)) != NULL)
+	{
+		std::string name = matvar->name;
+		CreateInfo(name, matvar);
+		Mat_VarFree(matvar);
+		matvar = NULL;
+	}
+}
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 void MatFileHandler::OpenNew(std::string path)
 {
 	//check if an other file was opened before

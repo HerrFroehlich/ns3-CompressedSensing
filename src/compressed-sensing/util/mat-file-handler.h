@@ -75,11 +75,19 @@ class MatFileHandler : public Object
 	bool Open(std::string path);
 
 	/**
+	* \brief opens an existing mat file with the given path
+	*
+	*
+	* \param dir path to mat file
+	*
+	*/
+	void OpenExisting(std::string path);
+
+	/**
 	* \brief creates a new mat file at the given path
 	*
 	* \param dir path to mat file
 	*
-	* \return true if mat file existed beforehand
 	*/
 	void OpenNew(std::string path);
 
