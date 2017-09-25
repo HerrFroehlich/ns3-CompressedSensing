@@ -1,5 +1,6 @@
 /*
 * Default solver is OMP
+* Single Cluster with assymetric errors from source nodes (uniform distributed)
 */
 #define DEFAULT_NOF_SRCNODES 256
 #define DEFAULT_CHANNELDELAY_MS 1
@@ -138,10 +139,11 @@ int main(int argc, char *argv[])
 			 maxIter = DEFAULT_ITER,
 			 minP = 0;
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
-		   rateErr = 0.0,
 		   tol = DEFAULT_TOL,
 		   noiseVar = 0.0,
-		   mu = TXPROB_MODIFIER_DEFAULT;
+		   mu = TXPROB_MODIFIER_DEFAULT,
+		   err0 = 0.0,
+		   err1 = 0.0;
 	bool noprecode = false,
 		 calcSnr = false,
 		 bernSpat = false,
@@ -161,6 +163,8 @@ int main(int argc, char *argv[])
 	cmd.AddValue("ident", "Identity random matrix when compressing spatially?", identSpat);
 	cmd.AddValue("channelDelay", "delay of all channels in ms", channelDelayTmp);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
+	cmd.AddValue("errMin", "error rate minimum", err0);
+	cmd.AddValue("errMax", "error rate maximum", err1);
 	cmd.AddValue("info", "Enable info messages", info);
 	cmd.AddValue("iter", "Maximum NOF iterations for solver", maxIter);
 	cmd.AddValue("k", "sparsity of original source measurements", k);
@@ -176,7 +180,6 @@ int main(int argc, char *argv[])
 	cmd.AddValue("notemp", "Disable temporal reconstruction?", notemp);
 	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
 	cmd.AddValue("onlyprecode", "Do only spatial precoding? Switches off NC completly at cluster heads. ", onlyprecode);
-	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
 	cmd.AddValue("seed", "Global seed for random streams > 0 (except random matrices)", seed);
 	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
 	cmd.AddValue("solver", "Solvers: 0=OMP | 1=BP | 2=AMP | 3=CoSaMP | 4=ROMP | 5=SP | 6=SL0 | 7=EMBP", solver);
@@ -189,6 +192,12 @@ int main(int argc, char *argv[])
 	cmd.Parse(argc, argv);
 
 	Time channelDelay = MilliSeconds(channelDelayTmp);
+
+	if(err0 > err1)
+	{
+		cout << "Error rate minimum must be smaller than maximum" << endl;
+		return 1;
+	}
 
 	if (l > nNodes)
 	{
@@ -279,7 +288,7 @@ int main(int argc, char *argv[])
 
 	if (!noprecode)
 	{
-		double txProb = mu * (l - 1) / ((nNodes - 1) * (1 - rateErr));
+		double txProb = mu * (l - 1) / (nNodes - 1);
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
@@ -311,17 +320,6 @@ int main(int argc, char *argv[])
 	else
 		clusterHelper.SetCompression(n, m, l);
 
-	//error model
-	Ptr<RateErrorModel> errModel = CreateObject<RateErrorModel>();
-	if (rateErr > 0.0)
-	{
-		errModel->SetRate(rateErr);
-		errModel->SetUnit(RateErrorModel::ErrorUnit::ERROR_UNIT_PACKET);
-		// errModel->AssignStreams(0);
-		clusterHelper.SetSrcDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
-		clusterHelper.SetClusterDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
-	}
-
 	//create
 	Ptr<CsCluster> cluster = clusterHelper.Create(CLUSTER_ID, nNodes, sourceData);
 	ApplicationContainer clusterApps = cluster->GetApps();
@@ -331,6 +329,25 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext(confPath + "Tx", MakeCallback(&transmittingCb));
 	confPath = "/NodeList/0/ApplicationList/0/$CsClusterApp/"; //for cluster node add a rx callback
 	Config::ConnectWithoutContext(confPath + "Rx", MakeCallback(&receiveCb));
+
+	//error model
+	uint32_t headNodeId = cluster->GetClusterHead()->GetNodeId();
+
+
+	if (err1 > 0.0)
+	{
+		Ptr<RandomVariableStream> ran = CreateObject<UniformRandomVariable>();
+		ran->SetAttribute("Min", DoubleValue(err0));
+		ran->SetAttribute("Max", DoubleValue(err1));
+		for (uint32_t i = 0; i < nNodes; i++)
+		{
+			Ptr<RateErrorModel> errModel = CreateObject<RateErrorModel>();
+			errModel->SetRate(ran->GetValue());
+			errModel->SetUnit(RateErrorModel::ErrorUnit::ERROR_UNIT_PACKET);
+			confPath = "/NodeList/" + to_string(headNodeId) + "/DeviceList/" + to_string(i) + "/$MySimpleNetDevice/ReceiveErrorModel";
+			Config::Set(confPath, PointerValue(errModel));
+		}
+	}
 
 	//sink node
 	Ptr<CsNode> sink = CreateObject<CsNode>();
@@ -344,8 +361,6 @@ int main(int argc, char *argv[])
 
 	devA->SetAttribute("DataRate", DataRateValue(dataRate));
 	devB->SetAttribute("DataRate", DataRateValue(dataRate));
-	if (rateErr > 0.0)
-		devB->SetAttribute("ReceiveErrorModel", PointerValue(errModel));
 	// channel->Add(devA);
 	// channel->Add(devB);
 
@@ -444,7 +459,7 @@ int main(int argc, char *argv[])
 	// recTemp->TraceConnectWithoutContext("RecError", MakeCallback(&recErrorCb));
 
 	if (minP >= l)
-		sinkApp->SetAttribute("MinPackets", UintegerValue(l * (1 - rateErr)));
+		sinkApp->SetAttribute("MinPackets", UintegerValue(l));
 	else
 		sinkApp->SetAttribute("MinPackets", UintegerValue(minP));
 
@@ -483,7 +498,8 @@ int main(int argc, char *argv[])
 	matHandler.WriteValue<double>("m", m);
 	matHandler.WriteValue<double>("l", l);
 	matHandler.WriteValue<bool>("precode", !noprecode);
-	matHandler.WriteValue<double>("rateErr", rateErr);
+	matHandler.WriteValue<double>("err0", err0);
+	matHandler.WriteValue<double>("err1", err1);
 	matHandler.WriteValue<double>("noiseVar", noiseVar);
 	matHandler.WriteVector<int64_t>("totalTimeTemp", tTemp_glob);
 	matHandler.WriteVector<int64_t>("totalTimeSpat", tSpat_glob);
