@@ -232,8 +232,6 @@ int main(int argc, char *argv[])
 	else //set seed
 		RngSeedManager::SetSeed(seed);
 
-	cmd.Parse(argc, argv);
-
 	/*********  Logging  **********/
 	if (verbose)
 	{
