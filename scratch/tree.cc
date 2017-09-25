@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("verbose", "Verbose Mode", verbose);
 	cmd.AddValue("MATsrc", "name of the matrix in the mat file containing the data for the source nodes", srcMatrixName);
 	cmd.AddValue("MATin", "name of the Matlab file containing input data", matInPath);
-	cmd.AddValue("MATout", "name of the Matlab output file (if empty = input file)", matOutPath);
+	cmd.AddValue("MATout", "name of the Matlab output file (if empty = input file). Directory must exist!", matOutPath);
 
 	cmd.Parse(argc, argv);
 
