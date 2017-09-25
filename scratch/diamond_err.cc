@@ -504,7 +504,7 @@ int main(int argc, char *argv[])
 	Config::ConnectWithoutContext(confPath + "Rx", MakeCallback(&receiveCb));
 	Config::ConnectWithoutContext(confPath + "Tx", MakeCallback(&transmittingCbCl));
 
-	//sinkApp->SetAttribute("MinPackets", UintegerValue(nc1+nc2));
+	sinkApp->SetAttribute("MinPackets", UintegerValue(minP));
 	/*********  Running the Simulation  **********/
 
 	NS_LOG_INFO("Starting Simulation...");
