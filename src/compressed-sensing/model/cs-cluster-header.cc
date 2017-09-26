@@ -8,6 +8,7 @@
 
 #include "cs-cluster-header.h"
 #include <iomanip> //setprecision
+#include <cmath> //Sqrt
 #include "assert.h"
 #include "ns3/abort.h"
 #include "ns3/log.h"
@@ -451,10 +452,15 @@ double CsClusterHeader::NcCoeffGenerator::Generate() const
 std::vector<double> CsClusterHeader::NcCoeffGenerator::Generate(uint32_t n) const
 {
 	std::vector<double> cv;
+	double norm = std::sqrt(n); 
 	cv.reserve(n);
 	for (uint32_t i = 0; i < n; i++)
 	{
-		cv.push_back(Generate());
+		double c = Generate();
+		if (m_coeffType == CsClusterHeader::E_NcCoeffType::NORMAL) //in this case we must normalize to ensure ~N(0,1)
+			c /= norm;
+
+		cv.push_back(c);
 	}
 	return cv;
 }
