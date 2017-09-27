@@ -21,7 +21,7 @@ TypeId RandomMatrix::GetTypeId(void)
 										  MakeIntegerAccessor(&RandomMatrix::m_stream),
 										  MakeIntegerChecker<int64_t>())
 							.AddAttribute("Norm", "Normalize to 1/sqrt(m)?",
-										  BooleanValue(false),
+										  BooleanValue(true),
 										  MakeBooleanAccessor(&RandomMatrix::m_norm),
 										  MakeBooleanChecker());
 	return tid;
@@ -213,7 +213,7 @@ void IdentRandomMatrix::Generate(uint32_t seed, bool force)
 		m_prevSeed = seed;
 		RngSeedManager::SetSeed(seedOld);
 
-		DoNorm();
+		//DoNorm();
 	}
 }
 
