@@ -62,6 +62,10 @@ CsClusterApp::GetTypeId(void)
 										  BooleanValue(false),
 										  MakeBooleanAccessor(&CsClusterApp::m_shuffle),
 										  MakeBooleanChecker())
+							.AddAttribute("NcCoeffNorm", "Normalize coefficients of incoming packets?",
+										  BooleanValue(true),
+										  MakeBooleanAccessor(&CsClusterApp::m_ncNorm),
+										  MakeBooleanChecker())
 							.AddAttribute("NcMax", "Network coding: maximum NOF recombinations",
 										  UintegerValue(10),
 										  MakeUintegerAccessor(&CsClusterApp::m_ncMaxRecomb),
@@ -90,7 +94,7 @@ CsClusterApp::GetTypeId(void)
 
 CsClusterApp::CsClusterApp() : m_l(0), m_zData(), m_ncMaxRecomb(0), m_ncPktPLink(0),
 							   m_ncTimeOut(0), m_ncTimeOutCnt(0), m_ncEvent(EventId()),
-							   m_ncEnable(true), m_shuffle(false), m_running(false), m_isSetup(false),
+							   m_ncEnable(true), m_shuffle(false), m_ncNorm(true), m_running(false), m_isSetup(false),
 							   m_timeoutEvent(EventId()), m_nPktRxSeq_src(0), m_nPktRxSeq_cl(0)
 {
 	NS_LOG_FUNCTION(this);
@@ -547,6 +551,29 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 			 nValues = GetMaxPayloadSize();
 	T_PktData dataBuf[nValues] = {0.0};
 
+	//get packet count  from different cluster heads to normalize incoming packets, if activated
+	uint32_t nClustersGlob = CsClusterHeader::GetMaxClusters(); // max nof clusters in network
+	std::vector<double> clNorm(nClustersGlob, 1.0); //normalization of packets from each cluster 
+	if (m_ncNorm)
+	{
+		std::vector<double> cnt(nClustersGlob, 0.0);
+		for (const auto &pkt : pktList)
+		{
+			//get header information
+			CsClusterHeader h;
+			pkt->PeekHeader(h);
+			CsHeader::T_IdField clusterId = h.GetClusterId();
+			cnt.at(clusterId) += 1;
+		}
+
+		for (uint32_t i = 0; i < nClustersGlob; i++)
+		{
+			//for the own cluster we don't need a normalization since we add from an identity matrix for the cluster heads own data
+			if (cnt.at(i) > 0 || i == m_clusterId) 
+				clNorm.at(i) = 1.0 / std::sqrt(cnt.at(i));
+		}
+	}
+
 	//new header
 	CsClusterHeader headerNew;
 	CsClusterHeader::T_NcInfoField ncInfo(CsClusterHeader::GetNcInfoSize(), 0.0); // empty nc info field
@@ -559,6 +586,7 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 		Ptr<Packet> p = pkt->Copy();
 		p->RemoveHeader(h);
 		CsClusterHeader::T_NcInfoField pktNcInfo = h.GetNcInfo();
+		CsHeader::T_IdField clusterId = h.GetClusterId();
 
 		if (h.GetNcCount() > ncCountMax) // set ncCount to maximum of all packets
 			ncCountMax = h.GetNcCount();
@@ -577,15 +605,16 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 		//multiply each data value with the coefficient;
 		double c = coeffs.back();
 		coeffs.pop_back();
+		double norm = clNorm.at(clusterId);
 
 		for (uint32_t i = 0; i < GetMaxPayloadSize(); i++)
 		{
-			dataBuf[i] += pktData[i] * c;
+			dataBuf[i] += pktData[i] * c * norm;
 		}
 
 		for (uint32_t i = 0; i < CsClusterHeader::GetNcInfoSize(); i++)
 		{
-			ncInfo.at(i) += pktNcInfo.at(i) * c;
+			ncInfo.at(i) += pktNcInfo.at(i) * c * norm;
 		}
 	}
 	//create new packet and add header
