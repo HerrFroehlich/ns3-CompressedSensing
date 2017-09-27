@@ -333,7 +333,7 @@ int main(int argc, char *argv[])
 	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
 
 	//create cluster 0
-	if (nonc || nc0 == l0 || onlyprecode) // switch off nc if selected
+	if (nonc || onlyprecode) // switch off nc if selected
 	{
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
 		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(true));
@@ -361,7 +361,7 @@ int main(int argc, char *argv[])
 	clusters.at(0) = cluster0;
 	//create cluster 1
 
-	if (nonc || nc1 == l1 || onlyprecode) // switch off nc
+	if (nonc || onlyprecode) // switch off nc
 	{
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
 		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(true));
