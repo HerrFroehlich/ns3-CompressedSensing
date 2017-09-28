@@ -569,7 +569,7 @@ Ptr<Packet> CsClusterApp::DoRLNC(const std::vector<Ptr<Packet>> &pktList, CsClus
 		for (uint32_t i = 0; i < nClustersGlob; i++)
 		{
 			//for the own cluster we don't need a normalization since we add from an identity matrix for the cluster heads own data
-			if (cnt.at(i) > 0 || i == m_clusterId) 
+			if (cnt.at(i) > 0 && i != m_clusterId) 
 				clNorm.at(i) = 1.0 / std::sqrt(cnt.at(i));
 		}
 	}
