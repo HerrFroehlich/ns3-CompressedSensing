@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("nc0", "NOF network coded packets per link in each inverval at cluster head 0", nc0);
 	cmd.AddValue("nc1", "NOF network coded packets per link in each inverval at cluster head 1", nc1);
 	cmd.AddValue("nc2", "NOF network coded packets per link in each inverval at cluster head 2", nc2);
-	cmd.AddValue("nc3", "NOF network coded packets per link in each inverval at cluster head 3", nc3);
+	cmd.AddValue("nc3", "NOF network coded packets per link in each inverval at cluster head 32", nc3);
 	cmd.AddValue("ncBern", "Use bernoulli nc coefficients?", ncBern);
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
 	cmd.AddValue("nNodes", "NOF nodes per cluster", nNodes);
@@ -341,8 +341,8 @@ int main(int argc, char *argv[])
 
 	//create cluster 1
 	clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(nc1));
-	Time delay0 = MilliSeconds(2 * (channelDelayTmp)) + DataRate(dataRate).CalculateBytesTxTime(l0 * m * sizeof(double));
-	clusterHelper.SetClusterAppAttribute("NcIntervalDelay", TimeValue(delay0)); //waiting for cluster head 0
+	Time delay0 = MilliSeconds(10 + 2 * (channelDelayTmp)) + DataRate(dataRate).CalculateBytesTxTime(l0 * m * sizeof(double)); // 10ms default delay as in C0
+	clusterHelper.SetClusterAppAttribute("NcIntervalDelay", TimeValue(delay0));												   //waiting for cluster head 0
 
 	if (!noprecode)
 	{
@@ -383,7 +383,7 @@ int main(int argc, char *argv[])
 	clusterHelper.SetCompression(n, m, l3);
 	Ptr<CsCluster> cluster3 = clusterHelper.Create(CLUSTER_ID + 3, nNodes, sourceData); // will remove streams from source data
 	clusterApps.Add(cluster3->GetApps());
-	clusters.at(3) = cluster2;
+	clusters.at(3) = cluster3;
 
 	NS_LOG_INFO("Connecting...");
 
@@ -391,18 +391,26 @@ int main(int argc, char *argv[])
 	Ptr<CsNode> sink = CreateObject<CsNode>(CsNode::NodeType::SINK);
 	TopologySimpleHelper topHelper;
 
-	if (err0 > 0.0)
+	vector<double> errRates(6, 0.0);
+	if (err1 > 0.0)
 	{
+		//create uniform random errors
 		Ptr<RandomVariableStream> ran = CreateObject<UniformRandomVariable>();
 		ran->SetAttribute("Min", DoubleValue(err0));
 		ran->SetAttribute("Max", DoubleValue(err1));
-		TopologySimpleHelper::LinksBool links(4);
-		links.SetClLink(0, 1, 1 - ran->GetValue());
-		links.SetClLink(0, 2, 1 - ran->GetValue());
-		links.SetClLink(1, 2, 1 - ran->GetValue());
-		links.SetClLink(1, 3, 1 - ran->GetValue());
-		links.SetSinkLink(2, 1);
-		links.SetSinkLink(3, 1);
+		for (auto it = errRates.begin(); it != errRates.end(); it++)
+		{
+			(*it) = ran->GetValue();
+		}
+
+		//set links
+		TopologySimpleHelper::LinksDouble links(4);
+		links.SetClLink(0, 1, 1 - errRates.at(0));
+		links.SetClLink(0, 2, 1 - errRates.at(1));
+		links.SetClLink(1, 2, 1 - errRates.at(2));
+		links.SetClLink(1, 3, 1 - errRates.at(3));
+		links.SetSinkLink(2, 1 - errRates.at(4));
+		links.SetSinkLink(3, 1 - errRates.at(5));
 		topHelper.Create(clusters, sink, links);
 	}
 	else
@@ -581,6 +589,13 @@ int main(int argc, char *argv[])
 	matHandler.WriteValue<double>("nTxCl", nTxCl_glob);
 	matHandler.WriteValue<double>("errMin", err0);
 	matHandler.WriteValue<double>("errMax", err1);
+	matHandler.WriteValue<double>("err01", errRates.at(0));
+	matHandler.WriteValue<double>("err02", errRates.at(1));
+	matHandler.WriteValue<double>("err12", errRates.at(2));
+	matHandler.WriteValue<double>("err13", errRates.at(3));
+	matHandler.WriteValue<double>("err2S", errRates.at(4));
+	matHandler.WriteValue<double>("err3S", errRates.at(5));
+
 
 	matHandler.WriteValue<double>("nMeasSeq", nMeasSeq);
 
