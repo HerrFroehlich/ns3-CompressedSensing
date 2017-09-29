@@ -195,14 +195,14 @@ int main(int argc, char *argv[])
 	cmd.AddValue("l0", "NOF meas. vectors after spatial compression, rows of Z of cluster 0", l0);
 	cmd.AddValue("l1", "NOF meas. vectors after spatial compression, rows of Z of cluster 1", l1);
 	cmd.AddValue("l2", "NOF meas. vectors after spatial compression, rows of Z of cluster 2", l2);
-	cmd.AddValue("l2", "NOF meas. vectors after spatial compression, rows of Z of cluster 3", l3);
+	cmd.AddValue("l3", "NOF meas. vectors after spatial compression, rows of Z of cluster 3", l3);
 	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
 	cmd.AddValue("minP", "Minimum NOF packets at sink to start reconstruction", minP);
 	cmd.AddValue("mu", "Tx probability modifier", mu);
 	cmd.AddValue("nc0", "NOF network coded packets per link in each inverval at cluster head 0", nc0);
 	cmd.AddValue("nc1", "NOF network coded packets per link in each inverval at cluster head 1", nc1);
 	cmd.AddValue("nc2", "NOF network coded packets per link in each inverval at cluster head 2", nc2);
-	cmd.AddValue("nc3", "NOF network coded packets per link in each inverval at cluster head 32", nc3);
+	cmd.AddValue("nc3", "NOF network coded packets per link in each inverval at cluster head 3", nc3);
 	cmd.AddValue("ncBern", "Use bernoulli nc coefficients?", ncBern);
 	cmd.AddValue("n", "NOF samples to compress temporally, size of X_i", n);
 	cmd.AddValue("nNodes", "NOF nodes per cluster", nNodes);
