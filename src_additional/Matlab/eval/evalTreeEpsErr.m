@@ -2,7 +2,7 @@
 %
 % Evaluates the output for a 3 simulation with tree topolgy and link errors. 
 % The snr was calculated during the simulation (flag: --snr).
-% This evaluates the tree topology when --onlyprecoding was used.
+% This evaluates the tree topology when errors where set for the links.
 % The (mean) SNR is plotted over the reduction of the NOF transmissions (e) with
 % increasing incoming packets at the sink. Also the distribution over e is
 % plotted, when all packets have been received at the sink.
@@ -15,15 +15,15 @@
 
 %% SETTINGS
 ALGO_NAME = 'OMP';  % Name of used algorithm
-P0       = 8*85;    % NOF transmission without NC
+P0       = 3*84+5*85;    % NOF transmission without NC
 %% INIT
 nClusters = 3;      % NOF clusters used
 %load('data.mat')
 nTx =  zeros(1,nMeasSeq);
 
 %% get max NOF tx to sink
-nRxSink = l2+Cluster2.nPktRxCl(1:nMeasSeq);
-nRxSinkMax = max(nRxSink);
+nTxSink = l2+Cluster2.nPktRxCl(1:nMeasSeq);
+nTxSinkMax = max(nTxSink);
 
 %% Get NOF transmission
 for c = 1:nClusters
@@ -38,35 +38,36 @@ for c = 1:nClusters
 end
 min_nTx = min(nTx);
 max_nTx = max(nTx);
-nTxS = nTx+nRxSink; % NOF tx with sink link
+nTxS = nTx+nTxSink; % NOF tx with sink link
 
 %% Get SNR ordered by NOF transmissions
 
-snrSpat = nan(nMeasSeq, max_nTx-min_nTx+nRxSinkMax, nClusters);
-snrSpatFin = zeros(nMeasSeq); %final SNR
+snrSpat = nan(nMeasSeq, max_nTx-min_nTx+nTxSinkMax, nClusters);
+snrSpatFin = zeros(nClusters, nMeasSeq); %final SNR
 for c = 1:nClusters
     for meas = 1:nMeasSeq
         %% spatial snr
 
         stField = eval([clName '.RecSeq'  num2str(meas-1)]);
         snrNow = stField;
-        range = (nTx(meas) - min_nTx)+(1:nRxSink(meas));
+        range = (nTx(meas) - min_nTx)+(1:nTxSink(meas));
         snrSpat(meas, range, c) = snrNow(:);
-        snrSpatFin(meas) = snrNow(end);
+        snrSpatFin(c,meas) = snrNow(end);
     end
 end
 %% plot
 %reordering to mean SNR with same number of transmissions
 snrSpatMeanCl = squeeze(nanmean(snrSpat,3)); %mean over clusters
 snrSpatMean =  squeeze(nanmean(snrSpatMeanCl));
+snrSpatFinMean = squeeze(mean(snrSpatFin));
 
 
 %considering connection to sink
 min_nTxS = min_nTx +1; % one transmission C2-> sink
-max_nTxS = max_nTx + nRxSinkMax; % all transmissions C2->sink
+max_nTxS = max_nTx + nTxSinkMax; % all transmissions C2->sink
 eps = (min_nTxS:max_nTxS)/P0; 
 % calculate distribution
-nTxS_dist = histc(nTxS, min_nTx+1:max_nTxS)/nMeasSeq;
+nTxS_dist = histc(nTxS, min_nTxS:max_nTxS)/nMeasSeq;
 nTxS_distNan = nTxS_dist;
 nTxS_distNan(nTxS_dist==0) = nan; %don't plot 0s
 
@@ -75,6 +76,8 @@ idx = nTxS_dist==0;
 snrFinal = snrSpatMean(~idx);
 snrFinalNan = snrSpatMean;
 snrFinalNan(idx) = nan;
+
+epsFinal = eps(~idx);
 
 %plot
 figure;

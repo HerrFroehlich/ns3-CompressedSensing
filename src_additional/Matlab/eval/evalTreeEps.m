@@ -15,7 +15,7 @@
 %% SETTINGS
 ALGO_NAME = 'OMP';  % Name of used algorithm
 nRxSink = 96;      % NOF reconstruction attempts per sequence
-P0       = 8*85;    % NOF transmission without NC
+P0       = 3*84+5*85;    % NOF transmission without NC
 NBINS    = 100;
 
 %% INIT
@@ -61,6 +61,9 @@ eps = (min_nTx:max_nTx)/P0;
 
 % calculate distribution
 nTx_dist = histc(nTx + nRxSink,min_nTx:max_nTx)/nMeasSeq; %also considering fixed tx to sink
+
+epsFinal_b = (eps(nTx_dist~=0));
+snrSFinal_b = (snrSpatMean(nTx_dist~=0));
 
 figure;
 yyaxis left; plot(eps, snrSpatMean); ylabel('mean SNR in dB');

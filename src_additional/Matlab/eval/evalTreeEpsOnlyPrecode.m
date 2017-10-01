@@ -15,7 +15,7 @@
 
 %% SETTINGS
 ALGO_NAME = 'OMP';  % Name of used algorithm
-P0       = 8*85;    % NOF transmission without NC
+P0       = 3*84+5*85;    % NOF transmission without NC
 %% INIT
 nClusters = 3;      % NOF clusters used
 %load('data.mat')
@@ -23,8 +23,8 @@ nTx =  zeros(1,nMeasSeq); % NOF transmissions without sink link
 nTxS =  zeros(1,nMeasSeq); % NOF transmissions with sink link
 
 %% get max NOF tx to sink
-nRxSink = Cluster2.nPktRxSrc+Cluster2.nPktRxCl(1:nMeasSeq) + 1; %+1 since cluster head is also source
-nRxSinkMax = max(nRxSink);
+nTxSink = Cluster2.nPktRxSrc+Cluster2.nPktRxCl(1:nMeasSeq) + 1; %+1 since cluster head is also source
+nRxSinkMax = max(nTxSink);
 
 %% Get NOF transmission without sink link
 for c = 1:nClusters
@@ -34,7 +34,7 @@ for c = 1:nClusters
     nRxCl = eval([clName '.nPktRxCl']);
     nTx = nTx + nRxSrc +  nRxCl(1:nMeasSeq);
 end
-nTxS = nTx + nRxSink;
+nTxS = nTx + nTxSink;
 min_nTx = min(nTx);
 max_nTx = max(nTx);
 min_nTxS = min_nTx +1; % one transmission C2-> sink
@@ -48,7 +48,7 @@ for c = 1:nClusters
 
         stField = eval([clName '.RecSeq'  num2str(meas-1)]);
         snrNow = stField;
-        range = (nTx(meas) - min_nTx)+(1:nRxSink(meas));
+        range = (nTx(meas) - min_nTx)+(1:nTxSink(meas));
         snrSpat(meas, range, c) = snrNow(:);
     end
 end
@@ -61,6 +61,8 @@ snrSpatMean =  squeeze(nanmean(snrSpatMeanCl));
 %considering connection to sink
 eps = (min_nTxS:max_nTxS)/P0; 
 % calculate distribution
+epsFinal_op = (eps(nTxS_dist~=0));
+snrSFinal_op = (snrSpatMean(nTxS_dist~=0));
 
 figure;
 yyaxis left; plot(eps, snrSpatMean); ylabel('mean SNR in dB');
