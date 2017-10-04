@@ -12,7 +12,7 @@
 %% SETTINGS
 ALGO_NAME = 'SP';  % Name of used algorithm
 minP = 20;         %minimum Packets at sink to start decoding (--minP) 
-nonc = true;      %NC of clusters disabled (--nonc)
+nonc = false;      %NC of clusters disabled (--nonc)
 %% INIT11
 N = nNodesUsed;
 attempts = numel(Cluster0.RecSeq0);
@@ -40,7 +40,7 @@ for c = 1:nClusters
 end
 
 if(~nonc)
-    nTx = nTx + nc0 + nc1 + nc2 + nc3; 
+    nTx = nTx + nc0 + nc1; 
     nTxSink = nc2 + nc3;
 else
     nTx = nTx + l0; %C0 transmissions
