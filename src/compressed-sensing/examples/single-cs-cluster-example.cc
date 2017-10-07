@@ -248,6 +248,8 @@ int main(int argc, char *argv[])
 	DataStream<double> sourceData = matHandler.ReadMat<double>(srcMatrixName);
 	uint32_t nMeasSeq = sourceData.GetMaxSize() / n;
 
+	if (sourceData.GetN() < nNodes)
+		cout << "The input matrix " << srcMatrixName << "does not have enough columns for " << to_string(nNodes) << " Nodes" << endl;
 	//uint32_t k = matHandler.ReadValue<double>(kName); // casting double  to uint32_t
 	//matHandler.Open(matInPathOut);				   // open output file
 	/*********  setup CsHeader  **********/
@@ -286,6 +288,7 @@ int main(int argc, char *argv[])
 
 	//noise
 	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
+	clusterHelper.SetClusterAppAttribute("NoiseVar", DoubleValue(noiseVar));
 
 	//network coding
 	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(nc));
@@ -481,6 +484,7 @@ int main(int argc, char *argv[])
 	matHandler.WriteValue<double>("nNodesUsed", nNodes);
 	matHandler.WriteValue<double>("n", n);
 	matHandler.WriteValue<double>("m", m);
+	matHandler.WriteValue<double>("mu", mu);
 	matHandler.WriteValue<double>("l", l);
 	matHandler.WriteValue<bool>("precode", !noprecode);
 	matHandler.WriteValue<double>("rateErr", rateErr);
@@ -490,10 +494,7 @@ int main(int argc, char *argv[])
 	matHandler.WriteVector<uint32_t>("totalIterTemp", iterTemp_glob);
 	matHandler.WriteVector<uint32_t>("totalIterSpat", iterSpat_glob);
 	matHandler.WriteValue<double>("nErrorRec", nErrorRec_glob);
-	if (minP >= l)
-		matHandler.WriteValue<double>("attempts", 1);
-	else
-		matHandler.WriteValue<double>("attempts", l - minP + 1);
+	matHandler.WriteValue<double>("attempts", l - minP);
 	matHandler.WriteValue<double>("nMeasSeq", nMeasSeq);
 
 	return 0;

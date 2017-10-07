@@ -263,6 +263,9 @@ int main(int argc, char *argv[])
 	DataStream<double> sourceData = matHandler.ReadMat<double>(srcMatrixName);
 	uint32_t nMeasSeq = sourceData.GetMaxSize() / n;
 
+	if (sourceData.GetN() < nNodes * 3)
+		cout << "The input matrix " << srcMatrixName << "does not have enough columns for " << to_string(3 * nNodes) << " Nodes" << endl;
+
 	/*********  setup CsHeader  **********/
 
 	NS_LOG_INFO("Setting up...");
@@ -332,7 +335,8 @@ int main(int argc, char *argv[])
 
 	//noise
 	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
-
+	clusterHelper.SetClusterAppAttribute("NoiseVar", DoubleValue(noiseVar));
+	
 	//create cluster 0
 	if (nonc || onlyprecode) // switch off nc if selected
 	{
@@ -588,6 +592,7 @@ int main(int argc, char *argv[])
 	matHandler.WriteValue<double>("nNodesUsed", nNodes);
 	matHandler.WriteValue<double>("n", n);
 	matHandler.WriteValue<double>("m", m);
+	matHandler.WriteValue<double>("mu", mu);
 	matHandler.WriteValue<double>("l0", l0);
 	matHandler.WriteValue<double>("l1", l1);
 	matHandler.WriteValue<double>("l2", l2);

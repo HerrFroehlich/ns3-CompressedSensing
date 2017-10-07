@@ -256,6 +256,8 @@ int main(int argc, char *argv[])
 	matHandler.OpenExisting(matInPath);
 	DataStream<double> sourceData = matHandler.ReadMat<double>(srcMatrixName);
 	uint32_t nMeasSeq = sourceData.GetMaxSize() / n;
+	if (sourceData.GetN() < nNodes)
+		cout << "The input matrix " << srcMatrixName << "does not have enough columns for " << to_string(nNodes) << " Nodes" << endl;
 
 	//uint32_t k = matHandler.ReadValue<double>(kName); // casting double  to uint32_t
 	//matHandler.Open(matInPathOut);				   // open output file
@@ -295,6 +297,7 @@ int main(int argc, char *argv[])
 
 	//noise
 	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
+	clusterHelper.SetClusterAppAttribute("NoiseVar", DoubleValue(noiseVar));
 
 	//network coding
 	clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(nc));
