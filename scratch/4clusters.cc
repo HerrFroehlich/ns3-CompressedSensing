@@ -163,6 +163,7 @@ int main(int argc, char *argv[])
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
 		   err0 = 0.0,
 		   err1 = 0.0,
+		   errSrc = 0.0,
 		   tol = DEFAULT_TOL,
 		   noiseVar = 0.0,
 		   mu = TXPROB_MODIFIER_DEFAULT;
@@ -186,8 +187,9 @@ int main(int argc, char *argv[])
 	cmd.AddValue("ident", "Identity random matrix when compressing spatially?", identSpat);
 	cmd.AddValue("channelDelay", "delay of all channels in ms", channelDelayTmp);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
-	cmd.AddValue("errMin", "error rate minimum for uniform distribution", err0);
-	cmd.AddValue("errMax", "error rate maximum for uniform distribution", err1);
+	cmd.AddValue("errMin", "error rate minimum  between cluster heads for uniform distribution", err0);
+	cmd.AddValue("errMax", "error rate maximum   between cluster heads for uniform distribution", err1);
+	cmd.AddValue("errSrc", " inter cluster error rate", errSrc);
 	cmd.AddValue("info", "Enable info messages", info);
 	cmd.AddValue("iter", "Maximum NOF iterations for solver", maxIter);
 	cmd.AddValue("k", "sparsity of original source measurements (needed when using OMP temporally)", k);
@@ -313,6 +315,18 @@ int main(int argc, char *argv[])
 		comp->SetRanMat(CreateObject<BernRandomMatrix>());
 
 	clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
+
+	//inter cluster error
+
+	if (errSrc > 0.0)
+	{
+		Ptr<RateErrorModel> errModel = CreateObject<RateErrorModel>();
+		errModel->SetRate(errSrc);
+		errModel->SetUnit(RateErrorModel::ErrorUnit::ERROR_UNIT_PACKET);
+		// errModel->AssignStreams(0);
+		clusterHelper.SetSrcDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
+		clusterHelper.SetClusterDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
+	}
 
 	//noise
 	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
