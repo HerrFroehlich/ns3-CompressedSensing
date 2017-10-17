@@ -24,7 +24,7 @@ using namespace ns3;
 * \brief Class which describes a cluster in the network
 *
 * The CsCluster stores pointers to the cluster head and source nodes (CsNode).
-* When creating a new cluster the individual seed (from which the random sensing matrix is drawn) 
+* When creating a new cluster or adding new nodes the individual seed (from which the random sensing matrix is drawn) 
 * is chosen via the default seed creator or an optional seeder function (with signature SeedCreator) for each node.
 * Utility functions, such as iterators, are provided to access the nodes and their IDs/seeds easily.
 * Additionally the compression dimensions n, m and l are saved, where:\n
