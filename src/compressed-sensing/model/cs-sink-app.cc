@@ -23,11 +23,6 @@ TypeId CsSinkApp::GetTypeId(void)
 							.SetParent<Application>()
 							.SetGroupName("CompressedSensing")
 							.AddConstructor<CsSinkApp>()
-							.AddAttribute("TimeOut",
-										  "The time to wait for new data",
-										  TimeValue(Seconds(10)),
-										  MakeTimeAccessor(&CsSinkApp::m_timeout),
-										  MakeTimeChecker(Seconds(0)))
 							.AddAttribute("Reconst", "Reconstructor",
 										  PointerValue(CreateObject<Reconstructor>()),
 										  MakePointerAccessor(&CsSinkApp::m_reconst),
@@ -36,6 +31,15 @@ TypeId CsSinkApp::GetTypeId(void)
 										  UintegerValue(0),
 										  MakeUintegerAccessor(&CsSinkApp::m_minPackets),
 										  MakeUintegerChecker<uint32_t>())
+							.AddAttribute("WaitAllPackets", "Wait for all packets and then decode?",
+										  BooleanValue(false),
+										  MakeBooleanAccessor(&CsSinkApp::m_waitForAll),
+										  MakeBooleanChecker())
+							.AddAttribute("WaitTimeOut",
+										  "The time to wait for new data with WaitAllPackets",
+										  TimeValue(MilliSeconds(100)),
+										  MakeTimeAccessor(&CsSinkApp::m_timeout),
+										  MakeTimeChecker(Seconds(0)))
 							.AddTraceSource("Rx", "A new packet is received",
 											MakeTraceSourceAccessor(&CsSinkApp::m_rxTrace),
 											"ns3::Packet::TracedCallback")
@@ -51,6 +55,7 @@ TypeId CsSinkApp::GetTypeId(void)
 CsSinkApp::CsSinkApp() : m_seqCount(0),
 						 m_recAttempt(0),
 						 m_isSetup(false),
+						 m_waitForAll(false),
 						 m_timeoutEvent(EventId()),
 						 m_minPackets(0),
 						 m_rxPacketsSeq(0)
@@ -139,9 +144,18 @@ bool CsSinkApp::Receive(Ptr<NetDevice> dev, Ptr<const Packet> p, uint16_t idUnus
 		return false;
 	}
 
+	m_rxPacketsSeq++;
 	BufferPacketData(p);
-	if (++m_rxPacketsSeq >= m_minPackets)
-		ReconstructNext();
+	if (m_waitForAll)
+	{
+		Simulator::Cancel(m_timeoutEvent);//cancel old timeout event
+		m_timeoutEvent = Simulator::Schedule(m_timeout, &CsSinkApp::ReconstructNext, this);
+	}
+	else
+	{
+		if (m_rxPacketsSeq >= m_minPackets)
+			ReconstructNext();
+	}
 	return true;
 }
 

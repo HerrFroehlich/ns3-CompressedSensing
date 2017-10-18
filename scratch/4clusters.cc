@@ -173,7 +173,8 @@ int main(int argc, char *argv[])
 		 ncBern = false,
 		 notemp = false,
 		 bernSpat = false,
-		 identSpat = false;
+		 identSpat = false,
+		 sinkWait = false;
 
 	std::string matInPath = DEFAULT_FILE,
 				matOutPath = "",
@@ -213,6 +214,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("notemp", "Disable temporal reconstruction?", notemp);
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
 	cmd.AddValue("seed", "Global seed for random streams > 0 (except random matrices)", seed);
+	cmd.AddValue("sinkWait", "Should the sink try to wait for all packcets with a timeout?", sinkWait);
 	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
 	cmd.AddValue("solver", "Solvers: 0=OMP | 1=BP | 2=AMP | 3=CoSaMP | 4=ROMP | 5=SP | 6=SL0 | 7=EMBP", solver);
 	cmd.AddValue("tol", "Tolerance for solvers", tol);
@@ -472,6 +474,9 @@ int main(int argc, char *argv[])
 		rec->SetAttribute("NoRecTemp", BooleanValue(true));
 
 	sinkApp->SetAttribute("Reconst", PointerValue(rec));
+
+	if (sinkWait)
+	sinkApp->SetAttribute("WaitAllPackets", BooleanValue(true));
 
 	switch (solver)
 	{

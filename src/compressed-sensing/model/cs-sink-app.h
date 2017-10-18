@@ -119,7 +119,8 @@ class CsSinkApp : public Application
 	CsHeader::T_SeqField m_seqCount; /**< measurment sequence counter*/
 	uint32_t m_recAttempt;			 /**< reconstruction attempt of current measurement sequence*/
 
-	bool m_isSetup;			/**< was setup called ?*/
+	bool m_isSetup,			/**< was setup called ?*/
+		m_waitForAll;		/**< Wait for all packets and then decode?*/
 	Time m_timeout;			/**< Packet inter-send time*/
 	EventId m_timeoutEvent; /**< timeout event when waiting for new source data*/
 
