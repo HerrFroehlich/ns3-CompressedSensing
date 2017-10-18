@@ -20,7 +20,7 @@
 #define DEFAULT_SRCMAT_NAME "X"
 #define CLUSTER_ID 0
 #define DEFAULT_TOL 1e-3
-#define DEFAULT_ITER 20
+#define DEFAULT_ITER 1000
 
 #define TXPROB_MODIFIER_DEFAULT 1.0
 
@@ -139,7 +139,6 @@ int main(int argc, char *argv[])
 
 	uint32_t nNodes = DEFAULT_NOF_SRCNODES,
 			 dataRate = DEFAULT_DRATE_BPS,
-			 solver = 0,
 			 n = DEFAULT_N,
 			 m = DEFAULT_M,
 			 l0 = DEFAULT_L,
@@ -147,13 +146,16 @@ int main(int argc, char *argv[])
 			 l2 = DEFAULT_L,
 			 nc0 = DEFAULT_L,
 			 nc1 = DEFAULT_L,
-			 nc2 = DEFAULT_L,
+			 nc2 = 3 * DEFAULT_L,
 			 k = DEFAULT_K,
 			 ks = DEFAULT_K,
+			 solver = 0,
 			 maxIter = DEFAULT_ITER,
-			 minP = 0,
-			 rateErr = 0;
+			 minP = 0;
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
+		   err02 = 0.0,
+		   err12 = 0.0,
+		   err2S = 0.0,
 		   tol = DEFAULT_TOL,
 		   noiseVar = 0.0,
 		   mu = TXPROB_MODIFIER_DEFAULT;
@@ -178,6 +180,9 @@ int main(int argc, char *argv[])
 	cmd.AddValue("ident", "Identity random matrix when compressing spatially?", identSpat);
 	cmd.AddValue("channelDelay", "delay of all channels in ms", channelDelayTmp);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
+	cmd.AddValue("err02", "Probability of between cluster head 0 and 2 (uniform rate error model)", err02);
+	cmd.AddValue("err12", "Probability of between cluster head 1 and 2 (uniform rate error model)", err12);
+	cmd.AddValue("err2S", "Probability of between cluster head 2 and sink (uniform rate error model)", err2S);
 	cmd.AddValue("info", "Enable info messages", info);
 	cmd.AddValue("iter", "Maximum NOF iterations for solver", maxIter);
 	cmd.AddValue("k", "sparsity of original source measurements (needed when using OMP temporally)", k);
@@ -199,7 +204,6 @@ int main(int argc, char *argv[])
 	cmd.AddValue("notemp", "Disable temporal reconstruction?", notemp);
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
 	cmd.AddValue("onlyprecode", "Do only spatial precoding? Switches off NC completly at cluster heads. ", onlyprecode);
-	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
 	cmd.AddValue("seed", "Global seed for random streams > 0 (except random matrices)", seed);
 	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
 	cmd.AddValue("solver", "Solvers: 0=OMP | 1=BP | 2=AMP | 3=CoSaMP | 4=ROMP | 5=SP | 6=SL0 | 7=EMBP", solver);
@@ -216,6 +220,12 @@ int main(int argc, char *argv[])
 	if ((l0 > nNodes) || (l1 > nNodes) || (l2 > nNodes))
 	{
 		cout << "l must be <= nNodes!" << endl;
+		return 1;
+	}
+
+	if (onlyprecode && noprecode)
+	{
+		cout << "Can't disable precoding  and do only precoding!" << endl;
 		return 1;
 	}
 
@@ -256,9 +266,9 @@ int main(int argc, char *argv[])
 	}
 
 	/*********  read matlab file  **********/
+	NS_LOG_INFO("Reading mat file...");
 
 	MatFileHandler matHandler;
-	NS_LOG_INFO("Reading mat file...");
 	matHandler.OpenExisting(matInPath);
 	DataStream<double> sourceData = matHandler.ReadMat<double>(srcMatrixName);
 	uint32_t nMeasSeq = sourceData.GetMaxSize() / n;
@@ -324,19 +334,19 @@ int main(int argc, char *argv[])
 	}
 	//error model
 	Ptr<RateErrorModel> errModel = CreateObject<RateErrorModel>();
-	if (rateErr > 0.0)
-	{
-		errModel->SetRate(rateErr);
-		errModel->SetUnit(RateErrorModel::ErrorUnit::ERROR_UNIT_PACKET);
-		errModel->AssignStreams(0);
-		clusterHelper.SetSrcDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
-		clusterHelper.SetClusterDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
-	}
+	// if (rateErr > 0.0)
+	// {
+	// 	errModel->SetRate(rateErr);
+	// 	errModel->SetUnit(RateErrorModel::ErrorUnit::ERROR_UNIT_PACKET);
+	// 	errModel->AssignStreams(0);
+	// 	clusterHelper.SetSrcDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
+	// 	clusterHelper.SetClusterDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
+	// }
 
 	//noise
 	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
 	clusterHelper.SetClusterAppAttribute("NoiseVar", DoubleValue(noiseVar));
-	
+
 	//create cluster 0
 	if (nonc || onlyprecode) // switch off nc if selected
 	{
@@ -351,7 +361,7 @@ int main(int argc, char *argv[])
 
 	if (!noprecode)
 	{
-		double txProb = mu * (l0 - 1) / ((nNodes - 1) * (1 - rateErr));
+		double txProb = mu * (l0 - 1) / (nNodes - 1);
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
@@ -366,7 +376,7 @@ int main(int argc, char *argv[])
 	clusters.at(0) = cluster0;
 	//create cluster 1
 
-	if (nonc || onlyprecode) // switch off nc if selected or unncessary (nc1 == l1)
+	if (nonc || onlyprecode) // switch off nc
 	{
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
 		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(true));
@@ -379,7 +389,7 @@ int main(int argc, char *argv[])
 
 	if (!noprecode)
 	{
-		double txProb = mu * (l1 - 1) / ((nNodes - 1) * (1 - rateErr));
+		double txProb = mu * (l1 - 1) / (nNodes - 1);
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
@@ -412,7 +422,7 @@ int main(int argc, char *argv[])
 
 	if (!noprecode)
 	{
-		double txProb = mu * (l2 - 1) / ((nNodes - 1) * (1 - rateErr));
+		double txProb = mu * (l2 - 1) / (nNodes - 1);
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
@@ -438,12 +448,12 @@ int main(int argc, char *argv[])
 	Ptr<CsNode> sink = CreateObject<CsNode>(CsNode::NodeType::SINK);
 	TopologySimpleHelper topHelper;
 
-	if (rateErr > 0.0)
+	if (err02 > 0.0 || err12 > 0.0)
 	{
 		TopologySimpleHelper::LinksDouble links(3);
-		links.SetClLink(0, 2, 1 - rateErr);
-		links.SetClLink(1, 1, 1 - rateErr);
-		links.SetSinkLink(2, 1 - rateErr);
+		links.SetClLink(0, 2, 1 - err02);
+		links.SetClLink(1, 2, 1 - err12);
+		links.SetSinkLink(2, 1 - err2S);
 		topHelper.Create(clusters, sink, links);
 	}
 	else
@@ -592,7 +602,6 @@ int main(int argc, char *argv[])
 	matHandler.WriteValue<double>("nNodesUsed", nNodes);
 	matHandler.WriteValue<double>("n", n);
 	matHandler.WriteValue<double>("m", m);
-	matHandler.WriteValue<double>("mu", mu);
 	matHandler.WriteValue<double>("l0", l0);
 	matHandler.WriteValue<double>("l1", l1);
 	matHandler.WriteValue<double>("l2", l2);
@@ -603,6 +612,9 @@ int main(int argc, char *argv[])
 	matHandler.WriteValue<double>("totalTimeSpat", tSpat_glob);
 	matHandler.WriteValue<double>("nErrorRec", nErrorRec_glob);
 	matHandler.WriteValue<double>("nTx", nTx_glob);
+	matHandler.WriteValue<double>("err02", err02);
+	matHandler.WriteValue<double>("err12", err12);
+	matHandler.WriteValue<double>("err2S", err2S);
 
 	matHandler.WriteValue<double>("nMeasSeq", nMeasSeq);
 

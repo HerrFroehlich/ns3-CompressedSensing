@@ -158,9 +158,10 @@ int main(int argc, char *argv[])
 			 k = DEFAULT_K,
 			 ks = DEFAULT_K,
 			 maxIter = DEFAULT_ITER,
-			 minP = 0,
-			 rateErr = 0;
+			 minP = 0;
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
+		   err02 = 0.0,
+		   err01 = 0.0,
 		   tol = DEFAULT_TOL,
 		   noiseVar = 0.0,
 		   mu = TXPROB_MODIFIER_DEFAULT;
@@ -184,6 +185,8 @@ int main(int argc, char *argv[])
 	cmd.AddValue("ident", "Identity random matrix when compressing spatially?", identSpat);
 	cmd.AddValue("channelDelay", "delay of all channels in ms", channelDelayTmp);
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
+	cmd.AddValue("err02", "Probability of between cluster head 0 and 2 (uniform rate error model)", err02);
+	cmd.AddValue("err01", "Probability of between cluster head 1 and 2 (uniform rate error model)", err01);
 	cmd.AddValue("info", "Enable info messages", info);
 	cmd.AddValue("iter", "Maximum NOF iterations for solver", maxIter);
 	cmd.AddValue("k", "sparsity of original source measurements (needed when using OMP temporally)", k);
@@ -204,7 +207,6 @@ int main(int argc, char *argv[])
 	cmd.AddValue("nonc", "Disable network coding?", nonc);
 	cmd.AddValue("notemp", "Disable temporal reconstruction?", notemp);
 	cmd.AddValue("noprecode", "Disable spatial precoding?", noprecode);
-	cmd.AddValue("rateErr", "Probability of uniform rate error model", rateErr);
 	cmd.AddValue("seed", "Global seed for random streams > 0 (except random matrices)", seed);
 	cmd.AddValue("snr", "calculate snr directly, reconstructed signals won't be output", calcSnr);
 	cmd.AddValue("solver", "Solvers: 0=OMP | 1=BP | 2=AMP | 3=CoSaMP | 4=ROMP | 5=SP | 6=SL0 | 7=EMBP", solver);
@@ -231,7 +233,6 @@ int main(int argc, char *argv[])
 	}
 	else //set seed
 		RngSeedManager::SetSeed(seed);
-
 	/*********  Logging  **********/
 	if (verbose)
 	{
@@ -266,6 +267,8 @@ int main(int argc, char *argv[])
 	matHandler.OpenExisting(matInPath);
 	DataStream<double> sourceData = matHandler.ReadMat<double>(srcMatrixName);
 	uint32_t nMeasSeq = sourceData.GetMaxSize() / n;
+	if (sourceData.GetN() < nNodes * 3)
+		cout << "The input matrix " << srcMatrixName << "does not have enough columns for " << to_string(3 * nNodes) << " Nodes" << endl;
 
 	/*********  setup CsHeader  **********/
 
@@ -306,23 +309,14 @@ int main(int argc, char *argv[])
 		comp->SetRanMat(CreateObject<BernRandomMatrix>());
 
 	clusterHelper.SetClusterAppAttribute("ComprSpat", PointerValue(comp));
-	//error model
-	Ptr<RateErrorModel> errModel = CreateObject<RateErrorModel>();
-	if (rateErr > 0.0)
-	{
-		errModel->SetRate(rateErr);
-		errModel->SetUnit(RateErrorModel::ErrorUnit::ERROR_UNIT_PACKET);
-		errModel->AssignStreams(0);
-		clusterHelper.SetSrcDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
-		clusterHelper.SetClusterDeviceAttribute("ReceiveErrorModel", PointerValue(errModel));
-	}
 
 	//noise
 	clusterHelper.SetSrcAppAttribute("NoiseVar", DoubleValue(noiseVar));
+	clusterHelper.SetClusterAppAttribute("NoiseVar", DoubleValue(noiseVar));
 
 	//create cluster 0
 
-	if (nonc) // switch off
+	if (nonc) // switch off nc if selected or unncessary (nc0 == l0)
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(false));
 	else
 	{
@@ -332,7 +326,7 @@ int main(int argc, char *argv[])
 
 	if (!noprecode)
 	{
-		double txProb = mu * (l0 - 1) / ((nNodes - 1) * (1 - rateErr));
+		double txProb = mu * (l0 - 1) / (nNodes - 1);
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
@@ -352,13 +346,14 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
+		clusterHelper.SetClusterAppAttribute("NcShuffle", BooleanValue(false));
 		clusterHelper.SetClusterAppAttribute("NcEnable", BooleanValue(true));
 		clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(nc1));
 	}
 
 	if (!noprecode)
 	{
-		double txProb = mu * (l1 - 1) / ((nNodes - 1) * (1 - rateErr));
+		double txProb = mu * (l1 - 1) / (nNodes - 1);
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
@@ -373,7 +368,7 @@ int main(int argc, char *argv[])
 	clusterHelper.SetClusterAppAttribute("NcPktPerLink", UintegerValue(nc2));
 	if (!noprecode)
 	{
-		double txProb = mu * (l2 - 1) / ((nNodes - 1) * (1 - rateErr));
+		double txProb = mu * (l2 - 1) / (nNodes - 1);
 		if (txProb <= 1 && txProb >= 0)
 			clusterHelper.SetSrcAppAttribute("TxProb", DoubleValue(txProb));
 	}
@@ -388,13 +383,13 @@ int main(int argc, char *argv[])
 	Ptr<CsNode> sink = CreateObject<CsNode>(CsNode::NodeType::SINK);
 	TopologySimpleHelper topHelper;
 
-	if (rateErr > 0.0)
+	if (err02 > 0.0 || err01 > 0.0)
 	{
 		TopologySimpleHelper::LinksDouble links(3);
-		links.SetClLink(0, 2, 1 - rateErr);
-		links.SetClLink(0, 1, 1 - rateErr);
-		links.SetSinkLink(2, 1 - rateErr);
-		links.SetSinkLink(1, 1 - rateErr);
+		links.SetClLink(0, 2, 1 - err02);
+		links.SetClLink(0, 1, 1 - err01);
+		links.SetSinkLink(2, 1);
+		links.SetSinkLink(1, 1);
 		topHelper.Create(clusters, sink, links);
 	}
 	else
@@ -560,6 +555,8 @@ int main(int argc, char *argv[])
 	matHandler.WriteValue<double>("nErrorRec", nErrorRec_glob);
 	matHandler.WriteValue<double>("nTx", nTx_glob);
 	matHandler.WriteValue<double>("nTxCl", nTxCl_glob);
+	matHandler.WriteValue<double>("err01", err01);
+	matHandler.WriteValue<double>("err02", err02);
 
 	matHandler.WriteValue<double>("nMeasSeq", nMeasSeq);
 
