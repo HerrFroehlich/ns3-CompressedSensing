@@ -14,7 +14,7 @@
 
 #define RXPROB_MIN 0.05
 #define RXPROB_MAX 1
-#define RXPROB_STEPS 38
+#define RXPROB_STEPS 95
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -31,34 +31,6 @@ static uint32_t nPktRx_glob, nPktClTx_glob, nPktRxSeq_glob;
 
 NS_LOG_COMPONENT_DEFINE("rxProbSweep");
 
-static void
-receiveCb(Ptr<const Packet> p)
-{
-	//p->Print(std::cout);
-}
-
-static void
-transmitCb(Ptr<const Packet> p)
-{
-	//p->Print(std::cout);
-	//set sink up so that it decodes when it receives only all packets from the cluster head, sink will receive  for sure only after all packets where sent (delay!=0 + dataRate=0)
-	Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/MinPackets", UintegerValue(++nPktClTx_glob));
-//	NS_LOG_INFO("TX" + to_string(nPktClTx_glob));
-}
-
-static void
-receiveCbSink(Ptr<const Packet> p)
-{
-	//p->Print(std::cout);
-	//NS_LOG_INFO("RX");
-	if (++nPktRxSeq_glob == nPktClTx_glob)
-	{
-		nPktClTx_glob = 0; //here we receive all packets from the cluster head -> reset transmission counter
-		nPktRxSeq_glob = 0;
-		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/MinPackets", UintegerValue(0));
-	}
-	nPktRx_glob++;
-}
 
 /*-------------------------  MAIN  ------------------------------*/
 
@@ -75,13 +47,13 @@ int main(int argc, char *argv[])
 			 ks = DEFAULT_K;
 	double channelDelayTmp = DEFAULT_CHANNELDELAY_MS,
 		   noiseVar = 0.0;
-	std::string matFilePath = DEFAULT_FILE,
-				// matFilePathOut = DEFAULT_FILEOUT,
-		srcMatrixName = DEFAULT_SRCMAT_NAME;
+
+	std::string matInPath = DEFAULT_FILE,
+				matOutPath = "",
+				srcMatrixName = DEFAULT_SRCMAT_NAME;
 
 	CommandLine cmd;
 
-	cmd.AddValue("file", "path to mat file to read from", matFilePath);
 	cmd.AddValue("k", "sparsity of original source measurements (needed when using OMP temporally)", k);
 	cmd.AddValue("ks", "sparsity of the colums of Y (needed when using OMP spatially)", ks);
 	cmd.AddValue("m", "NOF samples after temporal compression, size of Y_i", m);
@@ -89,7 +61,8 @@ int main(int argc, char *argv[])
 	cmd.AddValue("noise", "Variance of noise added artificially", noiseVar);
 	cmd.AddValue("nNodes", "NOF source nodes in topology", nNodes);
 	cmd.AddValue("MATsrc", "name of the matrix in the mat file containing the data for the source nodes", srcMatrixName);
-	cmd.AddValue("MATfile", "name of the Matlab file", matFilePath);
+	cmd.AddValue("MATin", "path to the matlab file with extension", matInPath);
+	cmd.AddValue("MATout", "name of the Matlab output file (if empty = input file). Directory must exist!", matOutPath);
 
 	cmd.Parse(argc, argv);
 
@@ -108,16 +81,17 @@ int main(int argc, char *argv[])
 	LogComponentEnable("MatFileHandler", LOG_LEVEL_INFO);
 	Packet::EnablePrinting();
 
-	//uint32_t nMeasSeq;
+	uint32_t nMeasSeq;
 	Col<double> meanSnr(RXPROB_STEPS);
 	Col<double> nRx(RXPROB_STEPS);
+	Col<double> cdf_100(RXPROB_STEPS);
+	Col<double> cdf_20(RXPROB_STEPS);
 	// Mat<double> meanSnrTemp(nNodes, RXPROB_STEPS);
 	// Mat<double> varSnrTemp(nNodes, RXPROB_STEPS);
 	Col<double> varSnr(RXPROB_STEPS);
 	for (uint32_t step = 0; step < RXPROB_STEPS; step++)
 
 	{
-
 
 		nPktClTx_glob = 0; //here we receive all packets from the cluster head -> reset transmission counter
 		nPktRxSeq_glob = 0;
@@ -127,9 +101,9 @@ int main(int argc, char *argv[])
 		NS_LOG_INFO("STEP " << step);
 		/*********  read matlab file  **********/
 		NS_LOG_INFO("Reading mat file...");
-		matHandler_glob.Open(matFilePath);
+		matHandler_glob.Open(matInPath);
 		DataStream<double> sourceData = matHandler_glob.ReadMat<double>(srcMatrixName);
-		//nMeasSeq = sourceData.GetMaxSize() / n;
+		nMeasSeq = sourceData.GetMaxSize() / n;
 
 		/*********  setup CsHeader  **********/
 
@@ -173,10 +147,6 @@ int main(int argc, char *argv[])
 		Ptr<CsCluster> cluster = clusterHelper.Create(CLUSTER_ID, nNodes, sourceData);
 		ApplicationContainer clusterApps = cluster->GetApps();
 
-		//traces
-		Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsClusterApp/Rx", MakeCallback(&receiveCb));
-		Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsClusterApp/Tx", MakeCallback(&transmitCb));
-
 		//sink node
 		Ptr<CsNode> sink = CreateObject<CsNode>();
 		/*********  create netdevices and channels  **********/
@@ -207,6 +177,7 @@ int main(int argc, char *argv[])
 
 		Ptr<CsSinkApp> sinkApp = CreateObject<CsSinkApp>();
 		sink->AddApplication(sinkApp);
+		sinkApp->SetAttribute("WaitAllPackets", BooleanValue(true));
 
 		Ptr<Reconstructor> rec = CreateObject<Reconstructor>();
 		Ptr<TransMatrix> transMat = CreateObject<DcTransMatrix>();
@@ -216,7 +187,7 @@ int main(int argc, char *argv[])
 		rec->SetAttribute("CalcSnr", BooleanValue(true));
 		rec->SetAttribute("RecMatSpat", PointerValue(Create<RecMatrix>(ranMat, transMat)));
 		rec->SetAttribute("NoNC", BooleanValue(true));
-		rec->SetAttribute("NoRecTemp", BooleanValue(true));
+		//rec->SetAttribute("NoRecTemp", BooleanValue(true));
 		sinkApp->SetAttribute("Reconst", PointerValue(rec));
 
 		Config::Set("/NodeList/*/ApplicationList/*/$CsSinkApp/Reconst/AlgoTemp/$CsAlgorithm_OMP/k", UintegerValue(k));
@@ -225,7 +196,7 @@ int main(int argc, char *argv[])
 
 		sinkApp->AddCluster(cluster);
 		sinkApp->Setup(sink);
-		Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$CsSinkApp/Rx", MakeCallback(&receiveCbSink));
+		//sinkApp->TraceConnectWithoutContext("Rx", MakeCallback(&receiveCb));
 		/*********  Running the Simulation  **********/
 
 		NS_LOG_INFO("Running Simulation...");
@@ -248,33 +219,32 @@ int main(int argc, char *argv[])
 		}
 		varSnr(step) /= i;
 
-		// //snr mean temp
-		// i = 0;
-		// for (auto node = cluster->Begin(); node != cluster->End(); node++)
-		// {
-		// 	uint32_t j = 0;
-		// 	(*node)->RmStreamByName(CsNode::STREAMNAME_UNCOMPR);
-		// 	(*node)->RmStreamByName(CsNode::STREAMNAME_COMPR);
-		// 	for (auto it = (*node)->StreamBegin(); it != (*node)->StreamEnd(); it++)
-		// 	{
-		// 		Ptr<SerialDataBuffer<double>> buf = (*it)->PeekBuffer(0);
-		// 		double snr = buf->Read(buf->GetNWritten()-1);
-		// 		double delta = snr - meanSnrTemp(i, step);
-		// 		double snrMean = meanSnrTemp(i, step) + delta / ++j;
-		// 		meanSnrTemp(i, step) = snrMean;
-
-		// 		double delta2 = snr - snrMean;
-		// 		varSnrTemp(i, step) = delta * delta2;
-		// 	}
-		// 	varSnrTemp(i, step) /= j;
-		// 	i++;
-		// }
+		// //cdf
+		for (auto node = cluster->Begin(); node != cluster->End(); node++)
+		{
+			(*node)->RmStreamByName(CsNode::STREAMNAME_UNCOMPR);
+			(*node)->RmStreamByName(CsNode::STREAMNAME_COMPR);
+			for (auto it = (*node)->StreamBegin(); it != (*node)->StreamEnd(); it++)
+			{
+				Ptr<SerialDataBuffer<double>> buf = (*it)->PeekBuffer(0);
+				double snr = buf->Read(buf->GetNWritten()-1);//final snr
+				cdf_100(step) += snr > 100;
+				cdf_20(step) += snr > 20;
+			}
+		}
 
 		nRx(step) = nPktRx_glob;
 	}
-
+	cdf_100 /= (nMeasSeq*nNodes);
+	cdf_20 /= (nMeasSeq*nNodes);
 	/*********  Writing output **********/
+	if (!matOutPath.empty())
+		matHandler_glob.Open(matOutPath);
+
 	matHandler_glob.WriteMat<double>("meanSnrSpat", meanSnr);
+	matHandler_glob.WriteMat<double>("varSnrSpat", varSnr);
+	matHandler_glob.WriteMat<double>("cdf_100", cdf_100);
+	matHandler_glob.WriteMat<double>("cdf_20", cdf_20);
 	matHandler_glob.WriteMat<double>("varSnrSpat", varSnr);
 	// matHandler_glob.WriteMat<double>("meanSnrTemp", meanSnrTemp);
 	// matHandler_glob.WriteMat<double>("varSnrTemp", varSnrTemp);

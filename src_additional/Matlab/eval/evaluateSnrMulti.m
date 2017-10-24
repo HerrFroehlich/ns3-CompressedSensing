@@ -13,7 +13,7 @@
 %% SETTINGS
 ALGO_NAME = 'OMP';  % Name of used algorithm
 nClusters = 3;      % NOF clusters used
-attempts = 9;     % NOF reconstruction attempts per sequence
+attempts = 96;     % NOF reconstruction attempts per sequence
 notemp   = true;    % Was temporal reconstruction disabled (--notemp)
 
 
