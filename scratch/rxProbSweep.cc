@@ -220,6 +220,8 @@ int main(int argc, char *argv[])
 		varSnr(step) /= i;
 
 		// //cdf
+		cdf_100(step) = 0;
+		cdf_20(step) = 0;
 		for (auto node = cluster->Begin(); node != cluster->End(); node++)
 		{
 			(*node)->RmStreamByName(CsNode::STREAMNAME_UNCOMPR);
