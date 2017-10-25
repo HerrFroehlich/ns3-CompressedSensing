@@ -4,8 +4,8 @@
 %% SETTINGS
 ALGO_NAME = 'SP';  % Name of used algorithm
 nonc = true;      %NC of clusters disabled (--nonc)
-SNRmin = [100];       %minimum SNR in dB
-scen = 0;  %Scenario: 0-Single cluster 1-tree 2-diamond 3-four clusters
+SNRmin = [20 100];       %minimum SNR in dB
+scen = 1;  %Scenario: 0-Single cluster 1-tree 2-diamond 3-four clusters
 minP = 0; %minimum No. so that sink starts decoding (--minP)
 
 %% Init
@@ -104,7 +104,7 @@ gIncr = gIncr* m/n;
 %%
 figure;
 if(attempts > 1)
-plot(repmat(gIncr',1,numel(SNRmin)), cdf','-x');
+plot(repmat(gIncr',1,numel(SNRmin)), cdf,'-x');
 else
     lstyles = {'x','o','+','*'};
     for p = 1:numel(SNRmin)

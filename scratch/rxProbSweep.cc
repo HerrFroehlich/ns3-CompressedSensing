@@ -14,7 +14,7 @@
 
 #define RXPROB_MIN 0.05
 #define RXPROB_MAX 1
-#define RXPROB_STEPS 95
+#define RXPROB_STEPS 39
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
