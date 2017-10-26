@@ -511,7 +511,7 @@ int main(int argc, char *argv[])
 	if (minP >= l)
 		matHandler.WriteValue<double>("attempts", 1);
 	else
-		matHandler.WriteValue<double>("attempts", l - minP + 1);
+		matHandler.WriteValue<double>("attempts", l - minP);
 	matHandler.WriteValue<double>("nMeasSeq", nMeasSeq);
 
 	return 0;
