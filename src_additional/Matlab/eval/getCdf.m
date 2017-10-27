@@ -4,7 +4,7 @@
 %% SETTINGS
 ALGO_NAME = 'SP';  % Name of used algorithm
 nonc = true;      %NC of clusters disabled (--nonc)
-SNRmin = [20 100];       %minimum SNR in dB
+SNRmin = [100];       %minimum SNR in dB
 scen = 1;  %Scenario: 0-Single cluster 1-tree 2-diamond 3-four clusters
 minP = 0; %minimum No. so that sink starts decoding (--minP)
 
@@ -60,42 +60,42 @@ g = nTx/P0 *m/n;   %gain in each measurement sequence
 gMean = mean(nTx)/P0 *m/n;
 %% gain with increasin transmissions to sink
 
-minP = minP+1;
-if(~nonc)
+minP1 = minP+1;
+if(nonc)
     switch scen
         case 0 %single
-            gIncr = (mean(Cluster0.nPktRxSrc)+(minP:l))/P0;
+            gIncr = (mean(Cluster0.nPktRxSrc)+(minP1:l))/P0;
         case 1 %tree
             gIncr = (mean(Cluster0.nPktRxSrc+Cluster1.nPktRxSrc+...
-                Cluster2.nPktRxSrc+Cluster2.nPktRxCl(1:nMeasSeq))+(minP:l2))/P0;
+                Cluster2.nPktRxSrc+Cluster2.nPktRxCl(1:nMeasSeq))+(minP1:(l1+l2+l0)))/P0
         case 2 %diamond
             gIncr = (mean(Cluster0.nPktRxSrc+Cluster1.nPktRxSrc+...
                 Cluster1.nPktRxCl(1:nMeasSeq)+Cluster2.nPktRxSrc+...
                 Cluster2.nPktRxCl(1:nMeasSeq))...
-                +(minP:(l1+l2)))/P0;
+                +(minP1:(l1+l2+l0)))/P0;
         case 3 %4 clusters
             gIncr = (mean(Cluster0.nPktRxSrc+Cluster1.nPktRxSrc+...
                 Cluster1.nPktRxCl(1:nMeasSeq)+Cluster2.nPktRxSrc+...
                 Cluster2.nPktRxCl(1:nMeasSeq)+...
                 Cluster3.nPktRxSrc+Cluster3.nPktRxCl(1:nMeasSeq))...
-                +(minP:(l3+l2)))/P0;
+                +(minP1:(l1+l2+l3+l0)))/P0;
         otherwise
             error('Invalid scenario!')
     end
 else
     switch scen
         case 0 %single
-            gIncr = (mean(Cluster0.nPktRxSrc)+(minP:l))/P0;
+            gIncr = (mean(Cluster0.nPktRxSrc)+(minP1:l))/P0;
         case 1 %tree
             gIncr = (mean(Cluster0.nPktRxSrc+Cluster1.nPktRxSrc+...
-                Cluster2.nPktRxSrc)+nc1+nc0+(minP:nc2))/P0;
+                Cluster2.nPktRxSrc)+nc1+nc0+(minP1:nc2))/P0;
         case 2 %diamond
             gIncr = (mean(Cluster0.nPktRxSrc+Cluster1.nPktRxSrc+...
-                +Cluster2.nPktRxSrc)+nc0+(minP:(nc1+nc2)))/P0;
+                +Cluster2.nPktRxSrc)+nc0+(minP1:(nc1+nc2)))/P0;
         case 3 %4 clusters
             gIncr = (mean(Cluster0.nPktRxSrc+Cluster1.nPktRxSrc+...
                 Cluster2.nPktRxSrc+Cluster3.nPktRxSrc)+nc0+nc1...
-                +(minP:(nc3+nc2)))/P0;
+                +(minP1:(nc3+nc2)))/P0;
         otherwise
             error('Invalid scenario!')
     end
