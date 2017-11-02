@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
 	cmd.AddValue("dataRate", "data rate [mbps]", dataRate);
 	cmd.AddValue("errMin", "error rate minimum  between cluster heads for uniform distribution", err0);
 	cmd.AddValue("errMax", "error rate maximum   between cluster heads for uniform distribution", err1);
-	cmd.AddValue("errSrc", " inter cluster error rate", errSrc);
+	cmd.AddValue("errSrc", " inner cluster error rate", errSrc);
 	cmd.AddValue("info", "Enable info messages", info);
 	cmd.AddValue("iter", "Maximum NOF iterations for solver", maxIter);
 	cmd.AddValue("k", "sparsity of original source measurements (needed when using OMP temporally)", k);
