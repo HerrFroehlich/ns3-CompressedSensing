@@ -221,6 +221,7 @@ IdentRandomMatrix *IdentRandomMatrix::Clone() const
 {
 	return new IdentRandomMatrix(*this);
 }
+
 /*********  GaussianRandomMatrix  **********/
 NS_OBJECT_ENSURE_REGISTERED(GaussianRandomMatrix);
 TypeId GaussianRandomMatrix::GetTypeId(void)
@@ -283,6 +284,68 @@ GaussianRandomMatrix *GaussianRandomMatrix::Clone() const
 {
 	return new GaussianRandomMatrix(*this);
 }
+/*********  UniformRandomMatrix  **********/
+NS_OBJECT_ENSURE_REGISTERED(UniformRandomMatrix);
+TypeId UniformRandomMatrix::GetTypeId(void)
+{
+	static TypeId tid = TypeId("UniformRandomMatrix")
+							.SetParent<RandomMatrix>()
+							.SetGroupName("CompressedSensing")
+							.AddAttribute("Min", "minimum of underlying gaussian distribution",
+										  DoubleValue(0),
+										  MakeDoubleAccessor(&UniformRandomMatrix::m_min),
+										  MakeDoubleChecker<double>())
+							.AddAttribute("Max", "maximum of underlying gaussian distribution",
+										  DoubleValue(1),
+										  MakeDoubleAccessor(&UniformRandomMatrix::m_max),
+										  MakeDoubleChecker<double>());
+	return tid;
+}
+
+UniformRandomMatrix::UniformRandomMatrix()
+{
+}
+
+UniformRandomMatrix::UniformRandomMatrix(uint32_t m, uint32_t n) : RandomMatrix(m, n), m_min(0), m_max(1)
+{
+	Generate(m_prevSeed, true);
+}
+UniformRandomMatrix::UniformRandomMatrix(double min, double max, uint32_t m, uint32_t n) : RandomMatrix(m, n), m_min(min), m_max(max)
+{
+	Generate(m_prevSeed, true);
+}
+
+void UniformRandomMatrix::Generate(uint32_t seed, bool force)
+{
+	if ((seed != m_prevSeed) || force) // only regenerate if nescessary or forced to
+	{
+		uint32_t seedOld = RngSeedManager::GetSeed(); // save back old seed
+		RngSeedManager::SetSeed(seed);
+		Ptr<T_RanVar> ranvar = CreateObject<T_RanVar>();
+		ranvar->SetAttribute("Min", DoubleValue(m_min));
+		ranvar->SetAttribute("Max", DoubleValue(m_max));
+		ranvar->SetStream(m_stream);
+		uint32_t n = nCols(),
+				 m = nRows();
+		for (uint32_t i = 0; i < m; i++)
+		{
+			for (uint32_t j = 0; j < n; j++)
+			{
+				m_mat(i, j) = ranvar->GetValue();
+			}
+		}
+
+		m_prevSeed = seed;
+		RngSeedManager::SetSeed(seedOld);
+		DoNorm();
+	}
+}
+
+UniformRandomMatrix *UniformRandomMatrix::Clone() const
+{
+	return new UniformRandomMatrix(*this);
+}
+
 /*********  BernRandomMatrix  **********/
 NS_OBJECT_ENSURE_REGISTERED(BernRandomMatrix);
 TypeId BernRandomMatrix::GetTypeId(void)

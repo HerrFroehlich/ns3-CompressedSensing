@@ -194,7 +194,7 @@ uint32_t CsClusterHeader::Deserialize(Buffer::Iterator start)
 	m_ncCount = buf.ReadU8();
 
 	//nc info
-	if (m_coeffType == E_NcCoeffType::NORMAL) //8 byte per coefficient
+	if (m_coeffType == E_NcCoeffType::NORMAL || m_coeffType == E_NcCoeffType::UNI) //8 byte per coefficient
 	{
 		uint32_t nBytes = m_ncInfoSize * COEFF_NORM_LEN;
 		buf.Read(reinterpret_cast<uint8_t *>(m_ncInfo.data()), nBytes);
@@ -241,7 +241,7 @@ uint32_t CsClusterHeader::GetSerializedSize() const
 
 	size += m_maxClusters * SRCINFO_LEN + sizeof(T_NcCountField);
 
-	if (m_coeffType == E_NcCoeffType::NORMAL) //8 byte per coefficient
+	if (m_coeffType == E_NcCoeffType::NORMAL || m_coeffType == E_NcCoeffType::UNI) //8 byte per coefficient
 	{
 		size += m_ncInfoSize * COEFF_NORM_LEN;
 	}
@@ -323,7 +323,7 @@ void CsClusterHeader::Serialize(Buffer::Iterator start) const
 
 	//nc info
 
-	if (m_coeffType == E_NcCoeffType::NORMAL) //8 byte per coefficient
+	if (m_coeffType == E_NcCoeffType::NORMAL || m_coeffType == E_NcCoeffType::UNI) //8 byte per coefficient
 	{
 		uint32_t nBytes = m_ncInfoSize * COEFF_NORM_LEN;
 		buf.Write(reinterpret_cast<const uint8_t *>(m_ncInfo.data()), nBytes);
@@ -415,7 +415,7 @@ CsClusterHeader::NcCoeffGenerator::NcCoeffGenerator()
 {
 	if (m_coeffType == CsClusterHeader::E_NcCoeffType::NORMAL)
 		m_ranvar = CreateObject<NormalRandomVariable>();
-	else if (m_coeffType == CsClusterHeader::E_NcCoeffType::BERN)
+	else if (m_coeffType == CsClusterHeader::E_NcCoeffType::BERN || m_coeffType == E_NcCoeffType::UNI)
 		m_ranvar = CreateObject<UniformRandomVariable>();
 }
 
@@ -431,7 +431,7 @@ void CsClusterHeader::NcCoeffGenerator::SetType(CsClusterHeader::E_NcCoeffType t
 double CsClusterHeader::NcCoeffGenerator::Generate() const
 {
 	double c = 0.0;
-	if (m_coeffType == CsClusterHeader::E_NcCoeffType::NORMAL)
+	if (m_coeffType == CsClusterHeader::E_NcCoeffType::NORMAL || m_coeffType == E_NcCoeffType::UNI)
 	{
 		c = m_ranvar->GetValue();
 	}

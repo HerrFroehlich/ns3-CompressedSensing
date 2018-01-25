@@ -274,6 +274,64 @@ private:
 
 /**
 * \ingroup ranmat
+* \class UniformRandomMatrix 
+*
+* \brief a random mxn matrix containing uniform distributed values between (min...max)
+*
+*/
+class UniformRandomMatrix : public RandomMatrix
+{
+public:
+  static TypeId GetTypeId();
+  /**
+  * \brief create a empty matrix
+  *
+  */
+  UniformRandomMatrix();
+
+  /**
+  * \brief create a UniformRandomMatrix of size MxN with min = 0, max = 1
+  *
+  * \param m     NOF rows
+  * \param n     NOF columns
+  *
+  */
+  UniformRandomMatrix(uint32_t m, uint32_t n);
+
+  /**
+  * \brief create a UniformRandomMatrix of size MxN with parameterized mean and variance
+  *
+  * \param min   minimum value of distribution
+  * \param max   maximum value of distribution
+  * \param m     NOF rows
+  * \param n     NOF columns
+  *
+  */
+  UniformRandomMatrix(double min, double max, uint32_t m, uint32_t n);
+
+  /**
+  * \brief Generate random entries for a given seed (if it is different than the previous one, or if forced to)
+  *
+  * \param seed seed to use
+  * \param force force generation
+  *
+  */
+  virtual void Generate(uint32_t seed, bool force = false);
+
+  /**
+  * \brief clones the matrix
+  *
+  * \return pointer to a new matrix
+  */
+  virtual UniformRandomMatrix *Clone() const;
+
+private:
+  typedef UniformRandomVariable T_RanVar; /**< random variable used*/
+  double m_min, m_max;                  /**< mean& variance of distribution*/
+};
+
+/**
+* \ingroup ranmat
 * \class BernRandomMatrix
 *
 * \brief a mxn matrix with entries (1, -1) or normalized(1/sqrt(m), -1/sqrt(m)) chosen from a bernoulli distribution

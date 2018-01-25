@@ -52,7 +52,8 @@ class CsClusterHeader : public CsHeader
 	enum E_NcCoeffType /**< enum stating which type of values is used for network coding*/
 	{
 		NORMAL, /**< using normal distributed coefficients*/
-		BERN	/**< using bernoulli distributed(-1/+1) coefficients*/
+		BERN,	/**< using bernoulli distributed(-1/+1) coefficients*/
+		UNI     /**< using uniform (0...1) distributed coefficients*/
 	};
 	//typedef NcCoeffGenerator::NcCoeff::E_Type E_NcCoeffType;
 	//typedef NcCoeffGenerator::NcCoeff T_NcInfoFieldValue;		  /**< type of the values in the network coding information field*/
